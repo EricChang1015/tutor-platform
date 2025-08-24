@@ -13,7 +13,7 @@ services:
       - "5432:5432"
     volumes:
       - ./db/create_db.sql:/docker-entrypoint-initdb.d/01_create_db.sql:ro
-      - /d/eric/tutor-platform2-data/pg:/var/lib/postgresql/data
+      - ./data/pg:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
@@ -22,7 +22,7 @@ services:
       - "6379:6379"
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
-      - /d/eric/tutor-platform2-data/redis:/data
+      - ./data/redis:/data
 
   minio:
     image: minio/minio:latest
@@ -35,7 +35,7 @@ services:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - /d/eric/tutor-platform2-data/minio:/data
+      - ./data/minio:/data
 
   init-minio:
     image: minio/mc:latest
