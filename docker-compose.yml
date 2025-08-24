@@ -32,8 +32,8 @@ services:
       MINIO_ROOT_PASSWORD: minio_pass_123
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # Console
+      - "9000:9000"
+      - "9001:9001"
     volumes:
       - ./data/minio:/data
 
@@ -58,7 +58,7 @@ services:
     working_dir: /app
     restart: unless-stopped
     environment:
-      NODE_ENV: production
+      NODE_ENV: development   # 開發模式
       DATABASE_URL: postgres://app:app_pass@postgres:5432/appdb
       REDIS_URL: redis://redis:6379
       S3_ENDPOINT: http://minio:9000
@@ -81,8 +81,8 @@ services:
     command: >
       sh -c "
         if [ -f package-lock.json ]; then npm ci; else npm i; fi &&
-        npx prisma generate || true &&
-        npm run start:dev
+        npx prisma generate || true && npx prisma generate &&
+        npx nest start --watch
       "
 
   web:
@@ -102,5 +102,6 @@ services:
     command: >
       sh -c "
         if [ -f package-lock.json ]; then npm ci; else npm i; fi &&
-        npm run dev
+        npm run build &&
+        npm run start
       "
