@@ -32,8 +32,8 @@ services:
       MINIO_ROOT_PASSWORD: minio_pass_123
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Console
     volumes:
       - ./data/minio:/data
 
@@ -82,7 +82,7 @@ services:
       sh -c "
         if [ -f package-lock.json ]; then npm ci; else npm i; fi &&
         npx prisma generate || true &&
-        npm run start:prod
+        npm run start:dev
       "
 
   web:
@@ -102,6 +102,5 @@ services:
     command: >
       sh -c "
         if [ -f package-lock.json ]; then npm ci; else npm i; fi &&
-        npm run build &&
-        npm run start
+        npm run dev
       "
