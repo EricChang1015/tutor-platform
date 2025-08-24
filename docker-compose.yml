@@ -1,0 +1,107 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app_pass
+      POSTGRES_DB: appdb
+      TZ: UTC
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/create_db.sql:/docker-entrypoint-initdb.d/01_create_db.sql:ro
+      - /d/eric/tutor-platform2-data/pg:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - /d/eric/tutor-platform2-data/redis:/data
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio_pass_123
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - /d/eric/tutor-platform2-data/minio:/data
+
+  init-minio:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        set -e;
+        until (mc alias set localminio http://minio:9000 minio minio_pass_123) >/dev/null 2>&1; do
+          echo "Waiting for MinIO...";
+          sleep 2;
+        done;
+        mc mb localminio/proofs || true;
+        # Keep bucket private; use presigned URLs in app.
+        echo "Bucket 'proofs' is ready.";
+
+  api:
+    image: node:20-alpine
+    working_dir: /app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://app:app_pass@postgres:5432/appdb
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minio
+      S3_SECRET_KEY: minio_pass_123
+      S3_BUCKET: proofs
+      S3_REGION: us-east-1
+      S3_USE_PATH_STYLE: "true"
+      JWT_SECRET: "change_me"
+      PORT: 3001
+    depends_on:
+      - postgres
+      - redis
+      - minio
+      - init-minio
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./api:/app
+    command: >
+      sh -c "
+        if [ -f package-lock.json ]; then npm ci; else npm i; fi &&
+        npx prisma generate || true &&
+        npm run start:prod
+      "
+
+  web:
+    image: node:20-alpine
+    working_dir: /app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE: http://localhost:3001
+      PORT: 3000
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./web:/app
+    command: >
+      sh -c "
+        if [ -f package-lock.json ]; then npm ci; else npm i; fi &&
+        npm run build &&
+        npm run start
+      "
