@@ -1,129 +1,180 @@
-1) 線上課程系統需求（MVP → 可擴展）
+# Tutor Platform MVP 說明文件
 
-核心用戶與角色
+我是線上教學老師與老闆，旗下有多名老師與學生，目前由我手動媒合上課時間、回收老師回報並結算。此專案目標是做出一個可先上線的 MVP，之後能逐步擴展功能與自動化流程。
+
+## 1) 系統需求（MVP → 可擴展）
+
+核心角色
 - Admin：總覽、建立老師/學生、手動配課與加堂、月結審核。
 - Teacher：設定可授課時段、管理課表、上課連結、課後上傳證明與教師回報、查看月結。
-- Student：購買或持有課程包、選老師與時段預約、課後填學習目標。
+- Student：持有課程包、選老師與時段預約、課後填學習目標。
 
 預約與上課
-- 老師維護可授課時段（每週重複 slot，支持例外）。
-- 學生查看老師空檔，預約固定時長 25 分鐘課程。
-- 會議連結 MVP：由老師提供（Zoom 個人會議室或每次填寫）。
-- 自動通知：預約成功、課前提醒（24h/1h）、課後提醒（老師與學生各自要填資料）。
-- 自動審批：預約成功即 confirmed（若衝突或超容量才擋）。
+- 老師維護每週重複的可授課時段（支持例外）。
+- 學生查看老師空檔並預約 25 分鐘課程。
+- 會議連結 MVP：由老師提供（可填 Zoom 個人會議室或每次填寫）。
+- 通知：預約成功、課前 24h/1h 提醒、課後提醒（老師與學生各自需填資料）。
+- 自動審批：預約成功即 confirmed（衝突或超容量才擋）。
 
-課後閉環與證明
-- 老師必須：上傳 screenshot 証明 + 填教師備註（teacher notes）。
-- 學生必須：填學習目標/建議（student goal）。
+課後閉環
+- 老師：上傳截圖證明 + 填教師備註（teacher notes）。
+- 學生：填學習目標/建議（student goal）。
 - 三者齊備才算 Completed，否則維持 Confirmed，不進結算。
 
 取消/補課
-- 學生於課前 ≥24h 取消：返還 1 堂。
-- <24h 取消：預設扣堂。
-- 技術問題（network/平台故障）取消：返還 1 堂且加發補償 1 堂（credit）。
-- 老師取消：記錄統計，規則後續擴展（先不自動補償，交由 Admin 決策或比照技術問題）。
+- 學生 ≥24h 前取消：返還 1 堂；<24h：預設扣堂。
+- 技術問題取消：返 1 堂 + 補償 1 堂（credit）。
+- 老師取消：先記錄，是否補償由 Admin 決策（或比照技術問題）。
 
 課程與計費
-- 目前唯一課程 English 1-on-1，25 分鐘，每堂 7 美元（global 預設）。
-- 抽成規則：平台抽成% 有全域預設，可被單一老師覆寫。
+- 目前唯一課程 English 1-on-1，25 分鐘，預設每堂 7 美元。
+- 抽成規則：平台全域預設，可被單一老師覆寫。
 - 套裝課（package）：Admin 手動加堂（先不接金流），remaining_sessions 扣/返。
-- Groups：先不開，資料模型預留 capacity。
+- Group 課先不開，模型預留 capacity。
 
 結算與報表
-- 月結：聚合上月已完成的課堂，按 pricing rule 計算老師應得與平台分潤，生成 payout。
+- 月結：聚合上月已完成課堂，依 pricing rule 計算老師應得與平台分潤，生成 payout。
 - Admin 報表：預約數、完成率、取消率、技術取消比例、收入與分潤。
 - Teacher 報表：當月課時與估算收入。
 - Student：剩餘堂數、已預約與歷史課程。
 
 通知渠道
-- MVP：Email 必備，可選 SMS/WhatsApp。
-- WeChat：後續導入（建議企業微信 WeCom 機器人或服務號模板消息）。
+- MVP：Email（必備）。可選 SMS/WhatsApp。WeChat 後續導入。
 
 權限與隱私
 - RBAC：Admin/Teacher/Student 路由與資料可見性隔離。
-- 檔案：上傳至 S3/MinIO，私有存取，僅 Admin/對應老師可見。
+- 檔案：上傳至 S3/MinIO，私有存取，僅 Admin 或對應老師可見。
 
-2) 前後端技術路線與模組框架
+## 2) 技術架構
 
-整體架構
-- 前端：Next.js（React），SSR/CSR混用，角色式儀表板。
-- 後端：NestJS（TypeScript），模組化設計，Prisma + PostgreSQL。
-- 快取與排程：Redis + BullMQ（提醒、月結批次）。
-- 儲存：MinIO（S3 相容），簽名 URL 直傳。
-- 部署：Docker Compose（你已有 DB/Redis/MinIO，可直接掛上）。
+- 前端：Next.js（角色式儀表板）
+- 後端：NestJS（TypeScript），Prisma + PostgreSQL
+- 快取與排程：Redis + BullMQ（提醒、月結批次）
+- 儲存：MinIO（S3 相容，簽名 URL 直傳）
+- 部署：Docker Compose
 
-後端技術選型
-- 框架：NestJS
-- ORM：Prisma（強型別、快開發）
-- 認證：JWT（Access token；可後續加 Refresh）
-- 佇列：BullMQ + Redis（通知與月結）
-- 檔案：AWS SDK v3，Pre-signed PUT URL
-- 驗證：class-validator + class-transformer
-- 設定：@nestjs/config
+後端主要模組
+- Auth、Users、Teachers、Students
+- Courses、Pricing、Packages
+- Availability、Booking
+- Sessions（會議連結、課後回報與 proof 上傳）
+- Storage（S3/MinIO 簽名 URL）
+- Notifications（Email/排程）
+- Payouts（月結）
+- Reports（儀表板，後續）
 
-後端模組藍圖
-- AuthModule
-  - JWT 登入/註冊（Admin 能創建老師/學生帳號）。
-  - RoleGuard + 自訂裝飾器 @Roles() 控制路由。
-- UsersModule
-  - Admin 建立與管理使用者、重設密碼。
-- TeachersModule
-  - 讀/寫教師資料（顯示名稱、會議連結預設、簡介）。
-- StudentsModule
-  - 讀/寫學生資料（家長聯絡、偏好）。
-- CoursesModule
-  - 課程 CRUD（目前一種課，後續可擴）。
-- PricingModule
-  - Global 預設 + Teacher 覆寫；決策器服務 PricingService.resolve(teacherId, courseId)。
-- PackagesModule
-  - Admin 手動加堂、查詢剩餘堂數；扣堂/返堂原子操作；CreditLedger 補償紀錄。
-- AvailabilityModule
-  - 老師每週時段 CRUD；可擴設定黑名單日期與特例。
-- BookingModule
-  - 查可預約 25 分鐘時段（以 availability + 已有 sessions 避免衝突）。
-  - 預約：扣堂 → 建 session/attendee → 發通知。
-  - 取消：依規則返堂/補償。
-- SessionsModule
-  - 會議連結維護（meetingUrl）。
-  - 上傳截圖：產生簽名 URL；上傳後回寫 SessionProof。
-  - 回報閉環：teacher_notes、student_goal；tryComplete 檢查完成狀態。
-  - 列表/日曆查詢（依角色、時間範圍）。
-- StorageModule
-  - S3/MinIO 封裝：簽名 URL、私有網址簽名（GET）。
-- NotificationsModule
-  - Email 發送器（可先 Stub 記 log）。
-  - 排程 Job：課前 24h/1h 提醒、課後 10 分鐘提醒填寫回報。
-- PayoutsModule
-  - 月結產生：聚合上月已完成課堂、按 pricing 產出 breakdown，狀態流轉（draft → confirmed → paid）。
-- ReportsModule（可後續）
-  - 儀表板資料匯總 API。
+## 3) 環境需求
 
-前端技術選型
-- 框架：Next.js 14（App Router）
-- UI：任選（Ant Design、MUI、Tailwind），MVP 建議 AntD 提升 CRUD 效率。
-- 認證：JWT 存於 HttpOnly Cookie 或 Bearer Token（MVP 可 Bearer）。
-- 請求層：React Query（TanStack Query）管理快取與錯誤。
-- 路由與頁面
+Docker 服務
+- PostgreSQL 15（含初始化 SQL）
+- Redis 7
+- MinIO（9000 API / 9001 Console）
+- 後端 API（NestJS，Node 20）
+
+環境變數（compose 中已設定）
+- DATABASE_URL、REDIS_URL
+- S3_ENDPOINT、S3_ACCESS_KEY、S3_SECRET_KEY、S3_BUCKET、S3_REGION、S3_USE_PATH_STYLE
+- JWT_SECRET、PORT
+
+## 4) 專案啟動
+
+初次啟動
+- 建議使用 Docker Compose（已提供 docker-compose.yml）
+- api 映像會在 build 時執行 npm ci 與 prisma generate
+- compose 僅掛載 src、prisma、.env，避免覆蓋 node_modules
+
+指令
+- 啟動
+  - docker compose up -d
+- 檢查 API
+  - curl -s http://localhost:3001/health  → 應回傳 {"ok":true,...}
+  - curl -s http://localhost:3001/        → "Hello World!"
+- 登入測試（admin）
+  - curl -s -X POST http://localhost:3001/auth/login -H "Content-Type: application/json" -d '{"email":"admin@example.com","password":"<你的密碼>"}'
+
+常見問題
+- @prisma/client did not initialize yet：
+  - 確保 prisma/schema.prisma 的 generator client 沒有自訂 output（使用預設）
+  - 只掛載 src/prisma/.env，不要掛載整個 /app
+  - 重新 build：docker compose build --no-cache api → up
+- TypeScript TS2345: $on('beforeExit', ...) 類型錯誤：
+  - 可移除 beforeExit 勾子，改用 onModuleDestroy 斷線；或升級/對齊 Prisma 版本與型別
+
+## 5) 目前進度
+
+基礎設施
+- PostgreSQL、Redis、MinIO 已運行
+- MinIO bucket 初始化程序完成（proofs）
+
+後端 API
+- NestJS 專案可啟動，Health 檢查通過
+- Auth 登入測試成功（admin）
+- Prisma Client 生成與運行流程已修正（避免 run 時被 volumes 覆蓋）
+
+前端
+- Next.js 服務框架已可啟動（待串接 API 與頁面）
+
+## 6) 下一步計劃（建議順序）
+
+A. 後端功能擴充（短期）
+1) Users/Teachers/Students CRUD 基本 API
+   - Admin 建立老師/學生、重設密碼（bcrypt）
+   - Teachers/Students 基本檔案讀寫
+2) Courses 與 Pricing
+   - seed 一筆 English 1-on-1（25 分鐘、7 USD）
+   - PricingService.resolve(teacherId, courseId) 支援全域預設與老師覆寫
+3) Packages（加堂/扣堂/返堂 + Ledger）
+   - Admin 加堂 API
+   - 預約/取消時原子扣返堂
+4) Availability + Booking
+   - 老師維護每週 slot（weekday + time range）
+   - 學生查可預約時間（避開已排 sessions，尊重 capacity）
+   - 建立預約：扣堂 → 建 session/attendee → 發通知（先記 log）
+5) Sessions + Storage
+   - 產生簽名 URL（PUT）上傳 screenshot 至 MinIO
+   - 回報閉環：teacher notes、student goal、tryComplete 邏輯
+6) Notifications
+   - 簡易 Email 發送器（可用 console transport）
+   - BullMQ job：課前 24h/1h、課後 10 分鐘提醒
+
+B. 月結與報表（中期）
+- Payouts：聚合上月已完成課堂，生成 breakdown（draft → confirmed → paid）
+- Reports：儀表板 API（預約數、完成率、取消率、技術取消比例、收入與分潤）
+
+C. 前端（並行推進）
+- 基本頁面
   - /login
-  - /admin：用戶管理、加堂、月結
-  - /teacher：我的時段、我的課表、回報與上傳
+  - /admin：使用者管理、加堂、月結
+  - /teacher：我的時段、我的課表、回報與上傳 proof
   - /student：我的堂數、預約、課後填寫
-  - 共用：/sessions/:id 詳情
+- 用 React Query 管理請求與快取
+- RBAC 導航與保護路由
 
-數據流與契約
-- 全部走 REST JSON（MVP），後續可加 Webhook 或 WebSocket。
-- 檔案上傳：前端向 /storage/signed-url 取 PUT URL → 直傳 → 回填 /sessions/:id/proofs。
+## 7) 任務分解與驗收要點
 
-非功能性要求
-- 日誌與追蹤：Pino 或 NestJS Logger；請求ID中介層。
-- 錯誤處理：統一的 ExceptionFilter，回傳 { code, message, details }。
-- 安全：CORS 白名單、速率限制（可加 @nestjs/throttler）、密碼加鹽哈希。
-- 租戶/多語系：後續擴展；先設定使用者 timezone，時間顯示前端處理。
+- Availability
+  - API：CRUD、校驗 weekday/time、避免重疊
+  - 測試：建立多個 slot、跨天/邊界測試
+- Booking
+  - API：查空檔（按老師/日期範圍），建立/取消
+  - 規則：衝突檢查、capacity、扣/返堂
+- Sessions
+  - API：proof 簽名 URL、教師/學生回報、完成檢查
+  - 檔案：MinIO 私有存取，GET 也用簽名 URL
+- Notifications
+  - 任務：建立 BullMQ queue、cron/延遲任務
+  - 驗收：預約/取消/提醒產生對應任務（先記 log）
 
-開始順序建議（後端 MVP）
-- 第 1 步：AuthModule、UsersModule、Prisma 接上 DB。
-- 第 2 步：CoursesModule（seed 一筆 English 1-on-1）、PricingModule（global 預設）。
-- 第 3 步：PackagesModule（Admin 加堂、扣/返 API）。
-- 第 4 步：AvailabilityModule（CRUD）+ BookingModule（查空檔、預約、取消）。
-- 第 5 步：StorageModule（簽名 URL）+ SessionsModule（上傳 proof、回報閉環、完成）。
-- 第 6 步：NotificationsModule（先記 log）+ PayoutsModule（產生月結的服務函式與 API）。
+## 8) 開發注意事項
+
+- Prisma
+  - 使用預設 generator 輸出，import from '@prisma/client'
+  - schema 與 DB 同步時，先 db pull 或調整 migrate 策略
+- Docker
+  - api 服務不要掛載整個 /app，避免覆蓋 node_modules
+  - 建議在 Dockerfile build 階段 npm ci 與 prisma generate
+- 安全
+  - JWT 秘鑰放 .env（compose 目前以環境變數傳入）
+  - 啟用 CORS 白名單、rate limit（後續）
+- 日誌
+  - 使用 Nest Logger 或 Pino，為請求加 requestId

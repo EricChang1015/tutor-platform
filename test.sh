@@ -1,14 +1,17 @@
 #!/bin/bash
 
 folders="\
+api/prisma \
 api/src \
 " # 列出這些資料夾下面完整的檔案
 
 files="\
+Readme.md \
 docker-compose.yml \
 create_db.sql \
 .env \
 package.json \
+.dockerignore \
 "
 
 # 臨時文件用於存儲所有找到的文件路徑

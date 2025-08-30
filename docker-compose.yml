@@ -14,6 +14,11 @@ services:
     volumes:
       - ./db/create_db.sql:/docker-entrypoint-initdb.d/01_create_db.sql:ro
       - ./data/pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d appdb"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
 
   redis:
     image: redis:7-alpine
@@ -50,15 +55,14 @@ services:
           sleep 2;
         done;
         mc mb localminio/proofs || true;
-        # Keep bucket private; use presigned URLs in app.
         echo "Bucket 'proofs' is ready.";
 
   api:
-    image: node:20-alpine
+    build: ./api
     working_dir: /app
     restart: unless-stopped
     environment:
-      NODE_ENV: development   # 開發模式
+      NODE_ENV: development
       DATABASE_URL: postgres://app:app_pass@postgres:5432/appdb
       REDIS_URL: redis://redis:6379
       S3_ENDPOINT: http://minio:9000
@@ -68,22 +72,23 @@ services:
       S3_REGION: us-east-1
       S3_USE_PATH_STYLE: "true"
       JWT_SECRET: "change_me"
-      PORT: 3001
+      PORT: "3001"
     depends_on:
-      - postgres
-      - redis
-      - minio
-      - init-minio
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+      init-minio:
+        condition: service_started
     ports:
       - "3001:3001"
     volumes:
-      - ./api:/app
-    command: >
-      sh -c "
-        if [ -f package-lock.json ]; then npm ci; else npm i; fi &&
-        npx prisma generate || true && npx prisma generate &&
-        npx nest start --watch
-      "
+      # 只掛載需要熱重載的檔案，避免覆蓋 node_modules
+      - ./api/src:/app/src
+      - ./api/prisma:/app/prisma
+      - ./api/.env:/app/.env
 
   web:
     image: node:20-alpine
@@ -92,7 +97,7 @@ services:
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_BASE: http://localhost:3001
-      PORT: 3000
+      PORT: "3000"
     depends_on:
       - api
     ports:
