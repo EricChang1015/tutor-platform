@@ -75,6 +75,7 @@ Docker 服務
 - DATABASE_URL、REDIS_URL
 - S3_ENDPOINT、S3_ACCESS_KEY、S3_SECRET_KEY、S3_BUCKET、S3_REGION、S3_USE_PATH_STYLE
 - JWT_SECRET、PORT
+- ADMIN_SEED_EMAIL、ADMIN_SEED_PASSWORD（啟動時自動建立 admin 帳號）
 
 ## 4) 專案啟動
 
@@ -85,12 +86,14 @@ Docker 服務
 
 指令
 - 啟動
-  - docker compose up -d
+  - docker compose up -d --build
 - 檢查 API
   - curl -s http://localhost:3001/health  → 應回傳 {"ok":true,...}
   - curl -s http://localhost:3001/        → "Hello World!"
 - 登入測試（admin）
-  - curl -s -X POST http://localhost:3001/auth/login -H "Content-Type: application/json" -d '{"email":"admin@example.com","password":"<你的密碼>"}'
+  - 先在 api/.env 設定 ADMIN_SEED_EMAIL、ADMIN_SEED_PASSWORD
+  - 啟動後 API 會自動種子 admin 使用者（日誌會顯示 Seeded admin user 或 Admin already exists）
+  - curl -s -X POST http://localhost:3001/auth/login -H "Content-Type: application/json" -d '{"email":"<ADMIN_SEED_EMAIL>","password":"<ADMIN_SEED_PASSWORD>"}'
 
 常見問題
 - @prisma/client did not initialize yet：
@@ -108,8 +111,14 @@ Docker 服務
 
 後端 API
 - NestJS 專案可啟動，Health 檢查通過
-- Auth 登入測試成功（admin）
-- Prisma Client 生成與運行流程已修正（避免 run 時被 volumes 覆蓋）
+- Auth 登入測試成功（JWT Bearer）
+- Users
+  - Admin 建立使用者（POST /users，Teacher/Student 會自動建立對應 profile）
+  - 列表查詢（GET /users?role=&active=&q=）
+  - 取得單一使用者（GET /users/:id）
+  - 自己的資訊（GET /users/me）
+  - Admin 重設密碼（POST /users/reset-password）
+- 啟動時自動種子 Admin 使用者（以 ADMIN_SEED_EMAIL / ADMIN_SEED_PASSWORD）
 
 前端
 - Next.js 服務框架已可啟動（待串接 API 與頁面）
@@ -117,25 +126,24 @@ Docker 服務
 ## 6) 下一步計劃（建議順序）
 
 A. 後端功能擴充（短期）
-1) Users/Teachers/Students CRUD 基本 API
-   - Admin 建立老師/學生、重設密碼（bcrypt）
-   - Teachers/Students 基本檔案讀寫
-2) Courses 與 Pricing
-   - seed 一筆 English 1-on-1（25 分鐘、7 USD）
-   - PricingService.resolve(teacherId, courseId) 支援全域預設與老師覆寫
-3) Packages（加堂/扣堂/返堂 + Ledger）
-   - Admin 加堂 API
-   - 預約/取消時原子扣返堂
-4) Availability + Booking
-   - 老師維護每週 slot（weekday + time range）
-   - 學生查可預約時間（避開已排 sessions，尊重 capacity）
-   - 建立預約：扣堂 → 建 session/attendee → 發通知（先記 log）
-5) Sessions + Storage
+1) Courses 與 Pricing
+   - 確認 seed 一筆 English 1-on-1（25 分鐘、7 USD）已存在（DB/init SQL 已內建）
+   - 新增 PricingService.resolve(teacherId, courseId)：支援全域預設與老師覆寫（priority/active/有效期）
+   - 新增 API：GET /pricing/resolve?teacherId=&courseId=
+2) Packages（加堂/扣堂/返堂 + Ledger）
+   - Admin 加堂 API（POST /packages）
+   - 查詢學生剩餘堂數（GET /students/:id/packages/summary）
+   - 扣/返堂會在 Booking/取消中以 transaction 處理（先實作 service）
+3) Availability + Booking（MVP）
+   - Availability：老師維護 weekly slots（CRUD、避免重疊）
+   - Booking：學生查可預約時間（按老師/日期），建立預約（扣堂 → 建 session/attendee → 狀態 confirmed）
+   - 取消：≥24h 返 1 堂；<24h 預設扣堂；技術問題取消返 1 堂 + 補 1 堂
+4) Sessions + Storage
    - 產生簽名 URL（PUT）上傳 screenshot 至 MinIO
-   - 回報閉環：teacher notes、student goal、tryComplete 邏輯
-6) Notifications
-   - 簡易 Email 發送器（可用 console transport）
-   - BullMQ job：課前 24h/1h、課後 10 分鐘提醒
+   - 回報閉環：teacher notes、student goal、tryComplete 邏輯（齊備改 completed）
+5) Notifications
+   - 簡易 Email 發送器（console transport）
+   - BullMQ job：課前 24h/1h、課後 10 分鐘提醒（先記 log）
 
 B. 月結與報表（中期）
 - Payouts：聚合上月已完成課堂，生成 breakdown（draft → confirmed → paid）
@@ -150,20 +158,15 @@ C. 前端（並行推進）
 - 用 React Query 管理請求與快取
 - RBAC 導航與保護路由
 
-## 7) 任務分解與驗收要點
+## 7) 驗收要點與測試
 
-- Availability
-  - API：CRUD、校驗 weekday/time、避免重疊
-  - 測試：建立多個 slot、跨天/邊界測試
-- Booking
-  - API：查空檔（按老師/日期範圍），建立/取消
-  - 規則：衝突檢查、capacity、扣/返堂
-- Sessions
-  - API：proof 簽名 URL、教師/學生回報、完成檢查
-  - 檔案：MinIO 私有存取，GET 也用簽名 URL
-- Notifications
-  - 任務：建立 BullMQ queue、cron/延遲任務
-  - 驗收：預約/取消/提醒產生對應任務（先記 log）
+- Users
+  - Admin 成功建立 teacher/student，檢查 DB 有對應 profile
+  - 列表可依 role/active/q 篩選
+  - Admin 可重設密碼；被重設帳號可成功登入
+- Auth
+  - JWT 正常攜帶於 Authorization: Bearer <token>
+  - RBAC：Admin 才能呼叫 /users、/users/reset-password；所有已登入者可呼叫 /users/me
 
 ## 8) 開發注意事項
 
@@ -176,5 +179,6 @@ C. 前端（並行推進）
 - 安全
   - JWT 秘鑰放 .env（compose 目前以環境變數傳入）
   - 啟用 CORS 白名單、rate limit（後續）
+  - 管理好 ADMIN_SEED_PASSWORD（僅在本地方便測試，正式環境改用安全密碼）
 - 日誌
   - 使用 Nest Logger 或 Pino，為請求加 requestId
