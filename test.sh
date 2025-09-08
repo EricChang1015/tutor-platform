@@ -12,6 +12,8 @@ create_db.sql \
 .env \
 package.json \
 .dockerignore \
+Dockerfile \
+test.html \
 "
 
 # 臨時文件用於存儲所有找到的文件路徑
