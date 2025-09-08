@@ -118,32 +118,88 @@ Docker 服務
   - 取得單一使用者（GET /users/:id）
   - 自己的資訊（GET /users/me）
   - Admin 重設密碼（POST /users/reset-password）
+- Pricing（新）
+  - 規則解析服務 PricingService.resolve(teacherId?, courseId, at?)
+    - 邏輯：active、priority DESC、valid_from/valid_to 篩選；覆寫層級 teacher > course > global；price 與 commission 可分別被不同規則覆寫
+  - API：GET /pricing/resolve?courseId=&teacherId=&at=
+  - DTO 驗證：courseId 必填 UUID、teacherId/at 可選（ISO8601）
 - 啟動時自動種子 Admin 使用者（以 ADMIN_SEED_EMAIL / ADMIN_SEED_PASSWORD）
 
 前端
 - Next.js 服務框架已可啟動（待串接 API 與頁面）
 
-## 6) 下一步計劃（建議順序）
+## 6) 操作指南
+
+修改密碼
+- Admin 重設任一使用者密碼（已實作）
+  - Endpoint: POST /users/reset-password
+  - 權限：Admin
+  - 範例：
+    curl -s -X POST http://localhost:3001/users/reset-password \
+      -H "Authorization: Bearer <ADMIN_TOKEN>" \
+      -H "Content-Type: application/json" \
+      -d '{"userId":"<USER_ID>","newPassword":"newpass123"}'
+- 使用者自行變更密碼（規劃中）
+  - 預計新增：POST /auth/change-password（需提供 oldPassword/newPassword，僅本人可操作）
+  - 後續補上最小強度檢查及防止近期密碼重用
+
+Pricing 查價
+- 取得定價（僅 courseId）
+  - GET /pricing/resolve?courseId=<COURSE_ID>
+- 指定老師覆寫（可選）
+  - GET /pricing/resolve?courseId=<COURSE_ID>&teacherId=<TEACHER_PROFILE_ID>
+- 指定時間點（可選）
+  - GET /pricing/resolve?courseId=<COURSE_ID>&at=2025-01-01T00:00:00Z
+- 成功回應範例
+  {
+    "price_cents": 700,
+    "commission_pct": 40,
+    "sources": {
+      "price": { "id": "<rule_id>", "scope": "global" | "course" | "teacher" },
+      "commission": { "id": "<rule_id>", "scope": "global" | "course" | "teacher" }
+    }
+  }
+
+## 7) 測試工具（test.html）
+
+為方便快速測 API，提供一個前端單檔工具：
+- 存放位置：repo 根目錄 test.html（已提供範本）
+- 功能：Login 並自動保存/附帶 Bearer Token、操作 /users 與 /pricing 常用端點、顯示回應 JSON 與對應 cURL
+- 使用步驟：
+  1) 以瀏覽器打開 test.html
+  2) 設定 API Base URL（預設 http://localhost:3001）
+  3) 使用 admin 帳號登入（ADMIN_SEED_EMAIL / ADMIN_SEED_PASSWORD）
+  4) 之後的請求會自動帶入 Token，開始操作 /users、/pricing
+- 若需擴充（Packages、Availability、Booking），可在同頁面新增面板
+
+## 8) 驗收要點與測試
+
+- Users
+  - Admin 成功建立 teacher/student，檢查 DB 有對應 profile
+  - 列表可依 role/active/q 篩選
+  - Admin 可重設密碼；被重設帳號可成功登入
+- Auth
+  - JWT 正常攜帶於 Authorization: Bearer <token>
+  - RBAC：Admin 才能呼叫 /users、/users/reset-password；所有已登入者可呼叫 /users/me
+- Pricing
+  - 僅有 global 規則時可得到預設價（如 700/40）
+  - 老師層級規則可覆寫 price 或 commission
+  - valid_from/valid_to 能正確控制生效時間；at 指定時間查驗
+
+## 9) 下一步計劃（更新）
 
 A. 後端功能擴充（短期）
-1) Courses 與 Pricing
-   - 確認 seed 一筆 English 1-on-1（25 分鐘、7 USD）已存在（DB/init SQL 已內建）
-   - 新增 PricingService.resolve(teacherId, courseId)：支援全域預設與老師覆寫（priority/active/有效期）
-   - 新增 API：GET /pricing/resolve?teacherId=&courseId=
-2) Packages（加堂/扣堂/返堂 + Ledger）
-   - Admin 加堂 API（POST /packages）
-   - 查詢學生剩餘堂數（GET /students/:id/packages/summary）
-   - 扣/返堂會在 Booking/取消中以 transaction 處理（先實作 service）
-3) Availability + Booking（MVP）
-   - Availability：老師維護 weekly slots（CRUD、避免重疊）
-   - Booking：學生查可預約時間（按老師/日期），建立預約（扣堂 → 建 session/attendee → 狀態 confirmed）
-   - 取消：≥24h 返 1 堂；<24h 預設扣堂；技術問題取消返 1 堂 + 補 1 堂
-4) Sessions + Storage
-   - 產生簽名 URL（PUT）上傳 screenshot 至 MinIO
-   - 回報閉環：teacher notes、student goal、tryComplete 邏輯（齊備改 completed）
-5) Notifications
-   - 簡易 Email 發送器（console transport）
-   - BullMQ job：課前 24h/1h、課後 10 分鐘提醒（先記 log）
+- [已完成] Pricing
+  - PricingService.resolve 與 GET /pricing/resolve
+  - DTO 驗證修正（避免 ValidationPipe 擋下查詢）
+- 進行中/下一步：Packages（加堂/扣堂/返堂 + Ledger）
+  1) Admin 加堂 API（POST /packages）
+  2) 查詢學生剩餘堂數（GET /students/:id/packages/summary）
+  3) PackagesService.adjustSessions(studentId, delta, reason, sessionId?)：供 Booking/取消流程使用（transaction）
+- 之後：Availability + Booking（MVP）
+  - Availability CRUD（避免重疊）
+  - Booking 建立預約（扣堂 → 建 session/attendee → confirmed）
+  - 取消規則（≥24h 返堂、<24h 扣堂、技術取消返 1 補 1）
 
 B. 月結與報表（中期）
 - Payouts：聚合上月已完成課堂，生成 breakdown（draft → confirmed → paid）
@@ -158,17 +214,7 @@ C. 前端（並行推進）
 - 用 React Query 管理請求與快取
 - RBAC 導航與保護路由
 
-## 7) 驗收要點與測試
-
-- Users
-  - Admin 成功建立 teacher/student，檢查 DB 有對應 profile
-  - 列表可依 role/active/q 篩選
-  - Admin 可重設密碼；被重設帳號可成功登入
-- Auth
-  - JWT 正常攜帶於 Authorization: Bearer <token>
-  - RBAC：Admin 才能呼叫 /users、/users/reset-password；所有已登入者可呼叫 /users/me
-
-## 8) 開發注意事項
+## 10) 開發注意事項
 
 - Prisma
   - 使用預設 generator 輸出，import from '@prisma/client'
