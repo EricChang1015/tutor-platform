@@ -1,0 +1,226 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model app_user {
+  id              String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email           String           @unique
+  phone           String?
+  password_hash   String
+  role            String
+  name            String
+  is_active       Boolean          @default(true)
+  timezone        String?          @default("UTC")
+  created_at      DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime         @default(now()) @db.Timestamptz(6)
+  student_profile student_profile?
+  teacher_profile teacher_profile?
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model availability_slot {
+  id              String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  teacher_id      String          @db.Uuid
+  weekday         Int             @db.SmallInt
+  start_time      DateTime        @db.Time(6)
+  end_time        DateTime        @db.Time(6)
+  capacity        Int             @default(1)
+  effective_from  DateTime?       @db.Date
+  effective_to    DateTime?       @db.Date
+  teacher_profile teacher_profile @relation(fields: [teacher_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([teacher_id, weekday], map: "idx_avail_teacher_weekday")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model course {
+  id                  String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title               String
+  description         String?
+  duration_min        Int              @default(25)
+  type                String
+  default_price_cents Int              @default(700)
+  active              Boolean          @default(true)
+  created_at          DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime         @default(now()) @db.Timestamptz(6)
+  Renamedpackage      Renamedpackage[]
+  pricing_rule        pricing_rule[]
+  session             session[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model credit_ledger {
+  id              String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  student_id      String          @db.Uuid
+  source          String
+  delta_sessions  Int
+  reason          String?
+  session_id      String?         @db.Uuid
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  session         session?        @relation(fields: [session_id], references: [id], onUpdate: NoAction)
+  student_profile student_profile @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model has been renamed to 'Renamedpackage' during introspection, because the original name 'package' is reserved.
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model Renamedpackage {
+  id                 String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  student_id         String          @db.Uuid
+  course_id          String          @db.Uuid
+  total_sessions     Int
+  remaining_sessions Int
+  paid_amount_cents  Int             @default(0)
+  currency           String          @default("USD")
+  status             String          @default("active")
+  expires_at         DateTime?       @db.Timestamptz(6)
+  created_at         DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime        @default(now()) @db.Timestamptz(6)
+  course             course          @relation(fields: [course_id], references: [id], onUpdate: NoAction)
+  student_profile    student_profile @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([student_id], map: "idx_package_student")
+  @@map("package")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model payout {
+  id              String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  teacher_id      String          @db.Uuid
+  period_month    DateTime        @db.Date
+  total_cents     Int             @default(0)
+  currency        String          @default("USD")
+  status          String          @default("draft")
+  breakdown       Json            @default("[]")
+  generated_at    DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime        @default(now()) @db.Timestamptz(6)
+  teacher_profile teacher_profile @relation(fields: [teacher_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([teacher_id, period_month])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model pricing_rule {
+  id              String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  scope           String
+  teacher_id      String?          @db.Uuid
+  course_id       String?          @db.Uuid
+  price_mode      String
+  price_cents     Int?
+  commission_pct  Int?
+  priority        Int              @default(1)
+  active          Boolean          @default(true)
+  valid_from      DateTime?        @db.Timestamptz(6)
+  valid_to        DateTime?        @db.Timestamptz(6)
+  course          course?          @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  teacher_profile teacher_profile? @relation(fields: [teacher_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([course_id], map: "idx_pricing_rule_course")
+  @@index([priority(sort: Desc), scope], map: "idx_pricing_rule_prio")
+  @@index([teacher_id], map: "idx_pricing_rule_teacher")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model session {
+  id               String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  course_id        String             @db.Uuid
+  teacher_id       String             @db.Uuid
+  start_at         DateTime           @db.Timestamptz(6)
+  end_at           DateTime           @db.Timestamptz(6)
+  capacity         Int                @default(1)
+  status           String             @default("pending")
+  meeting_url      String?
+  meeting_passcode String?
+  created_by       String
+  cancel_reason    String?
+  technical_issue  Boolean            @default(false)
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime           @default(now()) @db.Timestamptz(6)
+  credit_ledger    credit_ledger[]
+  course           course             @relation(fields: [course_id], references: [id], onUpdate: NoAction)
+  teacher_profile  teacher_profile    @relation(fields: [teacher_id], references: [id], onUpdate: NoAction)
+  session_attendee session_attendee[]
+  session_proof    session_proof[]
+  session_report   session_report?
+
+  @@index([teacher_id, start_at], map: "idx_session_teacher_start")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model session_attendee {
+  id              String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  session_id      String          @db.Uuid
+  student_id      String          @db.Uuid
+  status          String          @default("booked")
+  joined_at       DateTime?       @db.Timestamptz(6)
+  left_at         DateTime?       @db.Timestamptz(6)
+  session         session         @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  student_profile student_profile @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([session_id, student_id])
+  @@index([student_id], map: "idx_attendee_student")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model session_proof {
+  id              String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  session_id      String          @db.Uuid
+  teacher_id      String          @db.Uuid
+  type            String
+  url             String
+  meta            Json?           @default("{}")
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  session         session         @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  teacher_profile teacher_profile @relation(fields: [teacher_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model session_report {
+  id                   String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  session_id           String    @unique @db.Uuid
+  teacher_notes        String?
+  student_goal         String?
+  teacher_submitted_at DateTime? @db.Timestamptz(6)
+  student_submitted_at DateTime? @db.Timestamptz(6)
+  created_at           DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime  @default(now()) @db.Timestamptz(6)
+  session              session   @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model student_profile {
+  id               String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id          String             @unique @db.Uuid
+  parent_contact   Json?
+  preferences      Json?
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime           @default(now()) @db.Timestamptz(6)
+  credit_ledger    credit_ledger[]
+  Renamedpackage   Renamedpackage[]
+  session_attendee session_attendee[]
+  app_user         app_user           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model teacher_profile {
+  id                     String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id                String              @unique @db.Uuid
+  display_name           String?
+  bio                    String?
+  photo_url              String?
+  intro_video_url        String?
+  default_rate_cents     Int?
+  default_commission_pct Int?
+  meeting_provider       String              @default("custom")
+  meeting_account_meta   Json?               @default("{}")
+  created_at             DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime            @default(now()) @db.Timestamptz(6)
+  availability_slot      availability_slot[]
+  payout                 payout[]
+  pricing_rule           pricing_rule[]
+  session                session[]
+  session_proof          session_proof[]
+  app_user               app_user            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}

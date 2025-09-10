@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tutor Platform API Tester</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --muted: #94a3b8;
+      --text: #e5e7eb;
+      --accent: #22c55e;
+      --accent-2: #38bdf8;
+      --danger: #ef4444;
+      --border: #1f2937;
+      --input: #0b1220;
+      --btn: #1e293b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    header {
+      padding: 14px 16px; border-bottom: 1px solid var(--border);
+      display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    }
+    header h1 { font-size: 16px; margin: 0; color: #fff; }
+    .row { display: flex; gap: 16px; padding: 16px; }
+    @media (max-width: 900px) { .row { flex-direction: column; } }
+    .col { flex: 1; min-width: 280px; }
+    .card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px; margin-bottom: 16px;
+    }
+    .card h2 { font-size: 15px; margin: 0 0 10px; color: #fff; }
+    .card h3 { font-size: 13px; margin: 12px 0 8px; color: var(--muted); font-weight: 600; }
+    label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 6px; }
+    input, select, textarea {
+      width: 100%; padding: 10px 12px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--input); color: var(--text);
+      font-size: 14px; outline: none;
+    }
+    textarea { min-height: 80px; resize: vertical; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    button {
+      background: var(--btn); color: var(--text); border: 1px solid var(--border);
+      padding: 10px 12px; border-radius: 10px; cursor: pointer; font-weight: 600;
+    }
+    button.primary { background: #0b5; border-color: #0a4; }
+    button.accent { background: var(--accent-2); border-color: #1993c6; color: #07242f; }
+    button.danger { background: #7f1d1d; border-color: #b91c1c; }
+    .pill {
+      font-size: 12px; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--border);
+      background: #0b1220; color: var(--muted);
+    }
+    .status-ok { color: #22c55e; }
+    .status-bad { color: #ef4444; }
+    .flex { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .help { font-size: 12px; color: var(--muted); }
+    code.inline { background: #0b1220; padding: 2px 6px; border-radius: 6px; border: 1px solid var(--border); }
+    pre {
+      background: #0b1220; border: 1px solid var(--border); border-radius: 12px;
+      padding: 12px; overflow: auto; font-size: 13px; line-height: 1.45;
+    }
+    .two-cols {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    }
+    @media (max-width: 900px) { .two-cols { grid-template-columns: 1fr; } }
+    footer { padding: 10px 16px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); }
+    .kbd {
+      display: inline-block; padding: 0 6px; border: 1px solid var(--border); border-radius: 6px;
+      background: #0b1220; color: var(--muted); font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Backend API Tester</h1>
+    <div class="flex">
+      <label class="pill">API Base URL</label>
+      <input id="baseUrl" value="http://localhost:3001" style="width: 260px" />
+      <button id="pingBtn">Health Check</button>
+      <span id="pingStatus" class="help"></span>
+    </div>
+  </header>
+
+  <div class="row">
+    <div class="col">
+      <div class="card">
+        <h2>Auth</h2>
+        <div class="grid">
+          <div>
+            <label>Email</label>
+            <input id="loginEmail" placeholder="admin@example.com" />
+          </div>
+          <div>
+            <label>Password</label>
+            <input id="loginPassword" type="password" placeholder="••••••••" value="c5332333" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="primary" id="loginBtn">Login</button>
+          <button id="meBtn">GET /users/me</button>
+          <button class="danger" id="logoutBtn">Logout</button>
+        </div>
+        <div class="flex" style="margin-top:10px">
+          <span class="pill">Token</span>
+          <span id="tokenPreview" class="help" style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+        </div>
+        <div class="btn-row" style="margin-top:8px">
+          <button id="copyTokenBtn">Copy Token</button>
+          <button id="clearTokenBtn">Clear Token</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Users</h2>
+        <h3>Create User (Admin)</h3>
+        <div class="grid">
+          <div>
+            <label>Email</label>
+            <input id="cuEmail" placeholder="user@example.com" />
+          </div>
+          <div>
+            <label>Password</label>
+            <input id="cuPassword" type="password" placeholder="min 6 chars" />
+          </div>
+          <div>
+            <label>Role</label>
+            <select id="cuRole">
+              <option value="teacher">teacher</option>
+              <option value="student">student</option>
+              <option value="admin">admin</option>
+            </select>
+          </div>
+          <div>
+            <label>Name</label>
+            <input id="cuName" placeholder="User Name" />
+          </div>
+          <div>
+            <label>Phone (optional)</label>
+            <input id="cuPhone" placeholder="+886..." />
+          </div>
+          <div>
+            <label>Timezone</label>
+            <input id="cuTz" value="Asia/Taipei" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button id="createUserBtn">POST /users</button>
+        </div>
+
+        <h3>List Users (Admin)</h3>
+        <div class="grid">
+          <div>
+            <label>role (optional)</label>
+            <select id="luRole">
+              <option value="">(all)</option>
+              <option value="admin">admin</option>
+              <option value="teacher">teacher</option>
+              <option value="student">student</option>
+            </select>
+          </div>
+          <div>
+            <label>active (optional)</label>
+            <select id="luActive">
+              <option value="">(all)</option>
+              <option value="true">true</option>
+              <option value="false">false</option>
+            </select>
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <label>q (name/email contains)</label>
+            <input id="luQ" placeholder="search text" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button id="listUsersBtn">GET /users</button>
+        </div>
+
+        <h3>Get One (Admin)</h3>
+        <div class="grid">
+          <div>
+            <label>User ID</label>
+            <input id="goId" placeholder="UUID" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button id="getOneBtn">GET /users/:id</button>
+        </div>
+
+        <h3>Reset Password (Admin)</h3>
+        <div class="grid">
+          <div>
+            <label>User ID</label>
+            <input id="rpUserId" placeholder="UUID" />
+          </div>
+          <div>
+            <label>New Password</label>
+            <input id="rpNewPassword" type="password" placeholder="new password" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button id="resetPasswordBtn">POST /users/reset-password</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Pricing</h2>
+        <h3>Resolve</h3>
+        <div class="grid">
+          <div>
+            <label>courseId</label>
+            <input id="prCourseId" placeholder="course UUID" />
+          </div>
+          <div>
+            <label>teacherId (optional)</label>
+            <input id="prTeacherId" placeholder="teacher_profile UUID" />
+          </div>
+          <div>
+            <label>at (ISO8601, optional)</label>
+            <input id="prAt" placeholder="2025-01-01T00:00:00Z" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button id="resolvePricingBtn">GET /pricing/resolve</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="card">
+        <h2>回應輸出</h2>
+        <div class="two-cols">
+          <div>
+            <h3>JSON</h3>
+            <pre id="respBox">{ }</pre>
+          </div>
+          <div>
+            <h3>cURL</h3>
+            <pre id="curlBox"># 這裡會顯示對應的 cURL 指令</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>小幫手</h2>
+        <div class="help">
+          - 登入成功後，Token 會自動帶入所有請求（保存在 localStorage）。<br/>
+          - 如果遇到 401，請重新登入或確認 API Base URL 是否正確。<br/>
+          - 你可以點選 Copy Token 複製目前的 JWT。<br/>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    按 Ctrl/Cmd + Enter 重送上一個請求。
+  </footer>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const state = {
+      token: null,
+      lastRequest: null,
+    };
+
+    function saveToken(t) {
+      state.token = t;
+      if (t) localStorage.setItem('jwt', t);
+      else localStorage.removeItem('jwt');
+      renderToken();
+    }
+
+    function loadToken() {
+      const t = localStorage.getItem('jwt');
+      state.token = t;
+      renderToken();
+    }
+
+    function renderToken() {
+      const t = state.token;
+      $('tokenPreview').textContent = t ? t : '(no token)';
+    }
+
+    function getBase() {
+      return $('baseUrl').value.replace(/\/+$/, '');
+    }
+
+    function showJSON(obj) {
+      $('respBox').textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+    }
+
+    function showCurl({ method = 'GET', url, headers = {}, body }) {
+      let lines = [`curl -s -X ${method} "${url}"`];
+      for (const [k, v] of Object.entries(headers)) {
+        lines.push(`  -H "${k}: ${v}"`);
+      }
+      if (body) {
+        const data = typeof body === 'string' ? body : JSON.stringify(body);
+        lines.push(`  -d '${data}'`);
+      }
+      $('curlBox').textContent = lines.join(' \\\n');
+    }
+
+    async function request(method, path, { query, body, auth = true } = {}) {
+      const base = getBase();
+      const url = new URL(base + path);
+      if (query) {
+        Object.entries(query).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
+        });
+      }
+      const headers = { 'Content-Type': 'application/json' };
+      if (auth && state.token) headers['Authorization'] = 'Bearer ' + state.token;
+
+      const fetchOpts = { method, headers };
+      if (body) fetchOpts.body = JSON.stringify(body);
+
+      state.lastRequest = { method, url: url.toString(), headers, body };
+      showCurl(state.lastRequest);
+
+      try {
+        const res = await fetch(url.toString(), fetchOpts);
+        const text = await res.text();
+        let json;
+        try { json = JSON.parse(text); } catch { json = { raw: text }; }
+        showJSON(json);
+        if (!res.ok) {
+          console.warn('Request failed', res.status, json);
+        }
+        return { status: res.status, ok: res.ok, data: json, headers: res.headers };
+      } catch (err) {
+        showJSON({ error: String(err) });
+        console.error(err);
+        return { status: 0, ok: false, data: { error: String(err) } };
+      }
+    }
+
+    // Auth
+    $('loginBtn').addEventListener('click', async () => {
+      const email = $('loginEmail').value.trim();
+      const password = $('loginPassword').value;
+      const resp = await request('POST', '/auth/login', {
+        auth: false,
+        body: { email, password },
+      });
+      if (resp.ok && resp.data?.access_token) {
+        saveToken(resp.data.access_token);
+      }
+    });
+
+    $('logoutBtn').addEventListener('click', () => saveToken(null));
+    $('copyTokenBtn').addEventListener('click', async () => {
+      if (!state.token) return;
+      await navigator.clipboard.writeText(state.token);
+      alert('Token copied!');
+    });
+    $('clearTokenBtn').addEventListener('click', () => saveToken(null));
+    $('meBtn').addEventListener('click', () => request('GET', '/users/me'));
+
+    // Users
+    $('createUserBtn').addEventListener('click', () => {
+      const body = {
+        email: $('cuEmail').value.trim(),
+        password: $('cuPassword').value,
+        role: $('cuRole').value,
+        name: $('cuName').value.trim(),
+        phone: $('cuPhone').value.trim() || undefined,
+        timezone: $('cuTz').value.trim() || undefined,
+      };
+      return request('POST', '/users', { body });
+    });
+
+    $('listUsersBtn').addEventListener('click', () => {
+      const query = {
+        role: $('luRole').value || undefined,
+        active: $('luActive').value || undefined,
+        q: $('luQ').value.trim() || undefined,
+      };
+      return request('GET', '/users', { query });
+    });
+
+    $('getOneBtn').addEventListener('click', () => {
+      const id = $('goId').value.trim();
+      if (!id) return alert('User ID required');
+      return request('GET', `/users/${encodeURIComponent(id)}`);
+    });
+
+    $('resetPasswordBtn').addEventListener('click', () => {
+      const userId = $('rpUserId').value.trim();
+      const newPassword = $('rpNewPassword').value;
+      if (!userId || !newPassword) return alert('userId and newPassword required');
+      return request('POST', '/users/reset-password', { body: { userId, newPassword } });
+    });
+
+    // Pricing
+    $('resolvePricingBtn').addEventListener('click', () => {
+      const courseId = $('prCourseId').value.trim();
+      if (!courseId) return alert('courseId required');
+      const teacherId = $('prTeacherId').value.trim();
+      const at = $('prAt').value.trim();
+      const query = {
+        courseId,
+        teacherId: teacherId || undefined,
+        at: at || undefined,
+      };
+      return request('GET', '/pricing/resolve', { query });
+    });
+
+    // Health check
+    $('pingBtn').addEventListener('click', async () => {
+      const r = await request('GET', '/health', { auth: false });
+      const s = r.ok ? 'OK' : 'Failed';
+      $('pingStatus').innerHTML = r.ok
+        ? `<span class="status-ok">Health: ${s}</span>`
+        : `<span class="status-bad">Health: ${s}</span>`;
+    });
+
+    // Keyboard: re-run last request
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if (state.lastRequest) {
+          request(state.lastRequest.method, state.lastRequest.url.replace(getBase(), ''), {
+            body: state.lastRequest.body ? JSON.parse(state.lastRequest.body) : undefined,
+            auth: !!state.lastRequest.headers?.Authorization,
+          });
+        }
+      }
+    });
+
+    // Init
+    loadToken();
+    // Try to prefill admin email from common env
+    (function prefill() {
+      const guess = ['admin@example.com', 'root@example.com', 'user@example.com'];
+      const existed = $('loginEmail').value.trim();
+      if (!existed) $('loginEmail').value = guess[0];
+    })();
+  </script>
+</body>
+</html>
