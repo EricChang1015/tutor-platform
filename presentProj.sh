@@ -13,7 +13,8 @@ create_db.sql \
 package.json \
 .dockerignore \
 Dockerfile \
-test.html \
+testAPI.html \
+test.sh \
 "
 
 # 臨時文件用於存儲所有找到的文件路徑
