@@ -47,7 +47,7 @@
 
 ## 2) 技術架構
 
-- 前端：Next.js（角色式儀表板）
+- 前端：Svelte（Vite）
 - 後端：NestJS（TypeScript），Prisma + PostgreSQL
 - 快取與排程：Redis + BullMQ（提醒、月結批次）
 - 儲存：MinIO（S3 相容，簽名 URL 直傳）
@@ -77,6 +77,7 @@ Docker 服務
 - JWT_SECRET、PORT
 - ADMIN_SEED_EMAIL、ADMIN_SEED_PASSWORD（啟動時自動建立 admin 帳號）
 
+- VITE_API_BASE（web 前端使用的 API Base）
 ## 4) 專案啟動
 
 初次啟動
@@ -87,6 +88,7 @@ Docker 服務
 指令
 - 啟動
   - docker compose up -d --build
+  - 僅啟動後端服務（無前端）：docker compose up -d postgres redis minio init-minio api
 - 檢查 API
   - curl -s http://localhost:3001/health  → 應回傳 {"ok":true,...}
   - curl -s http://localhost:3001/        → "Hello World!"
@@ -102,6 +104,7 @@ Docker 服務
   - 重新 build：docker compose build --no-cache api → up
 - TypeScript TS2345: $on('beforeExit', ...) 類型錯誤：
   - 可移除 beforeExit 勾子，改用 onModuleDestroy 斷線；或升級/對齊 Prisma 版本與型別
+
 
 ## 5) 目前進度
 
@@ -126,7 +129,7 @@ Docker 服務
 - 啟動時自動種子 Admin 使用者（以 ADMIN_SEED_EMAIL / ADMIN_SEED_PASSWORD）
 
 前端
-- Next.js 服務框架已可啟動（待串接 API 與頁面）
+- 前端（Svelte）模組已新增：瀏覽 http://localhost:3000；目前提供 Health 與 Login 測試頁，呼叫後端 API（VITE_API_BASE）。
 
 ## 6) 操作指南
 
@@ -163,14 +166,15 @@ Pricing 查價
 ## 7) 測試工具（test.html）
 
 為方便快速測 API，提供一個前端單檔工具：
-- 存放位置：repo 根目錄 test.html（已提供範本）
+- 存放位置：api/testAPI.html（已提供）
 - 功能：Login 並自動保存/附帶 Bearer Token、操作 /users 與 /pricing 常用端點、顯示回應 JSON 與對應 cURL
 - 使用步驟：
-  1) 以瀏覽器打開 test.html
+  1) 以瀏覽器打開 api/testAPI.html
   2) 設定 API Base URL（預設 http://localhost:3001）
   3) 使用 admin 帳號登入（ADMIN_SEED_EMAIL / ADMIN_SEED_PASSWORD）
   4) 之後的請求會自動帶入 Token，開始操作 /users、/pricing
 - 若需擴充（Packages、Availability、Booking），可在同頁面新增面板
+- 或直接瀏覽 http://localhost:3000 使用 Svelte 前端（提供 Health 與 Login 測試）
 
 ## 8) 驗收要點與測試
 
@@ -206,12 +210,16 @@ B. 月結與報表（中期）
 - Reports：儀表板 API（預約數、完成率、取消率、技術取消比例、收入與分潤）
 
 C. 前端（並行推進）
+- 技術選擇：Svelte（Vite）
 - 基本頁面
   - /login
   - /admin：使用者管理、加堂、月結
   - /teacher：我的時段、我的課表、回報與上傳 proof
   - /student：我的堂數、預約、課後填寫
-- 用 React Query 管理請求與快取
+- 與後端整合
+  - 使用 JWT Bearer 向 NestJS API 認證（前端以 localStorage/Session 儲存 Token）
+  - 設定 CORS（允許前端來源）；或以前端反向代理至同網域
+  - 封裝 API Client（錯誤處理、重試、401 重新導向登入）
 - RBAC 導航與保護路由
 
 ## 10) 開發注意事項
@@ -222,6 +230,11 @@ C. 前端（並行推進）
 - Docker
   - api 服務不要掛載整個 /app，避免覆蓋 node_modules
   - 建議在 Dockerfile build 階段 npm ci 與 prisma generate
+- 前端（Servlet）整合注意
+  - 與現有 NestJS API 不衝突：採 REST 解耦、可獨立部署
+  - 若跨網域：需設定 CORS，並以 Authorization: Bearer <token> 攜帶 JWT
+  - 不建議跨域 Cookie Session；改用前端儲存 JWT（localStorage/Session）
+  - 檔案上傳：由 API 取得 MinIO 簽名 URL，再由前端直傳
 - 安全
   - JWT 秘鑰放 .env（compose 目前以環境變數傳入）
   - 啟用 CORS 白名單、rate limit（後續）

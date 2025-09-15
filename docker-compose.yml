@@ -96,8 +96,9 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_BASE: http://localhost:3001
+      VITE_API_BASE: http://localhost:3001
       PORT: "3000"
+      NPM_CONFIG_PRODUCTION: "false"
     depends_on:
       - api
     ports:
@@ -108,5 +109,5 @@ services:
       sh -c "
         if [ -f package-lock.json ]; then npm ci; else npm i; fi &&
         npm run build &&
-        npm run start
+        npm run preview
       "
