@@ -128,8 +128,15 @@ Docker 服務
   - DTO 驗證：courseId 必填 UUID、teacherId/at 可選（ISO8601）
 - 啟動時自動種子 Admin 使用者（以 ADMIN_SEED_EMAIL / ADMIN_SEED_PASSWORD）
 
+- Courses（新）
+  - API：POST /courses（Admin），GET /courses（Admin/Teacher/Student），GET /courses/:id
+  - 欄位：title、description?、type、duration_min、default_price_cents、active
+- Packages（新）
+  - API：POST /packages（Admin），GET /students/:id/packages/summary（Admin）
+  - 說明：套裝課建立於 package（Prisma 模型 Renamedpackage），摘要合併 remaining_sessions 與 credit_ledger（delta_sessions）加總
+
 前端
-- 前端（Svelte）模組已新增：瀏覽 http://localhost:3000；目前提供 Health 與 Login 測試頁，呼叫後端 API（VITE_API_BASE）。
+- 前端（Svelte）模組已新增：瀏覽 http://localhost:3000；提供 Health / Login / Courses / Packages 面板（建立課程、Admin 加堂、查詢學生剩餘堂數），透過 VITE_API_BASE 呼叫後端 API。
 
 ## 6) 操作指南
 
@@ -169,6 +176,36 @@ Pricing 查價
 - 存放位置：api/testAPI.html（已提供）
 - 功能：Login 並自動保存/附帶 Bearer Token、操作 /users 與 /pricing 常用端點、顯示回應 JSON 與對應 cURL
 - 使用步驟：
+
+### 6.1 快速上手：用前端完成 Courses/Packages（Web）
+
+前置需求
+- 服務已啟動：API http://localhost:3001、Web http://localhost:3000
+- 已設定 ADMIN_SEED_EMAIL / ADMIN_SEED_PASSWORD 並可用 Admin 登入
+
+步驟
+1) 開啟 http://localhost:3000 → 於 Login 面板以 Admin 帳密登入（成功後會顯示 Token ready）
+2) 在 Courses 面板：
+   - 若沒有課程：輸入 title 後按「POST /courses」建立新課程
+   - 按「GET /courses」取得課程列表，複製欲使用的 courseId
+3) 取得 studentId（重要）
+   - studentId 指的是 student_profile.id（並非 app_user.id）
+   - 暫時可用 api/testAPI.html 或 Postman 呼叫後端：
+     - 先建立一位 Student：POST /users（role=student）
+     - 以 GET /users?role=student 查詢後，到資料庫對應 student_profile.id（或後續在前端 Users 面板提供）
+4) 在 Packages（Admin）面板：
+   - 填入 studentId、courseId、totalSessions（例如 5）
+   - 按「POST /packages」建立套裝課，成功後回傳建立的 package 紀錄
+5) 在 Packages 摘要面板：
+   - 填入 studentId 後按「GET /students/:id/packages/summary」
+   - 可看到 remainingFromPackages、credits（來自 credit_ledger）、totalAvailable（兩者合計）
+
+常見錯誤排除
+- 401 未授權：尚未登入或 Token 遺失 → 先在 Login 面板登入再操作
+- 404 Not Found：courseId 或 studentId 不存在 → 確認已建立課程／學生且使用正確的 UUID
+- Course is inactive：課程為非啟用狀態 → 重新建立或啟用該課程
+- CORS/連線：Web 讀取的 VITE_API_BASE 應指向 http://localhost:3001（compose 已預設）
+
   1) 以瀏覽器打開 api/testAPI.html
   2) 設定 API Base URL（預設 http://localhost:3001）
   3) 使用 admin 帳號登入（ADMIN_SEED_EMAIL / ADMIN_SEED_PASSWORD）
@@ -196,9 +233,11 @@ A. 後端功能擴充（短期）
 - [已完成] Pricing
   - PricingService.resolve 與 GET /pricing/resolve
   - DTO 驗證修正（避免 ValidationPipe 擋下查詢）
-- 進行中/下一步：Packages（加堂/扣堂/返堂 + Ledger）
+- [已完成] Courses：POST /courses、GET /courses、GET /courses/:id
+- [已完成] Packages（基礎）
   1) Admin 加堂 API（POST /packages）
   2) 查詢學生剩餘堂數（GET /students/:id/packages/summary）
+- 進行中/下一步：Packages 擴充（扣堂/返堂 + Ledger）
   3) PackagesService.adjustSessions(studentId, delta, reason, sessionId?)：供 Booking/取消流程使用（transaction）
 - 之後：Availability + Booking（MVP）
   - Availability CRUD（避免重疊）
@@ -230,7 +269,7 @@ C. 前端（並行推進）
 - Docker
   - api 服務不要掛載整個 /app，避免覆蓋 node_modules
   - 建議在 Dockerfile build 階段 npm ci 與 prisma generate
-- 前端（Servlet）整合注意
+- 前端（Svelte）整合注意
   - 與現有 NestJS API 不衝突：採 REST 解耦、可獨立部署
   - 若跨網域：需設定 CORS，並以 Authorization: Bearer <token> 攜帶 JWT
   - 不建議跨域 Cookie Session；改用前端儲存 JWT（localStorage/Session）

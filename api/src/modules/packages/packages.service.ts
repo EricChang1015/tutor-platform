@@ -1,28 +1,27 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class PackagesService {
-  private prisma = new PrismaClient();
+  constructor(private prisma: PrismaService) {}
 
   async createPackage(params: { studentId: string; courseId: string; totalSessions: number; notes?: string }) {
     const { studentId, courseId, totalSessions, notes } = params;
 
     const [student, course] = await Promise.all([
       this.prisma.student_profile.findUnique({ where: { id: studentId } }),
-      this.prisma.courses.findUnique({ where: { id: courseId } }),
+      this.prisma.course.findUnique({ where: { id: courseId } }),
     ]);
     if (!student) throw new NotFoundException('Student profile not found');
     if (!course) throw new NotFoundException('Course not found');
-    if (!course.is_active) throw new BadRequestException('Course is inactive');
+    if (!course.active) throw new BadRequestException('Course is inactive');
 
     const pkg = await this.prisma.renamedpackage.create({
       data: {
-        student_profile_id: studentId,
+        student_id: studentId,
         course_id: courseId,
         total_sessions: totalSessions,
         remaining_sessions: totalSessions,
-        notes: notes ?? null,
         status: 'active',
       },
     });
@@ -35,7 +34,7 @@ export class PackagesService {
 
     const [packages, creditsAgg] = await Promise.all([
       this.prisma.renamedpackage.findMany({
-        where: { student_profile_id: studentId, status: 'active' },
+        where: { student_id: studentId, status: 'active' },
         orderBy: { created_at: 'desc' },
         select: {
           id: true,
@@ -43,7 +42,6 @@ export class PackagesService {
           total_sessions: true,
           remaining_sessions: true,
           status: true,
-          notes: true,
           created_at: true,
         },
       }),

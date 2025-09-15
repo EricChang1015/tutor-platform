@@ -24,3 +24,18 @@ export async function login(email, password) {
   return apiRequest('/auth/login', { method: 'POST', body: { email, password }, token: null });
 }
 
+
+export async function createPackage(token, body) {
+  return apiRequest('/packages', { method: 'POST', body, token });
+}
+
+export async function getPackageSummary(token, studentId) {
+  return apiRequest(`/students/${studentId}/packages/summary`, { method: 'GET', token });
+}
+export async function listCourses(token){
+  return apiRequest('/courses', { method: 'GET', token });
+}
+export async function createCourse(token, body){
+  return apiRequest('/courses', { method: 'POST', body, token });
+}
+
