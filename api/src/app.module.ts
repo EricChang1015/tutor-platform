@@ -14,9 +14,10 @@ import { BookingModule } from './modules/booking/booking.module';
 import { SessionsModule } from './modules/sessions/sessions.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { PayoutsModule } from './modules/payouts/payouts.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, UsersModule, AuthModule, PricingModule, PackagesModule, CoursesModule, AvailabilityModule, BookingModule, SessionsModule, StorageModule, NotificationsModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, UsersModule, AuthModule, PricingModule, PackagesModule, CoursesModule, AvailabilityModule, BookingModule, SessionsModule, StorageModule, NotificationsModule, PayoutsModule],
   controllers: [HealthController, AppController],
   providers: [AppService],
 })
