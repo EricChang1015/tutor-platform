@@ -1,447 +1,825 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tutor Platform API Tester</title>
-  <style>
-    :root {
-      --bg: #0f172a;
-      --panel: #111827;
-      --muted: #94a3b8;
-      --text: #e5e7eb;
-      --accent: #22c55e;
-      --accent-2: #38bdf8;
-      --danger: #ef4444;
-      --border: #1f2937;
-      --input: #0b1220;
-      --btn: #1e293b;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; background: var(--bg); color: var(--text);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-    }
-    header {
-      padding: 14px 16px; border-bottom: 1px solid var(--border);
-      display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
-    }
-    header h1 { font-size: 16px; margin: 0; color: #fff; }
-    .row { display: flex; gap: 16px; padding: 16px; }
-    @media (max-width: 900px) { .row { flex-direction: column; } }
-    .col { flex: 1; min-width: 280px; }
-    .card {
-      background: var(--panel); border: 1px solid var(--border);
-      border-radius: 12px; padding: 14px; margin-bottom: 16px;
-    }
-    .card h2 { font-size: 15px; margin: 0 0 10px; color: #fff; }
-    .card h3 { font-size: 13px; margin: 12px 0 8px; color: var(--muted); font-weight: 600; }
-    label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 6px; }
-    input, select, textarea {
-      width: 100%; padding: 10px 12px; border-radius: 10px;
-      border: 1px solid var(--border); background: var(--input); color: var(--text);
-      font-size: 14px; outline: none;
-    }
-    textarea { min-height: 80px; resize: vertical; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
-    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
-    button {
-      background: var(--btn); color: var(--text); border: 1px solid var(--border);
-      padding: 10px 12px; border-radius: 10px; cursor: pointer; font-weight: 600;
-    }
-    button.primary { background: #0b5; border-color: #0a4; }
-    button.accent { background: var(--accent-2); border-color: #1993c6; color: #07242f; }
-    button.danger { background: #7f1d1d; border-color: #b91c1c; }
-    .pill {
-      font-size: 12px; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--border);
-      background: #0b1220; color: var(--muted);
-    }
-    .status-ok { color: #22c55e; }
-    .status-bad { color: #ef4444; }
-    .flex { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .help { font-size: 12px; color: var(--muted); }
-    code.inline { background: #0b1220; padding: 2px 6px; border-radius: 6px; border: 1px solid var(--border); }
-    pre {
-      background: #0b1220; border: 1px solid var(--border); border-radius: 12px;
-      padding: 12px; overflow: auto; font-size: 13px; line-height: 1.45;
-    }
-    .two-cols {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
-    }
-    @media (max-width: 900px) { .two-cols { grid-template-columns: 1fr; } }
-    footer { padding: 10px 16px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); }
-    .kbd {
-      display: inline-block; padding: 0 6px; border: 1px solid var(--border); border-radius: 6px;
-      background: #0b1220; color: var(--muted); font-size: 12px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎓 Tutor Platform API 測試工具</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        .main {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            min-height: 80vh;
+        }
+        .sidebar {
+            background: #f8fafc;
+            border-right: 1px solid #e2e8f0;
+            padding: 20px;
+        }
+        .nav-item {
+            display: block;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #374151;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .nav-item:hover, .nav-item.active {
+            background: #4f46e5;
+            color: white;
+            transform: translateX(4px);
+        }
+        .content {
+            padding: 30px;
+            overflow-y: auto;
+        }
+        .section {
+            display: none;
+        }
+        .section.active {
+            display: block;
+        }
+        .card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .card h3 {
+            color: #1f2937;
+            margin-bottom: 16px;
+            font-size: 1.25rem;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #374151;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        .btn {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            background: #4338ca;
+            transform: translateY(-1px);
+        }
+        .btn-success { background: #10b981; }
+        .btn-success:hover { background: #059669; }
+        .btn-warning { background: #f59e0b; }
+        .btn-warning:hover { background: #d97706; }
+        .btn-danger { background: #ef4444; }
+        .btn-danger:hover { background: #dc2626; }
+        .response {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .response.success {
+            background: #ecfdf5;
+            border-color: #10b981;
+            color: #065f46;
+        }
+        .response.error {
+            background: #fef2f2;
+            border-color: #ef4444;
+            color: #991b1b;
+        }
+        .token-display {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 12px 0;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-online { background: #10b981; }
+        .status-offline { background: #ef4444; }
+        @media (max-width: 768px) {
+            .main {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                border-right: none;
+                border-bottom: 1px solid #e2e8f0;
+            }
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <h1>Backend API Tester</h1>
-    <div class="flex">
-      <label class="pill">API Base URL</label>
-      <input id="baseUrl" value="http://localhost:3001" style="width: 260px" />
-      <button id="pingBtn">Health Check</button>
-      <span id="pingStatus" class="help"></span>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 Tutor Platform</h1>
+            <p>API 測試工具 - 完整功能測試介面</p>
+            <div style="margin-top: 15px;">
+                <span class="status-indicator" id="apiStatus"></span>
+                <span id="apiStatusText">檢查中...</span>
+            </div>
+        </div>
+        
+        <div class="main">
+            <div class="sidebar">
+                <div class="nav-item active" onclick="showSection('auth')">🔐 認證管理</div>
+                <div class="nav-item" onclick="showSection('users')">👥 用戶管理</div>
+                <div class="nav-item" onclick="showSection('courses')">📚 課程管理</div>
+                <div class="nav-item" onclick="showSection('availability')">📅 可用時段</div>
+                <div class="nav-item" onclick="showSection('booking')">📝 預約管理</div>
+                <div class="nav-item" onclick="showSection('sessions')">💻 課程會議</div>
+                <div class="nav-item" onclick="showSection('storage')">📁 檔案存儲</div>
+                <div class="nav-item" onclick="showSection('notifications')">📧 通知管理</div>
+                <div class="nav-item" onclick="showSection('payouts')">💰 結算管理</div>
+                <div class="nav-item" onclick="showSection('help')">❓ 說明文檔</div>
+            </div>
+            
+            <div class="content">
+                <!-- 認證管理 -->
+                <div id="auth" class="section active">
+                    <div class="card">
+                        <h3>🔐 認證管理</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="loginEmail" value="admin@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label>密碼</label>
+                                <input type="password" id="loginPassword" value="admin123">
+                            </div>
+                        </div>
+                        <button class="btn" onclick="login()">登入</button>
+                        <button class="btn btn-success" onclick="loginAsTeacher()">以老師身份登入</button>
+                        <button class="btn btn-warning" onclick="loginAsStudent()">以學生身份登入</button>
+                        <button class="btn btn-danger" onclick="clearToken()">清除 Token</button>
+                        
+                        <div class="token-display" id="tokenDisplay">尚未登入</div>
+                        <div id="authResponse" class="response"></div>
+                    </div>
+                </div>
+
+                <!-- 用戶管理 -->
+                <div id="users" class="section">
+                    <div class="card">
+                        <h3>👥 用戶管理</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="createUserEmail" placeholder="user@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label>密碼</label>
+                                <input type="password" id="createUserPassword" placeholder="password123">
+                            </div>
+                            <div class="form-group">
+                                <label>姓名</label>
+                                <input type="text" id="createUserName" placeholder="使用者姓名">
+                            </div>
+                            <div class="form-group">
+                                <label>角色</label>
+                                <select id="createUserRole">
+                                    <option value="student">學生</option>
+                                    <option value="teacher">老師</option>
+                                    <option value="admin">管理員</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn" onclick="createUser()">創建用戶</button>
+                        <button class="btn btn-success" onclick="getUsers()">獲取所有用戶</button>
+                        <button class="btn btn-warning" onclick="getProfile()">獲取個人資料</button>
+                        <div id="userResponse" class="response"></div>
+                    </div>
+                </div>
+
+                <!-- 課程管理 -->
+                <div id="courses" class="section">
+                    <div class="card">
+                        <h3>📚 課程管理</h3>
+                        <button class="btn" onclick="getCourses()">獲取所有課程</button>
+                        <button class="btn btn-success" onclick="getPricing()">獲取定價規則</button>
+                        <button class="btn btn-warning" onclick="getPackages()">獲取課程包</button>
+                        <div id="courseResponse" class="response"></div>
+                    </div>
+                </div>
+
+                <!-- 可用時段管理 -->
+                <div id="availability" class="section">
+                    <div class="card">
+                        <h3>📅 可用時段管理</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>星期幾</label>
+                                <select id="availabilityWeekday">
+                                    <option value="1">週一</option>
+                                    <option value="2">週二</option>
+                                    <option value="3">週三</option>
+                                    <option value="4">週四</option>
+                                    <option value="5">週五</option>
+                                    <option value="6">週六</option>
+                                    <option value="0">週日</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>開始時間</label>
+                                <input type="time" id="availabilityStartTime" value="09:00">
+                            </div>
+                            <div class="form-group">
+                                <label>結束時間</label>
+                                <input type="time" id="availabilityEndTime" value="10:00">
+                            </div>
+                        </div>
+                        <button class="btn" onclick="createAvailability()">創建時段</button>
+                        <button class="btn btn-success" onclick="getMyAvailability()">獲取我的時段</button>
+                        <button class="btn btn-warning" onclick="getTeacherAvailability()">獲取老師時段</button>
+                        <div id="availabilityResponse" class="response"></div>
+                    </div>
+                </div>
+
+                <!-- 預約管理 -->
+                <div id="booking" class="section">
+                    <div class="card">
+                        <h3>📝 預約管理</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>課程 ID</label>
+                                <input type="text" id="bookingCourseId" placeholder="課程 ID">
+                            </div>
+                            <div class="form-group">
+                                <label>老師 ID</label>
+                                <input type="text" id="bookingTeacherId" placeholder="老師 ID">
+                            </div>
+                            <div class="form-group">
+                                <label>開始時間</label>
+                                <input type="datetime-local" id="bookingStartTime">
+                            </div>
+                            <div class="form-group">
+                                <label>結束時間</label>
+                                <input type="datetime-local" id="bookingEndTime">
+                            </div>
+                            <div class="form-group">
+                                <label>會議連結</label>
+                                <input type="url" id="bookingMeetingUrl" placeholder="https://zoom.us/j/123456789">
+                            </div>
+                        </div>
+                        <button class="btn" onclick="createBooking()">創建預約</button>
+                        <button class="btn btn-success" onclick="getMyBookings()">獲取我的預約</button>
+                        <button class="btn btn-warning" onclick="getMySessions()">獲取我的課程</button>
+                        <div id="bookingResponse" class="response"></div>
+                    </div>
+                </div>
+
+                <!-- 課程會議管理 -->
+                <div id="sessions" class="section">
+                    <div class="card">
+                        <h3>💻 課程會議管理</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Session ID</label>
+                                <input type="text" id="sessionId" placeholder="Session ID">
+                            </div>
+                            <div class="form-group">
+                                <label>老師回報</label>
+                                <textarea id="teacherNotes" placeholder="課程進度和學生表現..." rows="3"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>學生目標</label>
+                                <textarea id="studentGoal" placeholder="學習目標和心得..." rows="3"></textarea>
+                            </div>
+                        </div>
+                        <button class="btn" onclick="getSessionDetails()">獲取課程詳情</button>
+                        <button class="btn btn-success" onclick="updateMeetingInfo()">更新會議信息</button>
+                        <button class="btn btn-warning" onclick="submitTeacherReport()">提交老師回報</button>
+                        <button class="btn btn-warning" onclick="submitStudentGoal()">提交學生目標</button>
+                        <button class="btn btn-danger" onclick="uploadProof()">上傳課程證明</button>
+                        <div id="sessionResponse" class="response"></div>
+                    </div>
+                </div>
+
+                <!-- 檔案存儲 -->
+                <div id="storage" class="section">
+                    <div class="card">
+                        <h3>📁 檔案存儲管理</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>檔案名稱</label>
+                                <input type="text" id="fileName" placeholder="example.png">
+                            </div>
+                            <div class="form-group">
+                                <label>檔案類型</label>
+                                <select id="fileType">
+                                    <option value="image">圖片</option>
+                                    <option value="video">影片</option>
+                                    <option value="document">文檔</option>
+                                    <option value="audio">音頻</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>MIME 類型</label>
+                                <input type="text" id="contentType" placeholder="image/png">
+                            </div>
+                        </div>
+                        <button class="btn" onclick="getUploadUrl()">獲取上傳 URL</button>
+                        <button class="btn btn-success" onclick="getMyFiles()">獲取我的檔案</button>
+                        <div id="storageResponse" class="response"></div>
+                    </div>
+                </div>
+
+                <!-- 通知管理 -->
+                <div id="notifications" class="section">
+                    <div class="card">
+                        <h3>📧 通知管理</h3>
+                        <div class="form-group">
+                            <label>Session ID</label>
+                            <input type="text" id="notificationSessionId" placeholder="Session ID">
+                        </div>
+                        <button class="btn" onclick="sendBookingConfirmation()">發送預約確認</button>
+                        <button class="btn btn-success" onclick="sendBeforeReminder()">發送課前提醒</button>
+                        <button class="btn btn-warning" onclick="sendAfterReminder()">發送課後提醒</button>
+                        <div style="margin-top: 20px; padding: 15px; background: #f0f9ff; border-radius: 8px;">
+                            <strong>📬 MailHog Web UI:</strong>
+                            <a href="http://localhost:8025" target="_blank" style="color: #0ea5e9;">http://localhost:8025</a>
+                            <p style="margin-top: 8px; color: #64748b; font-size: 14px;">
+                                在 MailHog 中查看發送的測試郵件
+                            </p>
+                        </div>
+                        <div id="notificationResponse" class="response"></div>
+                    </div>
+                </div>
+
+                <!-- 結算管理 -->
+                <div id="payouts" class="section">
+                    <div class="card">
+                        <h3>💰 結算管理</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>老師 ID</label>
+                                <input type="text" id="payoutTeacherId" placeholder="老師 ID">
+                            </div>
+                            <div class="form-group">
+                                <label>期間開始</label>
+                                <input type="date" id="payoutPeriodStart">
+                            </div>
+                            <div class="form-group">
+                                <label>期間結束</label>
+                                <input type="date" id="payoutPeriodEnd">
+                            </div>
+                            <div class="form-group">
+                                <label>年份</label>
+                                <input type="number" id="payoutYear" value="2025" min="2020" max="2030">
+                            </div>
+                            <div class="form-group">
+                                <label>月份</label>
+                                <input type="number" id="payoutMonth" value="9" min="1" max="12">
+                            </div>
+                        </div>
+                        <button class="btn" onclick="generatePayout()">生成結算</button>
+                        <button class="btn btn-success" onclick="getAllPayouts()">獲取所有結算</button>
+                        <button class="btn btn-warning" onclick="getMyPayouts()">獲取我的結算</button>
+                        <button class="btn btn-danger" onclick="generateMonthlyPayouts()">生成月結算</button>
+                        <div id="payoutResponse" class="response"></div>
+                    </div>
+                </div>
+
+                <!-- 說明文檔 -->
+                <div id="help" class="section">
+                    <div class="card">
+                        <h3>❓ 使用說明</h3>
+                        <div style="line-height: 1.6; color: #374151;">
+                            <h4 style="margin-bottom: 12px; color: #1f2937;">🚀 快速開始</h4>
+                            <ol style="margin-left: 20px; margin-bottom: 20px;">
+                                <li>首先在「認證管理」中登入系統</li>
+                                <li>可以選擇以管理員、老師或學生身份登入</li>
+                                <li>登入成功後，Token 會自動保存並用於後續請求</li>
+                                <li>在各個功能區段測試對應的 API</li>
+                            </ol>
+
+                            <h4 style="margin-bottom: 12px; color: #1f2937;">🔑 預設帳號</h4>
+                            <ul style="margin-left: 20px; margin-bottom: 20px;">
+                                <li><strong>管理員:</strong> admin@example.com / admin123</li>
+                                <li><strong>老師:</strong> teacher1@example.com / teacher123</li>
+                                <li><strong>學生:</strong> student1@example.com / student123</li>
+                            </ul>
+
+                            <h4 style="margin-bottom: 12px; color: #1f2937;">📋 功能說明</h4>
+                            <ul style="margin-left: 20px; margin-bottom: 20px;">
+                                <li><strong>用戶管理:</strong> 創建和管理用戶帳號</li>
+                                <li><strong>課程管理:</strong> 查看課程、定價和課程包</li>
+                                <li><strong>可用時段:</strong> 老師設定可授課時間</li>
+                                <li><strong>預約管理:</strong> 學生預約課程，老師查看課程</li>
+                                <li><strong>課程會議:</strong> 管理會議連結和課後回報</li>
+                                <li><strong>檔案存儲:</strong> 上傳和管理檔案</li>
+                                <li><strong>通知管理:</strong> 發送各種通知郵件</li>
+                                <li><strong>結算管理:</strong> 處理老師薪資結算</li>
+                            </ul>
+
+                            <h4 style="margin-bottom: 12px; color: #1f2937;">🔧 技術資訊</h4>
+                            <ul style="margin-left: 20px;">
+                                <li><strong>API Base URL:</strong> http://localhost:3001</li>
+                                <li><strong>MailHog UI:</strong> http://localhost:8025</li>
+                                <li><strong>MinIO Console:</strong> http://localhost:9001</li>
+                                <li><strong>認證方式:</strong> JWT Bearer Token</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </header>
 
-  <div class="row">
-    <div class="col">
-      <div class="card">
-        <h2>Auth</h2>
-        <div class="grid">
-          <div>
-            <label>Email</label>
-            <input id="loginEmail" placeholder="admin@example.com" />
-          </div>
-          <div>
-            <label>Password</label>
-            <input id="loginPassword" type="password" placeholder="••••••••" value="admin123" />
-          </div>
-        </div>
-        <div class="btn-row">
-          <button class="primary" id="loginBtn">Login</button>
-          <button id="meBtn">GET /users/me</button>
-          <button class="danger" id="logoutBtn">Logout</button>
-        </div>
-        <div class="flex" style="margin-top:10px">
-          <span class="pill">Token</span>
-          <span id="tokenPreview" class="help" style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
-        </div>
-        <div class="btn-row" style="margin-top:8px">
-          <button id="copyTokenBtn">Copy Token</button>
-          <button id="clearTokenBtn">Clear Token</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>Users</h2>
-        <h3>Create User (Admin)</h3>
-        <div class="grid">
-          <div>
-            <label>Email</label>
-            <input id="cuEmail" placeholder="user@example.com" />
-          </div>
-          <div>
-            <label>Password</label>
-            <input id="cuPassword" type="password" placeholder="min 6 chars" />
-          </div>
-          <div>
-            <label>Role</label>
-            <select id="cuRole">
-              <option value="teacher">teacher</option>
-              <option value="student">student</option>
-              <option value="admin">admin</option>
-            </select>
-          </div>
-          <div>
-            <label>Name</label>
-            <input id="cuName" placeholder="User Name" />
-          </div>
-          <div>
-            <label>Phone (optional)</label>
-            <input id="cuPhone" placeholder="+886..." />
-          </div>
-          <div>
-            <label>Timezone</label>
-            <input id="cuTz" value="Asia/Taipei" />
-          </div>
-        </div>
-        <div class="btn-row">
-          <button id="createUserBtn">POST /users</button>
-        </div>
-
-        <h3>List Users (Admin)</h3>
-        <div class="grid">
-          <div>
-            <label>role (optional)</label>
-            <select id="luRole">
-              <option value="">(all)</option>
-              <option value="admin">admin</option>
-              <option value="teacher">teacher</option>
-              <option value="student">student</option>
-            </select>
-          </div>
-          <div>
-            <label>active (optional)</label>
-            <select id="luActive">
-              <option value="">(all)</option>
-              <option value="true">true</option>
-              <option value="false">false</option>
-            </select>
-          </div>
-          <div style="grid-column: 1 / -1;">
-            <label>q (name/email contains)</label>
-            <input id="luQ" placeholder="search text" />
-          </div>
-        </div>
-        <div class="btn-row">
-          <button id="listUsersBtn">GET /users</button>
-        </div>
-
-        <h3>Get One (Admin)</h3>
-        <div class="grid">
-          <div>
-            <label>User ID</label>
-            <input id="goId" placeholder="UUID" />
-          </div>
-        </div>
-        <div class="btn-row">
-          <button id="getOneBtn">GET /users/:id</button>
-        </div>
-
-        <h3>Reset Password (Admin)</h3>
-        <div class="grid">
-          <div>
-            <label>User ID</label>
-            <input id="rpUserId" placeholder="UUID" />
-          </div>
-          <div>
-            <label>New Password</label>
-            <input id="rpNewPassword" type="password" placeholder="new password" />
-          </div>
-        </div>
-        <div class="btn-row">
-          <button id="resetPasswordBtn">POST /users/reset-password</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>Pricing</h2>
-        <h3>Resolve</h3>
-        <div class="grid">
-          <div>
-            <label>courseId</label>
-            <input id="prCourseId" placeholder="course UUID" />
-          </div>
-          <div>
-            <label>teacherId (optional)</label>
-            <input id="prTeacherId" placeholder="teacher_profile UUID" />
-          </div>
-          <div>
-            <label>at (ISO8601, optional)</label>
-            <input id="prAt" placeholder="2025-01-01T00:00:00Z" />
-          </div>
-        </div>
-        <div class="btn-row">
-          <button id="resolvePricingBtn">GET /pricing/resolve</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="col">
-      <div class="card">
-        <h2>回應輸出</h2>
-        <div class="two-cols">
-          <div>
-            <h3>JSON</h3>
-            <pre id="respBox">{ }</pre>
-          </div>
-          <div>
-            <h3>cURL</h3>
-            <pre id="curlBox"># 這裡會顯示對應的 cURL 指令</pre>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>小幫手</h2>
-        <div class="help">
-          - 登入成功後，Token 會自動帶入所有請求（保存在 localStorage）。<br/>
-          - 如果遇到 401，請重新登入或確認 API Base URL 是否正確。<br/>
-          - 你可以點選 Copy Token 複製目前的 JWT。<br/>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <footer>
-    按 Ctrl/Cmd + Enter 重送上一個請求。
-  </footer>
-
-  <script>
-    const $ = (id) => document.getElementById(id);
-
-    const state = {
-      token: null,
-      lastRequest: null,
-    };
-
-    function saveToken(t) {
-      state.token = t;
-      if (t) localStorage.setItem('jwt', t);
-      else localStorage.removeItem('jwt');
-      renderToken();
-    }
-
-    function loadToken() {
-      const t = localStorage.getItem('jwt');
-      state.token = t;
-      renderToken();
-    }
-
-    function renderToken() {
-      const t = state.token;
-      $('tokenPreview').textContent = t ? t : '(no token)';
-    }
-
-    function getBase() {
-      return $('baseUrl').value.replace(/\/+$/, '');
-    }
-
-    function showJSON(obj) {
-      $('respBox').textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
-    }
-
-    function showCurl({ method = 'GET', url, headers = {}, body }) {
-      let lines = [`curl -s -X ${method} "${url}"`];
-      for (const [k, v] of Object.entries(headers)) {
-        lines.push(`  -H "${k}: ${v}"`);
-      }
-      if (body) {
-        const data = typeof body === 'string' ? body : JSON.stringify(body);
-        lines.push(`  -d '${data}'`);
-      }
-      $('curlBox').textContent = lines.join(' \\\n');
-    }
-
-    async function request(method, path, { query, body, auth = true } = {}) {
-      const base = getBase();
-      const url = new URL(base + path);
-      if (query) {
-        Object.entries(query).forEach(([k, v]) => {
-          if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
+    <script>
+        const API_BASE = 'http://localhost:3001';
+        let authToken = localStorage.getItem('authToken') || '';
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTokenDisplay();
+            checkApiStatus();
+            setDefaultTimes();
         });
-      }
-      const headers = { 'Content-Type': 'application/json' };
-      if (auth && state.token) headers['Authorization'] = 'Bearer ' + state.token;
-
-      const fetchOpts = { method, headers };
-      if (body) fetchOpts.body = JSON.stringify(body);
-
-      state.lastRequest = { method, url: url.toString(), headers, body };
-      showCurl(state.lastRequest);
-
-      try {
-        const res = await fetch(url.toString(), fetchOpts);
-        const text = await res.text();
-        let json;
-        try { json = JSON.parse(text); } catch { json = { raw: text }; }
-        showJSON(json);
-        if (!res.ok) {
-          console.warn('Request failed', res.status, json);
+        
+        // 檢查 API 狀態
+        async function checkApiStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const statusElement = document.getElementById('apiStatus');
+                const statusTextElement = document.getElementById('apiStatusText');
+                
+                if (response.ok) {
+                    statusElement.className = 'status-indicator status-online';
+                    statusTextElement.textContent = 'API 服務正常';
+                } else {
+                    statusElement.className = 'status-indicator status-offline';
+                    statusTextElement.textContent = 'API 服務異常';
+                }
+            } catch (error) {
+                document.getElementById('apiStatus').className = 'status-indicator status-offline';
+                document.getElementById('apiStatusText').textContent = 'API 服務離線';
+            }
         }
-        return { status: res.status, ok: res.ok, data: json, headers: res.headers };
-      } catch (err) {
-        showJSON({ error: String(err) });
-        console.error(err);
-        return { status: 0, ok: false, data: { error: String(err) } };
-      }
-    }
-
-    // Auth
-    $('loginBtn').addEventListener('click', async () => {
-      const email = $('loginEmail').value.trim();
-      const password = $('loginPassword').value;
-      const resp = await request('POST', '/auth/login', {
-        auth: false,
-        body: { email, password },
-      });
-      if (resp.ok && resp.data?.access_token) {
-        saveToken(resp.data.access_token);
-      }
-    });
-
-    $('logoutBtn').addEventListener('click', () => saveToken(null));
-    $('copyTokenBtn').addEventListener('click', async () => {
-      if (!state.token) return;
-      await navigator.clipboard.writeText(state.token);
-      alert('Token copied!');
-    });
-    $('clearTokenBtn').addEventListener('click', () => saveToken(null));
-    $('meBtn').addEventListener('click', () => request('GET', '/users/me'));
-
-    // Users
-    $('createUserBtn').addEventListener('click', () => {
-      const body = {
-        email: $('cuEmail').value.trim(),
-        password: $('cuPassword').value,
-        role: $('cuRole').value,
-        name: $('cuName').value.trim(),
-        phone: $('cuPhone').value.trim() || undefined,
-        timezone: $('cuTz').value.trim() || undefined,
-      };
-      return request('POST', '/users', { body });
-    });
-
-    $('listUsersBtn').addEventListener('click', () => {
-      const query = {
-        role: $('luRole').value || undefined,
-        active: $('luActive').value || undefined,
-        q: $('luQ').value.trim() || undefined,
-      };
-      return request('GET', '/users', { query });
-    });
-
-    $('getOneBtn').addEventListener('click', () => {
-      const id = $('goId').value.trim();
-      if (!id) return alert('User ID required');
-      return request('GET', `/users/${encodeURIComponent(id)}`);
-    });
-
-    $('resetPasswordBtn').addEventListener('click', () => {
-      const userId = $('rpUserId').value.trim();
-      const newPassword = $('rpNewPassword').value;
-      if (!userId || !newPassword) return alert('userId and newPassword required');
-      return request('POST', '/users/reset-password', { body: { userId, newPassword } });
-    });
-
-    // Pricing
-    $('resolvePricingBtn').addEventListener('click', () => {
-      const courseId = $('prCourseId').value.trim();
-      if (!courseId) return alert('courseId required');
-      const teacherId = $('prTeacherId').value.trim();
-      const at = $('prAt').value.trim();
-      const query = {
-        courseId,
-        teacherId: teacherId || undefined,
-        at: at || undefined,
-      };
-      return request('GET', '/pricing/resolve', { query });
-    });
-
-    // Health check
-    $('pingBtn').addEventListener('click', async () => {
-      const r = await request('GET', '/health', { auth: false });
-      const s = r.ok ? 'OK' : 'Failed';
-      $('pingStatus').innerHTML = r.ok
-        ? `<span class="status-ok">Health: ${s}</span>`
-        : `<span class="status-bad">Health: ${s}</span>`;
-    });
-
-    // Keyboard: re-run last request
-    document.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        if (state.lastRequest) {
-          request(state.lastRequest.method, state.lastRequest.url.replace(getBase(), ''), {
-            body: state.lastRequest.body ? JSON.parse(state.lastRequest.body) : undefined,
-            auth: !!state.lastRequest.headers?.Authorization,
-          });
+        
+        // 設置默認時間
+        function setDefaultTimes() {
+            const now = new Date();
+            const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+            document.getElementById('bookingStartTime').value = tomorrow.toISOString().slice(0, 16);
+            document.getElementById('bookingEndTime').value = new Date(tomorrow.getTime() + 25 * 60 * 1000).toISOString().slice(0, 16);
         }
-      }
-    });
+        
+        // 顯示指定區段
+        function showSection(sectionId) {
+            // 隱藏所有區段
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // 移除所有導航項目的 active 類
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 顯示指定區段
+            document.getElementById(sectionId).classList.add('active');
+            
+            // 添加對應導航項目的 active 類
+            event.target.classList.add('active');
+        }
+        
+        // 更新 token 顯示
+        function updateTokenDisplay() {
+            const display = document.getElementById('tokenDisplay');
+            if (authToken) {
+                display.innerHTML = `<strong>Token:</strong> ${authToken.substring(0, 50)}...`;
+                display.style.background = '#ecfdf5';
+                display.style.borderColor = '#10b981';
+            } else {
+                display.innerHTML = '<strong>狀態:</strong> 尚未登入';
+                display.style.background = '#fef3c7';
+                display.style.borderColor = '#f59e0b';
+            }
+        }
+        
+        // 通用 API 請求函數
+        async function apiRequest(endpoint, method = 'GET', data = null, responseElementId = null) {
+            try {
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                };
+                
+                if (authToken) {
+                    options.headers['Authorization'] = `Bearer ${authToken}`;
+                }
+                
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+                
+                const response = await fetch(`${API_BASE}${endpoint}`, options);
+                const result = await response.json();
+                
+                if (responseElementId) {
+                    const element = document.getElementById(responseElementId);
+                    element.textContent = JSON.stringify(result, null, 2);
+                    element.className = response.ok ? 'response success' : 'response error';
+                }
+                
+                return { ok: response.ok, data: result };
+            } catch (error) {
+                if (responseElementId) {
+                    const element = document.getElementById(responseElementId);
+                    element.textContent = `錯誤: ${error.message}`;
+                    element.className = 'response error';
+                }
+                return { ok: false, error: error.message };
+            }
+        }
+        
+        // 認證相關函數
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            const result = await apiRequest('/auth/login', 'POST', { email, password }, 'authResponse');
+            if (result.ok && result.data.access_token) {
+                authToken = result.data.access_token;
+                localStorage.setItem('authToken', authToken);
+                updateTokenDisplay();
+            }
+        }
+        
+        async function loginAsTeacher() {
+            document.getElementById('loginEmail').value = 'teacher1@example.com';
+            document.getElementById('loginPassword').value = 'teacher123';
+            await login();
+        }
+        
+        async function loginAsStudent() {
+            document.getElementById('loginEmail').value = 'student1@example.com';
+            document.getElementById('loginPassword').value = 'student123';
+            await login();
+        }
+        
+        function clearToken() {
+            authToken = '';
+            localStorage.removeItem('authToken');
+            updateTokenDisplay();
+            document.getElementById('authResponse').textContent = 'Token 已清除';
+            document.getElementById('authResponse').className = 'response';
+        }
+        
+        // 用戶管理函數
+        async function createUser() {
+            const email = document.getElementById('createUserEmail').value;
+            const password = document.getElementById('createUserPassword').value;
+            const name = document.getElementById('createUserName').value;
+            const role = document.getElementById('createUserRole').value;
+            
+            await apiRequest('/users', 'POST', { email, password, name, role }, 'userResponse');
+        }
+        
+        async function getUsers() {
+            await apiRequest('/users', 'GET', null, 'userResponse');
+        }
+        
+        async function getProfile() {
+            await apiRequest('/users/profile', 'GET', null, 'userResponse');
+        }
+        
+        // 課程管理函數
+        async function getCourses() {
+            await apiRequest('/courses', 'GET', null, 'courseResponse');
+        }
+        
+        async function getPricing() {
+            await apiRequest('/pricing', 'GET', null, 'courseResponse');
+        }
+        
+        async function getPackages() {
+            await apiRequest('/packages', 'GET', null, 'courseResponse');
+        }
+        
+        // 可用時段管理函數
+        async function createAvailability() {
+            const weekday = parseInt(document.getElementById('availabilityWeekday').value);
+            const start_time = document.getElementById('availabilityStartTime').value;
+            const end_time = document.getElementById('availabilityEndTime').value;
+            
+            await apiRequest('/availability', 'POST', { weekday, start_time, end_time }, 'availabilityResponse');
+        }
+        
+        async function getMyAvailability() {
+            await apiRequest('/availability/my-slots', 'GET', null, 'availabilityResponse');
+        }
+        
+        async function getTeacherAvailability() {
+            await apiRequest('/availability/teacher/e26d0f76-ab9d-4a1c-aed5-4d49d3563173', 'GET', null, 'availabilityResponse');
+        }
+        
+        // 預約管理函數
+        async function createBooking() {
+            const course_id = document.getElementById('bookingCourseId').value || 'ffce9c58-a754-4bd4-851c-8bf0c3ee39f3';
+            const teacher_id = document.getElementById('bookingTeacherId').value || 'e26d0f76-ab9d-4a1c-aed5-4d49d3563173';
+            const start_at = new Date(document.getElementById('bookingStartTime').value).toISOString();
+            const end_at = new Date(document.getElementById('bookingEndTime').value).toISOString();
+            const meeting_url = document.getElementById('bookingMeetingUrl').value;
+            
+            await apiRequest('/booking', 'POST', { course_id, teacher_id, start_at, end_at, meeting_url }, 'bookingResponse');
+        }
+        
+        async function getMyBookings() {
+            await apiRequest('/booking/my-bookings', 'GET', null, 'bookingResponse');
+        }
+        
+        async function getMySessions() {
+            await apiRequest('/booking/my-sessions', 'GET', null, 'bookingResponse');
+        }
 
-    // Init
-    loadToken();
-    // Try to prefill admin email from common env
-    (function prefill() {
-      const guess = ['admin@example.com', 'root@example.com', 'user@example.com'];
-      const existed = $('loginEmail').value.trim();
-      if (!existed) $('loginEmail').value = guess[0];
-    })();
-  </script>
+        // 課程會議管理函數
+        async function getSessionDetails() {
+            const sessionId = document.getElementById('sessionId').value || '038c74f1-6178-430c-b601-6dfb859db8b0';
+            await apiRequest(`/sessions/${sessionId}`, 'GET', null, 'sessionResponse');
+        }
+
+        async function updateMeetingInfo() {
+            const sessionId = document.getElementById('sessionId').value || '038c74f1-6178-430c-b601-6dfb859db8b0';
+            const meeting_url = 'https://zoom.us/j/updated123456';
+            const meeting_passcode = 'newpass123';
+
+            await apiRequest(`/sessions/${sessionId}/meeting`, 'PUT', { meeting_url, meeting_passcode }, 'sessionResponse');
+        }
+
+        async function submitTeacherReport() {
+            const sessionId = document.getElementById('sessionId').value || '038c74f1-6178-430c-b601-6dfb859db8b0';
+            const teacher_notes = document.getElementById('teacherNotes').value || '學生表現良好，已掌握基本對話技巧。';
+
+            await apiRequest(`/sessions/${sessionId}/teacher-report`, 'POST', { teacher_notes }, 'sessionResponse');
+        }
+
+        async function submitStudentGoal() {
+            const sessionId = document.getElementById('sessionId').value || '038c74f1-6178-430c-b601-6dfb859db8b0';
+            const student_goal = document.getElementById('studentGoal').value || '希望下次課程能練習更多口語對話。';
+
+            await apiRequest(`/sessions/${sessionId}/student-goal`, 'POST', { student_goal }, 'sessionResponse');
+        }
+
+        async function uploadProof() {
+            const sessionId = document.getElementById('sessionId').value || '038c74f1-6178-430c-b601-6dfb859db8b0';
+            const type = 'screenshot';
+            const url = 'https://example.com/proof.png';
+            const meta = { duration: 25, attendance: 'present' };
+
+            await apiRequest(`/sessions/${sessionId}/proof`, 'POST', { type, url, meta }, 'sessionResponse');
+        }
+
+        // 檔案存儲函數
+        async function getUploadUrl() {
+            const filename = document.getElementById('fileName').value || 'test.png';
+            const file_type = document.getElementById('fileType').value;
+            const content_type = document.getElementById('contentType').value || 'image/png';
+            const file_size = 1024000;
+
+            await apiRequest('/storage/upload-url', 'POST', { filename, file_type, content_type, file_size }, 'storageResponse');
+        }
+
+        async function getMyFiles() {
+            await apiRequest('/storage/my-files', 'GET', null, 'storageResponse');
+        }
+
+        // 通知管理函數
+        async function sendBookingConfirmation() {
+            const sessionId = document.getElementById('notificationSessionId').value || '038c74f1-6178-430c-b601-6dfb859db8b0';
+            await apiRequest(`/notifications/booking-confirmation/${sessionId}`, 'POST', null, 'notificationResponse');
+        }
+
+        async function sendBeforeReminder() {
+            const sessionId = document.getElementById('notificationSessionId').value || '038c74f1-6178-430c-b601-6dfb859db8b0';
+            await apiRequest(`/notifications/session-reminder/${sessionId}/before`, 'POST', null, 'notificationResponse');
+        }
+
+        async function sendAfterReminder() {
+            const sessionId = document.getElementById('notificationSessionId').value || '038c74f1-6178-430c-b601-6dfb859db8b0';
+            await apiRequest(`/notifications/session-reminder/${sessionId}/after`, 'POST', null, 'notificationResponse');
+        }
+
+        // 結算管理函數
+        async function generatePayout() {
+            const teacher_id = document.getElementById('payoutTeacherId').value || 'e26d0f76-ab9d-4a1c-aed5-4d49d3563173';
+            const period_start = document.getElementById('payoutPeriodStart').value;
+            const period_end = document.getElementById('payoutPeriodEnd').value;
+            const notes = 'API 測試生成的結算';
+
+            await apiRequest('/payouts', 'POST', { teacher_id, period_start, period_end, notes }, 'payoutResponse');
+        }
+
+        async function getAllPayouts() {
+            await apiRequest('/payouts', 'GET', null, 'payoutResponse');
+        }
+
+        async function getMyPayouts() {
+            await apiRequest('/payouts/my-payouts', 'GET', null, 'payoutResponse');
+        }
+
+        async function generateMonthlyPayouts() {
+            const year = document.getElementById('payoutYear').value;
+            const month = document.getElementById('payoutMonth').value;
+
+            await apiRequest(`/payouts/generate-monthly?year=${year}&month=${month}`, 'POST', null, 'payoutResponse');
+        }
+
+        // 設置默認日期
+        function setDefaultDates() {
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            document.getElementById('payoutPeriodStart').value = firstDay.toISOString().split('T')[0];
+            document.getElementById('payoutPeriodEnd').value = lastDay.toISOString().split('T')[0];
+        }
+
+        // 在頁面加載時設置默認日期
+        document.addEventListener('DOMContentLoaded', function() {
+            setDefaultDates();
+        });
+    </script>
 </body>
 </html>
