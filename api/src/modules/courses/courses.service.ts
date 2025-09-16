@@ -6,7 +6,7 @@ import { CreateCourseDto } from './dto/create-course.dto';
 export class CoursesService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateCourseDto) {
+  async create(teacherId: string, dto: CreateCourseDto) {
     const course = await this.prisma.course.create({
       data: {
         title: dto.title,
@@ -15,6 +15,7 @@ export class CoursesService {
         duration_min: dto.duration_min ?? 25,
         default_price_cents: dto.default_price_cents ?? 700,
         active: dto.active ?? true,
+        // TODO: 添加 teacher_id 字段到 schema
       },
     });
     return course;
@@ -28,6 +29,16 @@ export class CoursesService {
     const c = await this.prisma.course.findUnique({ where: { id } });
     if (!c) throw new NotFoundException('Course not found');
     return c;
+  }
+
+  async getByTeacher(teacherId: string) {
+    // TODO: 當 schema 有 teacher_id 字段時，根據老師 ID 篩選
+    return this.prisma.course.findMany({
+      where: {
+        active: true
+      },
+      orderBy: { created_at: 'desc' }
+    });
   }
 }
 

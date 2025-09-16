@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../../common/roles.decorator';
 import { Role } from '../../common/roles.enum';
@@ -27,6 +28,16 @@ export class UsersController {
   @Get('me')
   async me(@Req() req: any) {
     return req.user;
+  }
+
+  @Get('profile')
+  async getProfile(@Req() req: any) {
+    return this.users.getUserById(req.user.id);
+  }
+
+  @Put('profile')
+  async updateProfile(@Req() req: any, @Body() dto: UpdateProfileDto) {
+    return this.users.updateProfile(req.user.id, dto);
   }
 
   @Get(':id')

@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { Role } from '../../common/roles.enum';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ListUsersDto } from './dto/list-users.dto';
 @Injectable()
 export class UsersService {
@@ -103,5 +104,41 @@ export class UsersService {
       data: { password_hash },
     });
     return { ok: true };
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const user = await this.prisma.app_user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    // 如果要更新 email，檢查是否已存在
+    if (dto.email && dto.email !== user.email) {
+      const existingUser = await this.prisma.app_user.findUnique({
+        where: { email: dto.email }
+      });
+      if (existingUser) {
+        throw new BadRequestException('Email already exists');
+      }
+    }
+
+    const updatedUser = await this.prisma.app_user.update({
+      where: { id: userId },
+      data: {
+        ...(dto.name && { name: dto.name }),
+        ...(dto.email && { email: dto.email }),
+        ...(dto.phone && { phone: dto.phone }),
+        ...(dto.timezone && { timezone: dto.timezone }),
+        updated_at: new Date(),
+      },
+    });
+
+    return {
+      id: updatedUser.id,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      name: updatedUser.name,
+      phone: updatedUser.phone,
+      timezone: updatedUser.timezone,
+      is_active: updatedUser.is_active,
+    };
   }
 }
