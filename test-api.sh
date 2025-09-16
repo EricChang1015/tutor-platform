@@ -123,8 +123,8 @@ echo -e "\n${YELLOW}=== 4. 課程管理測試 ===${NC}"
 test_endpoint "GET" "/courses" "" "$ADMIN_TOKEN" "獲取所有課程"
 test_endpoint "GET" "/courses/my-courses" "" "$TEACHER_TOKEN" "獲取我的課程（老師）"
 
-# 創建課程測試 - 使用正確的 DTO 結構
-test_endpoint "POST" "/courses" '{"title":"API Test Course 2","description":"測試課程 2","type":"one-on-one","duration_min":25,"default_price_cents":700}' "$TEACHER_TOKEN" "創建新課程"
+# 創建課程測試 - 使用正確的 DTO 結構和類型
+test_endpoint "POST" "/courses" '{"title":"API Test Course 2","description":"測試課程 2","type":"one_on_one","duration_min":25,"default_price_cents":700}' "$TEACHER_TOKEN" "創建新課程"
 
 # 5. 權限測試
 echo -e "\n${YELLOW}=== 5. 權限控制測試 ===${NC}"

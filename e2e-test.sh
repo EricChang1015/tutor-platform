@@ -177,9 +177,9 @@ test_step "檢查學生課程包摘要" \
 
 echo -e "\n${YELLOW}=== 階段 5: 可用時段管理 ===${NC}"
 
-# 12. 創建可用時段（使用週二避免衝突）
+# 12. 創建可用時段（使用週三避免衝突）
 test_step "創建老師可用時段" \
-    "api_request 'POST' '/availability' '{\"weekday\":2,\"start_time\":\"14:00\",\"end_time\":\"16:00\",\"capacity\":3}' '$TEACHER_TOKEN'" \
+    "api_request 'POST' '/availability' '{\"weekday\":3,\"start_time\":\"10:00\",\"end_time\":\"12:00\",\"capacity\":2}' '$TEACHER_TOKEN'" \
     '"id"'
 
 # 13. 獲取可用時段

@@ -15,10 +15,9 @@
   let newCourse = {
     title: '',
     description: '',
-    category: '',
-    level: 'beginner',
-    duration_minutes: 60,
-    max_students: 1
+    type: 'one_on_one',
+    duration_min: 25,
+    default_price_cents: 700
   };
 
   onMount(async () => {
@@ -64,10 +63,9 @@
       newCourse = {
         title: '',
         description: '',
-        category: '',
-        level: 'beginner',
-        duration_minutes: 60,
-        max_students: 1
+        type: 'one_on_one',
+        duration_min: 25,
+        default_price_cents: 700
       };
       await loadCourses();
     } catch (error) {
@@ -94,10 +92,9 @@
     newCourse = {
       title: '',
       description: '',
-      category: '',
-      level: 'beginner',
-      duration_minutes: 60,
-      max_students: 1
+      type: 'one_on_one',
+      duration_min: 25,
+      default_price_cents: 700
     };
   }
 
@@ -253,8 +250,8 @@
 
 <!-- 創建課程模態框 -->
 {#if showCreateModal}
-  <div class="modal-overlay" on:click={closeModal}>
-    <div class="modal-container max-w-lg" on:click|stopPropagation>
+  <div class="modal-overlay" role="dialog" aria-modal="true" on:click={closeModal} on:keydown={(e) => e.key === 'Escape' && closeModal()}>
+    <div class="modal-container max-w-lg" role="document" on:click|stopPropagation>
       <div class="flex items-center justify-between p-4 border-b border-gray-200">
         <h3 class="text-lg font-medium text-gray-900">新增課程</h3>
         <button 
@@ -270,8 +267,9 @@
       
       <form on:submit|preventDefault={createCourse} class="p-4 space-y-4">
         <div>
-          <label class="label">課程標題 *</label>
+          <label for="course-title" class="label">課程標題 *</label>
           <input
+            id="course-title"
             type="text"
             class="input"
             placeholder="請輸入課程標題"
@@ -279,10 +277,11 @@
             required
           />
         </div>
-        
+
         <div>
-          <label class="label">課程描述</label>
+          <label for="course-description" class="label">課程描述</label>
           <textarea
+            id="course-description"
             class="input"
             rows="3"
             placeholder="請輸入課程描述"
@@ -292,47 +291,40 @@
         
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="label">分類</label>
-            <input
-              type="text"
-              class="input"
-              placeholder="例如：英語、數學"
-              bind:value={newCourse.category}
-            />
-          </div>
-          
-          <div>
-            <label class="label">級別</label>
-            <select class="input" bind:value={newCourse.level}>
-              <option value="beginner">初級</option>
-              <option value="intermediate">中級</option>
-              <option value="advanced">高級</option>
+            <label for="course-type" class="label">課程類型</label>
+            <select id="course-type" class="input" bind:value={newCourse.type}>
+              <option value="one_on_one">一對一</option>
+              <option value="group">小組課程</option>
             </select>
           </div>
-        </div>
-        
-        <div class="grid grid-cols-2 gap-4">
+
           <div>
-            <label class="label">課程時長（分鐘）</label>
+            <label for="course-duration" class="label">課程時長（分鐘）</label>
             <input
+              id="course-duration"
               type="number"
               class="input"
               min="15"
               max="180"
-              bind:value={newCourse.duration_minutes}
+              bind:value={newCourse.duration_min}
             />
           </div>
-          
-          <div>
-            <label class="label">最大學生數</label>
-            <input
-              type="number"
-              class="input"
-              min="1"
-              max="10"
-              bind:value={newCourse.max_students}
-            />
-          </div>
+        </div>
+
+        <div>
+          <label for="course-price" class="label">預設價格（分）</label>
+          <input
+            id="course-price"
+            type="number"
+            class="input"
+            min="100"
+            step="100"
+            placeholder="例如：700 表示 7.00 元"
+            bind:value={newCourse.default_price_cents}
+          />
+          <p class="text-sm text-gray-500 mt-1">
+            價格以分為單位，例如 700 分 = 7.00 元
+          </p>
         </div>
         
         <div class="flex justify-end space-x-3 pt-4">

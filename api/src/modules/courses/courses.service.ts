@@ -11,7 +11,7 @@ export class CoursesService {
       data: {
         title: dto.title,
         description: dto.description ?? null,
-        type: dto.type ?? '1on1',
+        type: dto.type ?? 'one_on_one',
         duration_min: dto.duration_min ?? 25,
         default_price_cents: dto.default_price_cents ?? 700,
         active: dto.active ?? true,
