@@ -123,8 +123,8 @@ echo -e "\n${YELLOW}=== 4. 課程管理測試 ===${NC}"
 test_endpoint "GET" "/courses" "" "$ADMIN_TOKEN" "獲取所有課程"
 test_endpoint "GET" "/courses/my-courses" "" "$TEACHER_TOKEN" "獲取我的課程（老師）"
 
-# 創建課程測試
-test_endpoint "POST" "/courses" '{"title":"API Test Course","description":"測試課程","category":"programming","level":"beginner","duration":60,"max_students":10}' "$TEACHER_TOKEN" "創建新課程"
+# 創建課程測試 - 使用正確的 DTO 結構
+test_endpoint "POST" "/courses" '{"title":"API Test Course 2","description":"測試課程 2","type":"one-on-one","duration_min":25,"default_price_cents":700}' "$TEACHER_TOKEN" "創建新課程"
 
 # 5. 權限測試
 echo -e "\n${YELLOW}=== 5. 權限控制測試 ===${NC}"
@@ -133,19 +133,36 @@ test_endpoint "GET" "/users/me" "" "$STUDENT_TOKEN" "學生獲取自己信息（
 
 # 6. 定價管理測試
 echo -e "\n${YELLOW}=== 6. 定價管理測試 ===${NC}"
-test_endpoint "GET" "/pricing" "" "$ADMIN_TOKEN" "獲取定價規則"
+# 獲取課程 ID 用於定價測試
+course_response=$(curl -s -X GET "$API_BASE/courses" -H "Authorization: Bearer $ADMIN_TOKEN")
+course_id=$(echo "$course_response" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+if [ -n "$course_id" ]; then
+    test_endpoint "GET" "/pricing/resolve?courseId=$course_id" "" "$ADMIN_TOKEN" "獲取定價規則"
+else
+    echo -e "${RED}❌ 無法獲取課程 ID 進行定價測試${NC}"
+fi
 
 # 7. 可用時段測試
 echo -e "\n${YELLOW}=== 7. 可用時段測試 ===${NC}"
-test_endpoint "GET" "/availability" "" "$TEACHER_TOKEN" "獲取可用時段"
+test_endpoint "GET" "/availability/my-slots" "" "$TEACHER_TOKEN" "獲取我的可用時段"
 
 # 8. 預約管理測試
 echo -e "\n${YELLOW}=== 8. 預約管理測試 ===${NC}"
-test_endpoint "GET" "/bookings" "" "$STUDENT_TOKEN" "獲取我的預約"
+test_endpoint "GET" "/booking/my-bookings" "" "$STUDENT_TOKEN" "獲取我的預約"
+test_endpoint "GET" "/booking/my-sessions" "" "$TEACHER_TOKEN" "獲取我的課程會議"
 
-# 9. 課程會議測試
-echo -e "\n${YELLOW}=== 9. 課程會議測試 ===${NC}"
-test_endpoint "GET" "/sessions" "" "$TEACHER_TOKEN" "獲取課程會議"
+# 9. 課程包測試
+echo -e "\n${YELLOW}=== 9. 課程包測試 ===${NC}"
+# 使用已知的學生 profile ID
+student_profile_id="a64c4e71-5255-4865-b11b-67aae4e584ef"
+test_endpoint "GET" "/students/$student_profile_id/packages/summary" "" "$ADMIN_TOKEN" "獲取學生課程包摘要"
+
+# 創建課程包測試
+if [ -n "$course_id" ]; then
+    test_endpoint "POST" "/packages" "{\"studentId\":\"$student_profile_id\",\"courseId\":\"$course_id\",\"totalSessions\":5,\"notes\":\"API 測試課程包\"}" "$ADMIN_TOKEN" "創建課程包"
+else
+    echo -e "${RED}❌ 無法獲取課程 ID 進行課程包創建測試${NC}"
+fi
 
 # 10. 結算管理測試
 echo -e "\n${YELLOW}=== 10. 結算管理測試 ===${NC}"
@@ -153,11 +170,12 @@ test_endpoint "GET" "/payouts" "" "$ADMIN_TOKEN" "獲取結算記錄"
 
 # 11. 檔案存儲測試
 echo -e "\n${YELLOW}=== 11. 檔案存儲測試 ===${NC}"
-test_endpoint "GET" "/storage/health" "" "$ADMIN_TOKEN" "檔案存儲健康檢查"
+test_endpoint "POST" "/storage/upload-url" '{"filename":"test.png","file_type":"image","content_type":"image/png","file_size":1024}' "$ADMIN_TOKEN" "獲取檔案上傳 URL"
+test_endpoint "GET" "/storage/my-files" "" "$ADMIN_TOKEN" "獲取我的檔案列表"
 
 # 12. 通知系統測試
 echo -e "\n${YELLOW}=== 12. 通知系統測試 ===${NC}"
-test_endpoint "GET" "/notifications" "" "$STUDENT_TOKEN" "獲取通知列表"
+test_endpoint "POST" "/notifications/send-email" '{"to":"test@example.com","subject":"測試郵件","html":"<p>這是一封測試郵件</p>"}' "$ADMIN_TOKEN" "發送測試郵件"
 
 # 測試總結
 echo -e "\n${YELLOW}=== 測試總結 ===${NC}"
