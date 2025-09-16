@@ -57,6 +57,13 @@ services:
         mc mb localminio/proofs || true;
         echo "Bucket 'proofs' is ready.";
 
+  mailhog:
+    image: mailhog/mailhog:latest
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web UI port
+
   api:
     build: ./api
     working_dir: /app
@@ -73,6 +80,13 @@ services:
       S3_USE_PATH_STYLE: "true"
       JWT_SECRET: "change_me"
       PORT: "3001"
+      SMTP_HOST: mailhog
+      SMTP_PORT: "1025"
+      SMTP_USER: ""
+      SMTP_PASS: ""
+      SMTP_SECURE: "false"
+      FROM_EMAIL: "noreply@tutorplatform.com"
+      FROM_NAME: "Tutor Platform"
     depends_on:
       postgres:
         condition: service_healthy
