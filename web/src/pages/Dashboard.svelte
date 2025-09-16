@@ -3,6 +3,7 @@
   import { user, userRole, isAuthenticated } from '../stores/auth.js';
   import { push } from 'svelte-spa-router';
   import { getDefaultRoute } from '../utils/routes.js';
+  import { t } from '../stores/i18n.js';
 
   // 如果用戶已登入，重定向到對應的角色儀表板
   onMount(() => {
@@ -23,10 +24,10 @@
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-bold">
-            歡迎回來，{$user?.name || '用戶'}！
+            {$t('dashboard.welcome', { name: $user?.name || $t('common.user', { default: '用戶' }) })}
           </h1>
           <p class="mt-2 text-primary-100">
-            今天是個學習的好日子
+            {$t('dashboard.todayIsGoodDay')}
           </p>
         </div>
         <div class="hidden md:block">

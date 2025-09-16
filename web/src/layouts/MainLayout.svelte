@@ -3,12 +3,14 @@
   import { user, isAuthenticated, userRole, auth } from '../stores/auth.js';
   import { notifications } from '../stores/notifications.js';
   import { navigationMenus, getDefaultRoute } from '../utils/routes.js';
+  import { initI18n, t } from '../stores/i18n.js';
   import { link, push } from 'svelte-spa-router';
   
   import Header from '../components/Header.svelte';
   import Sidebar from '../components/Sidebar.svelte';
   import NotificationContainer from '../components/NotificationContainer.svelte';
   import LoadingSpinner from '../components/LoadingSpinner.svelte';
+  import LanguageSwitcher from '../components/LanguageSwitcher.svelte';
 
   export let currentRoute = '/';
   
@@ -26,8 +28,12 @@
   // 初始化應用
   onMount(async () => {
     try {
+      // 初始化國際化
+      await initI18n();
+
+      // 初始化認證
       await auth.init();
-      
+
       // 如果用戶已登入但在登入頁面，重定向到儀表板
       if ($isAuthenticated && (currentRoute === '/login' || currentRoute === '/register')) {
         const defaultRoute = getDefaultRoute($userRole);
@@ -126,11 +132,17 @@
                 </a>
               </div>
               <div class="flex items-center space-x-4">
+                <!-- 語言切換器 -->
+                <LanguageSwitcher showText={false} size="sm" />
+
                 <a href="/login" use:link class="text-gray-600 hover:text-gray-900">
-                  登入
+                  {$t('common.login')}
                 </a>
                 <a href="/register" use:link class="btn btn-primary">
-                  註冊
+                  {$t('common.register')}
+                </a>
+                <a href="/language-test" use:link class="text-gray-600 hover:text-gray-900 text-sm">
+                  語言測試
                 </a>
               </div>
             </div>

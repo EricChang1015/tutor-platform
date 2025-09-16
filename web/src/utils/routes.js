@@ -7,6 +7,7 @@ import Register from '../pages/Register.svelte';
 import Dashboard from '../pages/Dashboard.svelte';
 import Profile from '../pages/Profile.svelte';
 import NotFound from '../pages/NotFound.svelte';
+import LanguageTest from '../pages/LanguageTest.svelte';
 
 // 管理員頁面
 import AdminDashboard from '../pages/admin/Dashboard.svelte';
@@ -35,6 +36,7 @@ export const routes = {
   '/': Dashboard,
   '/login': Login,
   '/register': Register,
+  '/language-test': LanguageTest,
   
   // 需要認證的路由
   '/dashboard': wrap({
@@ -188,31 +190,31 @@ export const routes = {
 export const navigationMenus = {
   admin: [
     {
-      title: '儀表板',
+      titleKey: 'common.dashboard',
       path: '/admin/dashboard',
       icon: 'home',
       permission: 'dashboard.view'
     },
     {
-      title: '用戶管理',
+      titleKey: 'features.userManagement',
       path: '/admin/users',
       icon: 'users',
       permission: 'users.manage'
     },
     {
-      title: '課程管理',
+      titleKey: 'features.courseManagement',
       path: '/admin/courses',
       icon: 'book',
       permission: 'courses.manage'
     },
     {
-      title: '定價管理',
+      titleKey: 'features.pricingManagement',
       path: '/admin/pricing',
       icon: 'dollar-sign',
       permission: 'pricing.manage'
     },
     {
-      title: '結算管理',
+      titleKey: 'features.payoutManagement',
       path: '/admin/payouts',
       icon: 'credit-card',
       permission: 'payouts.manage'
@@ -221,31 +223,31 @@ export const navigationMenus = {
   
   teacher: [
     {
-      title: '儀表板',
+      titleKey: 'common.dashboard',
       path: '/teacher/dashboard',
       icon: 'home',
       permission: 'dashboard.view'
     },
     {
-      title: '我的課程',
+      titleKey: 'courses.myCourses',
       path: '/teacher/courses',
       icon: 'book',
       permission: 'courses.view'
     },
     {
-      title: '可用時段',
+      titleKey: 'features.availabilityManagement',
       path: '/teacher/availability',
       icon: 'calendar',
       permission: 'availability.manage'
     },
     {
-      title: '課程會議',
+      titleKey: 'features.sessionManagement',
       path: '/teacher/sessions',
       icon: 'video',
       permission: 'sessions.manage'
     },
     {
-      title: '我的結算',
+      titleKey: 'features.payoutManagement',
       path: '/teacher/payouts',
       icon: 'credit-card',
       permission: 'payouts.view'
@@ -254,31 +256,31 @@ export const navigationMenus = {
   
   student: [
     {
-      title: '儀表板',
+      titleKey: 'common.dashboard',
       path: '/student/dashboard',
       icon: 'home',
       permission: 'dashboard.view'
     },
     {
-      title: '瀏覽課程',
+      titleKey: 'courses.browseCourses',
       path: '/student/courses',
       icon: 'book',
       permission: 'courses.view'
     },
     {
-      title: '我的預約',
+      titleKey: 'features.bookingManagement',
       path: '/student/bookings',
       icon: 'calendar',
       permission: 'booking.view'
     },
     {
-      title: '我的課程',
+      titleKey: 'courses.myCourses',
       path: '/student/sessions',
       icon: 'video',
       permission: 'sessions.view'
     },
     {
-      title: '課程包',
+      titleKey: 'features.packageManagement',
       path: '/student/packages',
       icon: 'package',
       permission: 'packages.view'

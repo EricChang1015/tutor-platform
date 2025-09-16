@@ -2,6 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import { link, location } from 'svelte-spa-router';
   import { checkPermission } from '../stores/auth.js';
+  import { t } from '../stores/i18n.js';
   
   export let open = false;
   export let menu = [];
@@ -96,7 +97,7 @@
           </svg>
           
           <!-- 標題 -->
-          <span>{item.title}</span>
+          <span>{$t(item.titleKey || item.title)}</span>
           
           <!-- 活動指示器 -->
           {#if isActiveRoute(item.path)}

@@ -4,6 +4,7 @@
   import { auth, isAuthenticated, userRole } from '../stores/auth.js';
   import { notify } from '../stores/notifications.js';
   import { getDefaultRoute } from '../utils/routes.js';
+  import { t } from '../stores/i18n.js';
   import LoadingSpinner from '../components/LoadingSpinner.svelte';
 
   let email = '';
@@ -21,7 +22,7 @@
 
   async function handleSubmit() {
     if (!email || !password) {
-      notify.error('請填寫所有必填欄位');
+      notify.error($t('validation.required'));
       return;
     }
 
@@ -29,13 +30,13 @@
 
     try {
       const user = await auth.login({ email, password });
-      notify.success(`歡迎回來，${user.name}！`);
-      
+      notify.success($t('auth.login.welcome', { name: user.name }));
+
       // 重定向到對應的儀表板
       const defaultRoute = getDefaultRoute(user.role);
       push(defaultRoute);
     } catch (error) {
-      notify.error(error.message || '登入失敗');
+      notify.error(error.message || $t('auth.errors.loginFailed'));
     } finally {
       isLoading = false;
     }
@@ -69,12 +70,12 @@
         <span class="text-2xl">🎓</span>
       </div>
       <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
-        登入您的帳戶
+        {$t('auth.login.title')}
       </h2>
       <p class="mt-2 text-sm text-gray-600">
-        或者
+        {$t('auth.login.subtitle')}
         <a href="/register" use:link class="font-medium text-primary-600 hover:text-primary-500">
-          創建新帳戶
+          {$t('auth.login.createAccount')}
         </a>
       </p>
     </div>
@@ -85,7 +86,7 @@
         <!-- Email 欄位 -->
         <div>
           <label for="email" class="label">
-            Email 地址
+            {$t('auth.login.email')}
           </label>
           <input
             id="email"
@@ -94,7 +95,7 @@
             autocomplete="email"
             required
             class="input"
-            placeholder="請輸入您的 Email"
+            placeholder={$t('auth.login.email')}
             bind:value={email}
             disabled={isLoading}
           />
@@ -103,7 +104,7 @@
         <!-- 密碼欄位 -->
         <div>
           <label for="password" class="label">
-            密碼
+            {$t('auth.login.password')}
           </label>
           <div class="relative">
             {#if showPassword}
@@ -114,7 +115,7 @@
                 autocomplete="current-password"
                 required
                 class="input pr-10"
-                placeholder="請輸入您的密碼"
+                placeholder={$t('auth.login.password')}
                 bind:value={password}
                 disabled={isLoading}
               />
@@ -126,7 +127,7 @@
                 autocomplete="current-password"
                 required
                 class="input pr-10"
-                placeholder="請輸入您的密碼"
+                placeholder={$t('auth.login.password')}
                 bind:value={password}
                 disabled={isLoading}
               />
@@ -164,13 +165,13 @@
             class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
           />
           <label for="remember-me" class="ml-2 block text-sm text-gray-900">
-            記住我
+            {$t('auth.login.rememberMe')}
           </label>
         </div>
 
         <div class="text-sm">
           <a href="/forgot-password" class="font-medium text-primary-600 hover:text-primary-500">
-            忘記密碼？
+            {$t('auth.login.forgotPassword')}
           </a>
         </div>
       </div>
@@ -184,9 +185,9 @@
         >
           {#if isLoading}
             <LoadingSpinner size="sm" color="white" />
-            <span class="ml-2">登入中...</span>
+            <span class="ml-2">{$t('auth.login.loggingIn')}</span>
           {:else}
-            登入
+            {$t('auth.login.loginButton')}
           {/if}
         </button>
       </div>
@@ -199,7 +200,7 @@
           <div class="w-full border-t border-gray-300" />
         </div>
         <div class="relative flex justify-center text-sm">
-          <span class="px-2 bg-gray-50 text-gray-500">快速登入（測試用）</span>
+          <span class="px-2 bg-gray-50 text-gray-500">{$t('auth.login.quickLogin')}</span>
         </div>
       </div>
 
@@ -210,7 +211,7 @@
           on:click={() => quickLogin('admin')}
           disabled={isLoading}
         >
-          管理員
+          {$t('auth.login.admin')}
         </button>
         <button
           type="button"
@@ -218,7 +219,7 @@
           on:click={() => quickLogin('teacher')}
           disabled={isLoading}
         >
-          老師
+          {$t('auth.login.teacher')}
         </button>
         <button
           type="button"
@@ -226,7 +227,7 @@
           on:click={() => quickLogin('student')}
           disabled={isLoading}
         >
-          學生
+          {$t('auth.login.student')}
         </button>
       </div>
     </div>
