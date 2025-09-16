@@ -151,25 +151,68 @@ export const auth = {
 // 路由守衛
 export function requireAuth(requiredRoles = null) {
   return new Promise((resolve, reject) => {
-    const unsubscribe = user.subscribe(currentUser => {
-      if (currentUser === null) {
-        // 未登入
-        reject(new Error('需要登入'));
+    let currentUser;
+    let currentRole;
+
+    // 獲取當前用戶狀態
+    const unsubscribeUser = user.subscribe(u => currentUser = u);
+    const unsubscribeRole = userRole.subscribe(r => currentRole = r);
+
+    // 清理訂閱
+    unsubscribeUser();
+    unsubscribeRole();
+
+    // 檢查是否已登入
+    if (!currentUser) {
+      reject(new Error('需要登入'));
+      return;
+    }
+
+    // 檢查角色權限
+    if (requiredRoles) {
+      if (!Array.isArray(requiredRoles)) {
+        requiredRoles = [requiredRoles];
+      }
+
+      if (!currentRole || !requiredRoles.includes(currentRole)) {
+        reject(new Error('權限不足'));
         return;
       }
+    }
 
-      if (requiredRoles) {
-        const userHasPermission = hasPermission(requiredRoles);
-        if (!userHasPermission) {
-          reject(new Error('權限不足'));
-          return;
-        }
-      }
-
-      resolve(currentUser);
-      unsubscribe();
-    });
+    resolve(currentUser);
   });
+}
+
+// 同步檢查認證狀態
+export function checkAuth() {
+  let currentUser;
+  const unsubscribe = user.subscribe(u => currentUser = u);
+  unsubscribe();
+  return !!currentUser;
+}
+
+// 同步檢查權限
+export function checkPermission(requiredRoles = null) {
+  let currentUser;
+  let currentRole;
+
+  const unsubscribeUser = user.subscribe(u => currentUser = u);
+  const unsubscribeRole = userRole.subscribe(r => currentRole = r);
+
+  unsubscribeUser();
+  unsubscribeRole();
+
+  if (!currentUser) return false;
+
+  if (requiredRoles) {
+    if (!Array.isArray(requiredRoles)) {
+      requiredRoles = [requiredRoles];
+    }
+    return currentRole && requiredRoles.includes(currentRole);
+  }
+
+  return true;
 }
 
 // 角色常量

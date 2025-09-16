@@ -1,11 +1,12 @@
 import { wrap } from 'svelte-spa-router/wrap';
-import { requireAuth, ROLES } from '../stores/auth.js';
+import { requireAuth, checkAuth, checkPermission, ROLES } from '../stores/auth.js';
 
 // 頁面組件 (懶加載)
 import Login from '../pages/Login.svelte';
 import Register from '../pages/Register.svelte';
 import Dashboard from '../pages/Dashboard.svelte';
 import Profile from '../pages/Profile.svelte';
+import Settings from '../pages/Settings.svelte';
 import NotFound from '../pages/NotFound.svelte';
 import LanguageTest from '../pages/LanguageTest.svelte';
 
@@ -42,14 +43,21 @@ export const routes = {
   '/dashboard': wrap({
     component: Dashboard,
     conditions: [
-      () => requireAuth()
+      () => checkAuth()
     ]
   }),
   
   '/profile': wrap({
     component: Profile,
     conditions: [
-      () => requireAuth()
+      () => checkAuth()
+    ]
+  }),
+
+  '/settings': wrap({
+    component: Settings,
+    conditions: [
+      () => checkAuth()
     ]
   }),
 
@@ -57,42 +65,42 @@ export const routes = {
   '/admin': wrap({
     component: AdminDashboard,
     conditions: [
-      () => requireAuth([ROLES.ADMIN])
+      () => checkPermission([ROLES.ADMIN])
     ]
   }),
-  
+
   '/admin/dashboard': wrap({
     component: AdminDashboard,
     conditions: [
-      () => requireAuth([ROLES.ADMIN])
+      () => checkPermission([ROLES.ADMIN])
     ]
   }),
-  
+
   '/admin/users': wrap({
     component: AdminUsers,
     conditions: [
-      () => requireAuth([ROLES.ADMIN])
+      () => checkPermission([ROLES.ADMIN])
     ]
   }),
-  
+
   '/admin/courses': wrap({
     component: AdminCourses,
     conditions: [
-      () => requireAuth([ROLES.ADMIN])
+      () => checkPermission([ROLES.ADMIN])
     ]
   }),
-  
+
   '/admin/pricing': wrap({
     component: AdminPricing,
     conditions: [
-      () => requireAuth([ROLES.ADMIN])
+      () => checkPermission([ROLES.ADMIN])
     ]
   }),
-  
+
   '/admin/payouts': wrap({
     component: AdminPayouts,
     conditions: [
-      () => requireAuth([ROLES.ADMIN])
+      () => checkPermission([ROLES.ADMIN])
     ]
   }),
 
@@ -100,42 +108,42 @@ export const routes = {
   '/teacher': wrap({
     component: TeacherDashboard,
     conditions: [
-      () => requireAuth([ROLES.TEACHER])
+      () => checkPermission([ROLES.TEACHER])
     ]
   }),
-  
+
   '/teacher/dashboard': wrap({
     component: TeacherDashboard,
     conditions: [
-      () => requireAuth([ROLES.TEACHER])
+      () => checkPermission([ROLES.TEACHER])
     ]
   }),
-  
+
   '/teacher/courses': wrap({
     component: TeacherCourses,
     conditions: [
-      () => requireAuth([ROLES.TEACHER])
+      () => checkPermission([ROLES.TEACHER])
     ]
   }),
-  
+
   '/teacher/availability': wrap({
     component: TeacherAvailability,
     conditions: [
-      () => requireAuth([ROLES.TEACHER])
+      () => checkPermission([ROLES.TEACHER])
     ]
   }),
-  
+
   '/teacher/sessions': wrap({
     component: TeacherSessions,
     conditions: [
-      () => requireAuth([ROLES.TEACHER])
+      () => checkPermission([ROLES.TEACHER])
     ]
   }),
-  
+
   '/teacher/payouts': wrap({
     component: TeacherPayouts,
     conditions: [
-      () => requireAuth([ROLES.TEACHER])
+      () => checkPermission([ROLES.TEACHER])
     ]
   }),
 
@@ -143,42 +151,42 @@ export const routes = {
   '/student': wrap({
     component: StudentDashboard,
     conditions: [
-      () => requireAuth([ROLES.STUDENT])
+      () => checkPermission([ROLES.STUDENT])
     ]
   }),
-  
+
   '/student/dashboard': wrap({
     component: StudentDashboard,
     conditions: [
-      () => requireAuth([ROLES.STUDENT])
+      () => checkPermission([ROLES.STUDENT])
     ]
   }),
-  
+
   '/student/courses': wrap({
     component: StudentCourses,
     conditions: [
-      () => requireAuth([ROLES.STUDENT])
+      () => checkPermission([ROLES.STUDENT])
     ]
   }),
-  
+
   '/student/bookings': wrap({
     component: StudentBookings,
     conditions: [
-      () => requireAuth([ROLES.STUDENT])
+      () => checkPermission([ROLES.STUDENT])
     ]
   }),
-  
+
   '/student/sessions': wrap({
     component: StudentSessions,
     conditions: [
-      () => requireAuth([ROLES.STUDENT])
+      () => checkPermission([ROLES.STUDENT])
     ]
   }),
-  
+
   '/student/packages': wrap({
     component: StudentPackages,
     conditions: [
-      () => requireAuth([ROLES.STUDENT])
+      () => checkPermission([ROLES.STUDENT])
     ]
   }),
 

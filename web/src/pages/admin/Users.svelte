@@ -12,6 +12,8 @@
   let searchTerm = '';
   let selectedRole = '';
   let showCreateModal = false;
+  let showEditModal = false;
+  let editingUser = null;
 
   // 新用戶表單
   let newUser = {
@@ -19,6 +21,16 @@
     email: '',
     password: '',
     role: 'student'
+  };
+
+  // 編輯用戶表單
+  let editUser = {
+    id: '',
+    name: '',
+    email: '',
+    role: '',
+    phone: '',
+    bio: ''
   };
 
   onMount(async () => {
@@ -86,9 +98,44 @@
     }
   }
 
+  function openEditModal(user) {
+    editingUser = user;
+    editUser = {
+      id: user.id,
+      name: user.name || '',
+      email: user.email || '',
+      role: user.role || '',
+      phone: user.phone || '',
+      bio: user.bio || ''
+    };
+    showEditModal = true;
+  }
+
+  async function updateUser() {
+    if (!editUser.name || !editUser.email) {
+      notify.error('請填寫所有必填欄位');
+      return;
+    }
+
+    try {
+      await api.users.update(editUser.id, editUser);
+      notify.success('用戶更新成功');
+      await loadUsers();
+      closeEditModal();
+    } catch (error) {
+      notify.error(error.message || '更新用戶失敗');
+    }
+  }
+
   function closeModal() {
     showCreateModal = false;
     newUser = { name: '', email: '', password: '', role: 'student' };
+  }
+
+  function closeEditModal() {
+    showEditModal = false;
+    editingUser = null;
+    editUser = { id: '', name: '', email: '', role: '', phone: '', bio: '' };
   }
 </script>
 
@@ -218,9 +265,10 @@
                   </td>
                   <td class="table-cell">
                     <div class="flex space-x-2">
-                      <button 
+                      <button
                         class="btn btn-sm btn-outline"
                         title="編輯用戶"
+                        on:click={() => openEditModal(user)}
                       >
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -313,6 +361,97 @@
           </button>
           <button type="submit" class="btn btn-primary">
             創建用戶
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+{/if}
+
+<!-- 編輯用戶模態框 -->
+{#if showEditModal}
+  <div class="modal-overlay" on:click={closeEditModal}>
+    <div class="modal-container" on:click|stopPropagation>
+      <div class="flex items-center justify-between p-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">編輯用戶</h3>
+        <button
+          type="button"
+          class="text-gray-400 hover:text-gray-500"
+          on:click={closeEditModal}
+        >
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form on:submit|preventDefault={updateUser} class="p-4 space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="label">姓名 *</label>
+            <input
+              type="text"
+              class="input"
+              placeholder="請輸入姓名"
+              bind:value={editUser.name}
+              required
+            />
+          </div>
+
+          <div>
+            <label class="label">Email *</label>
+            <input
+              type="email"
+              class="input"
+              placeholder="請輸入 Email"
+              bind:value={editUser.email}
+              required
+            />
+          </div>
+
+          <div>
+            <label class="label">角色 *</label>
+            <select class="input" bind:value={editUser.role} required>
+              <option value="admin">管理員</option>
+              <option value="teacher">老師</option>
+              <option value="student">學生</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="label">手機號碼</label>
+            <input
+              type="tel"
+              class="input"
+              placeholder="請輸入手機號碼"
+              bind:value={editUser.phone}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="label">個人簡介</label>
+          <textarea
+            class="input"
+            rows="3"
+            placeholder="請輸入個人簡介"
+            bind:value={editUser.bio}
+          ></textarea>
+        </div>
+
+        <div class="flex justify-end space-x-3 pt-4">
+          <button
+            type="button"
+            class="btn btn-outline"
+            on:click={closeEditModal}
+          >
+            取消
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary"
+          >
+            更新用戶
           </button>
         </div>
       </form>

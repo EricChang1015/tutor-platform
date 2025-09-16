@@ -6,16 +6,24 @@
 
   let isLoading = false;
   let isEditing = false;
+  let isUploadingAvatar = false;
+  let avatarFileInput;
   let formData = {
     name: '',
-    email: ''
+    email: '',
+    phone: '',
+    bio: '',
+    avatar: ''
   };
 
   // 初始化表單數據
   $: if ($user && !isEditing) {
     formData = {
       name: $user.name || '',
-      email: $user.email || ''
+      email: $user.email || '',
+      phone: $user.phone || '',
+      bio: $user.bio || '',
+      avatar: $user.avatar || ''
     };
   }
 
@@ -23,7 +31,10 @@
     isEditing = true;
     formData = {
       name: $user.name || '',
-      email: $user.email || ''
+      email: $user.email || '',
+      phone: $user.phone || '',
+      bio: $user.bio || '',
+      avatar: $user.avatar || ''
     };
   }
 
@@ -31,8 +42,65 @@
     isEditing = false;
     formData = {
       name: $user.name || '',
-      email: $user.email || ''
+      email: $user.email || '',
+      phone: $user.phone || '',
+      bio: $user.bio || '',
+      avatar: $user.avatar || ''
     };
+  }
+
+  // 頭像上傳處理
+  async function handleAvatarUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // 檢查文件類型
+    if (!file.type.startsWith('image/')) {
+      notify.error('請選擇圖片文件');
+      return;
+    }
+
+    // 檢查文件大小 (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      notify.error('圖片大小不能超過 5MB');
+      return;
+    }
+
+    isUploadingAvatar = true;
+    try {
+      // 創建 FormData
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'avatar');
+
+      // 上傳到後端
+      const response = await fetch('/api/storage/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('上傳失敗');
+      }
+
+      const result = await response.json();
+
+      // 更新頭像 URL
+      formData.avatar = result.url;
+      notify.success('頭像上傳成功');
+
+    } catch (error) {
+      notify.error(error.message || '頭像上傳失敗');
+    } finally {
+      isUploadingAvatar = false;
+    }
+  }
+
+  function triggerAvatarUpload() {
+    avatarFileInput?.click();
   }
 
   async function saveProfile() {
@@ -83,6 +151,48 @@
       {#if isEditing}
         <!-- 編輯模式 -->
         <form on:submit|preventDefault={saveProfile} class="space-y-6">
+          <!-- 頭像上傳 -->
+          <div class="flex items-center space-x-6">
+            <div class="relative">
+              <div class="h-24 w-24 rounded-full overflow-hidden bg-gray-200">
+                {#if formData.avatar}
+                  <img src={formData.avatar} alt="頭像" class="h-full w-full object-cover" />
+                {:else}
+                  <div class="h-full w-full flex items-center justify-center bg-primary-600 text-white text-2xl font-medium">
+                    {$user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                  </div>
+                {/if}
+              </div>
+              {#if isUploadingAvatar}
+                <div class="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                  <LoadingSpinner size="sm" color="white" />
+                </div>
+              {/if}
+            </div>
+            <div>
+              <button
+                type="button"
+                class="btn btn-outline"
+                on:click={triggerAvatarUpload}
+                disabled={isLoading || isUploadingAvatar}
+              >
+                {isUploadingAvatar ? '上傳中...' : '更換頭像'}
+              </button>
+              <p class="mt-1 text-sm text-gray-500">
+                支援 JPG、PNG 格式，大小不超過 5MB
+              </p>
+            </div>
+          </div>
+
+          <!-- 隱藏的文件輸入 -->
+          <input
+            type="file"
+            accept="image/*"
+            class="hidden"
+            bind:this={avatarFileInput}
+            on:change={handleAvatarUpload}
+          />
+
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label class="label">姓名 *</label>
@@ -94,7 +204,7 @@
                 disabled={isLoading}
               />
             </div>
-            
+
             <div>
               <label class="label">Email *</label>
               <input
@@ -105,6 +215,28 @@
                 disabled={isLoading}
               />
             </div>
+
+            <div>
+              <label class="label">手機號碼</label>
+              <input
+                type="tel"
+                class="input"
+                bind:value={formData.phone}
+                placeholder="請輸入手機號碼"
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="label">個人簡介</label>
+            <textarea
+              class="input"
+              rows="4"
+              bind:value={formData.bio}
+              placeholder="請輸入個人簡介..."
+              disabled={isLoading}
+            ></textarea>
           </div>
           
           <div class="flex justify-end space-x-3">
@@ -132,35 +264,64 @@
         </form>
       {:else}
         <!-- 顯示模式 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="flex items-center space-x-4">
-            <div class="h-16 w-16 rounded-full bg-primary-600 flex items-center justify-center">
-              <span class="text-white text-xl font-medium">
-                {$user?.name?.charAt(0)?.toUpperCase() || 'U'}
-              </span>
+        <div class="space-y-6">
+          <!-- 頭像和基本信息 -->
+          <div class="flex items-center space-x-6">
+            <div class="h-24 w-24 rounded-full overflow-hidden bg-gray-200">
+              {#if $user?.avatar}
+                <img src={$user.avatar} alt="頭像" class="h-full w-full object-cover" />
+              {:else}
+                <div class="h-full w-full flex items-center justify-center bg-primary-600 text-white text-2xl font-medium">
+                  {$user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                </div>
+              {/if}
             </div>
             <div>
-              <h3 class="text-lg font-medium text-gray-900">{$user?.name || '未設定'}</h3>
+              <h3 class="text-xl font-medium text-gray-900">{$user?.name || '未設定'}</h3>
               <p class="text-sm text-gray-500">{$user?.email || '未設定'}</p>
+              {#if $user?.phone}
+                <p class="text-sm text-gray-500">{$user.phone}</p>
+              {/if}
             </div>
           </div>
+
+          <!-- 詳細信息 -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           
           <div class="space-y-4">
             <div>
               <dt class="text-sm font-medium text-gray-500">角色</dt>
               <dd class="mt-1">
                 <span class="badge badge-primary">
-                  {ROLE_NAMES[$user?.role] || $user?.role || '未設定'}
+                  {$t(`roles.${$user?.role}`) || $user?.role || '未設定'}
                 </span>
               </dd>
             </div>
-            
+
             <div>
               <dt class="text-sm font-medium text-gray-500">註冊時間</dt>
               <dd class="mt-1 text-sm text-gray-900">
                 {$user?.created_at ? new Date($user.created_at).toLocaleDateString() : '未知'}
               </dd>
             </div>
+
+            <div>
+              <dt class="text-sm font-medium text-gray-500">手機號碼</dt>
+              <dd class="mt-1 text-sm text-gray-900">
+                {$user?.phone || '未設定'}
+              </dd>
+            </div>
+          </div>
+
+          <!-- 個人簡介 -->
+          {#if $user?.bio}
+            <div class="col-span-2">
+              <dt class="text-sm font-medium text-gray-500 mb-2">個人簡介</dt>
+              <dd class="text-sm text-gray-900 bg-gray-50 p-4 rounded-md">
+                {$user.bio}
+              </dd>
+            </div>
+          {/if}
           </div>
         </div>
       {/if}
