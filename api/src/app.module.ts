@@ -10,9 +10,10 @@ import { PricingModule } from './modules/pricing/pricing.module';
 import { PackagesModule } from './modules/packages/packages.module';
 import { CoursesModule } from './modules/courses/courses.module';
 import { AvailabilityModule } from './modules/availability/availability.module';
+import { BookingModule } from './modules/booking/booking.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, UsersModule, AuthModule, PricingModule, PackagesModule, CoursesModule, AvailabilityModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, UsersModule, AuthModule, PricingModule, PackagesModule, CoursesModule, AvailabilityModule, BookingModule],
   controllers: [HealthController, AppController],
   providers: [AppService],
 })
