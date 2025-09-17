@@ -16,6 +16,9 @@
     phone: '',
     bio: '',
     avatar: '',
+    gender: '',
+    birthday: '',
+    nickname: '',
     // 老師專用欄位
     display_name: '',
     photo_url: '',
@@ -30,6 +33,9 @@
       phone: $user.phone || '',
       bio: $user.bio || '',
       avatar: $user.avatar || '',
+      gender: $user.gender || '',
+      birthday: $user.birthday || '',
+      nickname: $user.nickname || '',
       // 老師專用欄位
       display_name: $user.teacher_profile?.display_name || '',
       photo_url: $user.teacher_profile?.photo_url || '',
@@ -373,6 +379,41 @@
                 disabled={isLoading}
               />
             </div>
+
+            <div>
+              <label class="label">英文暱稱</label>
+              <input
+                type="text"
+                class="input"
+                bind:value={formData.nickname}
+                placeholder="請輸入英文暱稱"
+                disabled={isLoading}
+              />
+            </div>
+
+            <div>
+              <label class="label">性別</label>
+              <select
+                class="input"
+                bind:value={formData.gender}
+                disabled={isLoading}
+              >
+                <option value="">請選擇性別</option>
+                <option value="male">男性</option>
+                <option value="female">女性</option>
+                <option value="other">其他</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="label">生日</label>
+              <input
+                type="date"
+                class="input"
+                bind:value={formData.birthday}
+                disabled={isLoading}
+              />
+            </div>
           </div>
 
           <div>
@@ -475,6 +516,35 @@
               <dt class="text-sm font-medium text-gray-500">手機號碼</dt>
               <dd class="mt-1 text-sm text-gray-900">
                 {$user?.phone || '未設定'}
+              </dd>
+            </div>
+
+            <div>
+              <dt class="text-sm font-medium text-gray-500">英文暱稱</dt>
+              <dd class="mt-1 text-sm text-gray-900">
+                {$user?.nickname || '未設定'}
+              </dd>
+            </div>
+
+            <div>
+              <dt class="text-sm font-medium text-gray-500">性別</dt>
+              <dd class="mt-1 text-sm text-gray-900">
+                {#if $user?.gender === 'male'}
+                  男性
+                {:else if $user?.gender === 'female'}
+                  女性
+                {:else if $user?.gender === 'other'}
+                  其他
+                {:else}
+                  未設定
+                {/if}
+              </dd>
+            </div>
+
+            <div>
+              <dt class="text-sm font-medium text-gray-500">生日</dt>
+              <dd class="mt-1 text-sm text-gray-900">
+                {$user?.birthday ? new Date($user.birthday).toLocaleDateString() : '未設定'}
               </dd>
             </div>
           </div>
