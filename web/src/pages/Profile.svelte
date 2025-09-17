@@ -7,13 +7,19 @@
   let isLoading = false;
   let isEditing = false;
   let isUploadingAvatar = false;
+  let isUploadingVideo = false;
   let avatarFileInput;
+  let videoFileInput;
   let formData = {
     name: '',
     email: '',
     phone: '',
     bio: '',
-    avatar: ''
+    avatar: '',
+    // 老師專用欄位
+    display_name: '',
+    photo_url: '',
+    intro_video_url: ''
   };
 
   // 初始化表單數據
@@ -23,7 +29,11 @@
       email: $user.email || '',
       phone: $user.phone || '',
       bio: $user.bio || '',
-      avatar: $user.avatar || ''
+      avatar: $user.avatar || '',
+      // 老師專用欄位
+      display_name: $user.teacher_profile?.display_name || '',
+      photo_url: $user.teacher_profile?.photo_url || '',
+      intro_video_url: $user.teacher_profile?.intro_video_url || ''
     };
   }
 
@@ -34,7 +44,11 @@
       email: $user.email || '',
       phone: $user.phone || '',
       bio: $user.bio || '',
-      avatar: $user.avatar || ''
+      avatar: $user.avatar || '',
+      // 老師專用欄位
+      display_name: $user.teacher_profile?.display_name || '',
+      photo_url: $user.teacher_profile?.photo_url || '',
+      intro_video_url: $user.teacher_profile?.intro_video_url || ''
     };
   }
 
@@ -45,7 +59,11 @@
       email: $user.email || '',
       phone: $user.phone || '',
       bio: $user.bio || '',
-      avatar: $user.avatar || ''
+      avatar: $user.avatar || '',
+      // 老師專用欄位
+      display_name: $user.teacher_profile?.display_name || '',
+      photo_url: $user.teacher_profile?.photo_url || '',
+      intro_video_url: $user.teacher_profile?.intro_video_url || ''
     };
   }
 
@@ -101,6 +119,76 @@
 
   function triggerAvatarUpload() {
     avatarFileInput?.click();
+  }
+
+  // 影片上傳處理
+  async function handleVideoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // 檢查文件類型
+    if (!file.type.startsWith('video/')) {
+      notify.error('請選擇影片文件');
+      return;
+    }
+
+    // 檢查文件大小 (100MB)
+    if (file.size > 100 * 1024 * 1024) {
+      notify.error('影片大小不能超過 100MB');
+      return;
+    }
+
+    isUploadingVideo = true;
+    try {
+      // 獲取上傳 URL
+      const uploadData = {
+        filename: file.name,
+        file_type: 'video',
+        content_type: file.type,
+        file_size: file.size
+      };
+
+      const uploadResponse = await fetch('/api/storage/upload-url', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(uploadData)
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('獲取上傳 URL 失敗');
+      }
+
+      const uploadResult = await uploadResponse.json();
+
+      // 上傳文件到 MinIO
+      const fileUploadResponse = await fetch(uploadResult.upload_url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type
+        },
+        body: file
+      });
+
+      if (!fileUploadResponse.ok) {
+        throw new Error('影片上傳失敗');
+      }
+
+      // 更新影片 URL
+      formData.intro_video_url = uploadResult.download_url;
+      notify.success('影片上傳成功');
+
+    } catch (error) {
+      notify.error(error.message || '影片上傳失敗');
+    } finally {
+      isUploadingVideo = false;
+    }
+  }
+
+  function triggerVideoUpload() {
+    videoFileInput?.click();
   }
 
   async function saveProfile() {
@@ -193,6 +281,65 @@
             on:change={handleAvatarUpload}
           />
 
+          <!-- 老師專用：介紹影片上傳 -->
+          {#if $user?.role === 'teacher'}
+            <div class="border-t pt-6">
+              <h3 class="text-lg font-medium text-gray-900 mb-4">介紹影片</h3>
+              <div class="flex items-start space-x-6">
+                <div class="relative">
+                  <div class="w-48 h-32 rounded-lg overflow-hidden bg-gray-200 border-2 border-dashed border-gray-300">
+                    {#if formData.intro_video_url}
+                      <video
+                        src={formData.intro_video_url}
+                        class="w-full h-full object-cover"
+                        controls
+                        preload="metadata"
+                      >
+                        您的瀏覽器不支援影片播放
+                      </video>
+                    {:else}
+                      <div class="w-full h-full flex items-center justify-center text-gray-400">
+                        <svg class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    {/if}
+                  </div>
+                  {#if isUploadingVideo}
+                    <div class="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
+                      <LoadingSpinner size="sm" color="white" />
+                    </div>
+                  {/if}
+                </div>
+                <div class="flex-1">
+                  <button
+                    type="button"
+                    class="btn btn-outline"
+                    on:click={triggerVideoUpload}
+                    disabled={isLoading || isUploadingVideo}
+                  >
+                    {isUploadingVideo ? '上傳中...' : (formData.intro_video_url ? '更換影片' : '上傳介紹影片')}
+                  </button>
+                  <p class="mt-2 text-sm text-gray-500">
+                    支援 MP4、AVI、MOV 等格式，大小不超過 100MB
+                  </p>
+                  <p class="mt-1 text-sm text-gray-500">
+                    介紹影片可以幫助學生更好地了解您的教學風格
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 隱藏的影片文件輸入 -->
+            <input
+              type="file"
+              accept="video/*"
+              class="hidden"
+              bind:this={videoFileInput}
+              on:change={handleVideoUpload}
+            />
+          {/if}
+
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label class="label">姓名 *</label>
@@ -238,6 +385,25 @@
               disabled={isLoading}
             ></textarea>
           </div>
+
+          <!-- 老師專用欄位 -->
+          {#if $user?.role === 'teacher'}
+            <div class="border-t pt-6">
+              <h3 class="text-lg font-medium text-gray-900 mb-4">教師資料</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label class="label">顯示名稱</label>
+                  <input
+                    type="text"
+                    class="input"
+                    bind:value={formData.display_name}
+                    placeholder="學生看到的教師名稱"
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+            </div>
+          {/if}
           
           <div class="flex justify-end space-x-3">
             <button 
@@ -320,6 +486,39 @@
               <dd class="text-sm text-gray-900 bg-gray-50 p-4 rounded-md">
                 {$user.bio}
               </dd>
+            </div>
+          {/if}
+
+          <!-- 老師專用信息 -->
+          {#if $user?.role === 'teacher' && $user?.teacher_profile}
+            <div class="col-span-2 border-t pt-6">
+              <h3 class="text-lg font-medium text-gray-900 mb-4">教師資料</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {#if $user.teacher_profile.display_name}
+                  <div>
+                    <dt class="text-sm font-medium text-gray-500">顯示名稱</dt>
+                    <dd class="text-sm text-gray-900">{$user.teacher_profile.display_name}</dd>
+                  </div>
+                {/if}
+
+                {#if $user.teacher_profile.intro_video_url}
+                  <div class="col-span-2">
+                    <dt class="text-sm font-medium text-gray-500 mb-2">介紹影片</dt>
+                    <dd>
+                      <div class="w-64 h-40 rounded-lg overflow-hidden bg-gray-100">
+                        <video
+                          src={$user.teacher_profile.intro_video_url}
+                          class="w-full h-full object-cover"
+                          controls
+                          preload="metadata"
+                        >
+                          您的瀏覽器不支援影片播放
+                        </video>
+                      </div>
+                    </dd>
+                  </div>
+                {/if}
+              </div>
             </div>
           {/if}
           </div>

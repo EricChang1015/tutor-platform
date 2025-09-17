@@ -249,12 +249,12 @@ export const ROLE_PERMISSIONS = {
 };
 
 // 檢查特定權限
-export function checkPermission(permission) {
+export function checkSpecificPermission(permission) {
   let currentRole;
   userRole.subscribe(role => currentRole = role)();
-  
+
   if (!currentRole) return false;
-  
+
   const rolePermissions = ROLE_PERMISSIONS[currentRole] || [];
   return rolePermissions.includes('*') || rolePermissions.includes(permission);
 }

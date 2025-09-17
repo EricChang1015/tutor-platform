@@ -56,15 +56,24 @@ export class UsersService {
   }
 
   async getUserById(id: string) {
-    const user = await this.prisma.app_user.findUnique({ where: { id } });
+    const user = await this.prisma.app_user.findUnique({
+      where: { id },
+      include: {
+        teacher_profile: true,
+        student_profile: true
+      }
+    });
     if (!user) throw new NotFoundException('User not found');
     return {
       id: user.id,
       email: user.email,
       role: user.role,
       name: user.name,
+      phone: user.phone,
       timezone: user.timezone,
       is_active: user.is_active,
+      teacher_profile: user.teacher_profile,
+      student_profile: user.student_profile,
     };
   }
 
@@ -107,7 +116,13 @@ export class UsersService {
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
-    const user = await this.prisma.app_user.findUnique({ where: { id: userId } });
+    const user = await this.prisma.app_user.findUnique({
+      where: { id: userId },
+      include: {
+        teacher_profile: true,
+        student_profile: true
+      }
+    });
     if (!user) throw new NotFoundException('User not found');
 
     // 如果要更新 email，檢查是否已存在
@@ -120,25 +135,55 @@ export class UsersService {
       }
     }
 
-    const updatedUser = await this.prisma.app_user.update({
-      where: { id: userId },
-      data: {
-        ...(dto.name && { name: dto.name }),
-        ...(dto.email && { email: dto.email }),
-        ...(dto.phone && { phone: dto.phone }),
-        ...(dto.timezone && { timezone: dto.timezone }),
-        updated_at: new Date(),
-      },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      // 更新 app_user 表
+      const updatedUser = await tx.app_user.update({
+        where: { id: userId },
+        data: {
+          ...(dto.name && { name: dto.name }),
+          ...(dto.email && { email: dto.email }),
+          ...(dto.phone && { phone: dto.phone }),
+          ...(dto.timezone && { timezone: dto.timezone }),
+          updated_at: new Date(),
+        },
+      });
 
-    return {
-      id: updatedUser.id,
-      email: updatedUser.email,
-      role: updatedUser.role,
-      name: updatedUser.name,
-      phone: updatedUser.phone,
-      timezone: updatedUser.timezone,
-      is_active: updatedUser.is_active,
-    };
+      // 如果是老師，更新 teacher_profile 表
+      if (user.role === Role.Teacher && user.teacher_profile) {
+        await tx.teacher_profile.update({
+          where: { user_id: userId },
+          data: {
+            ...(dto.display_name && { display_name: dto.display_name }),
+            ...(dto.bio && { bio: dto.bio }),
+            ...(dto.photo_url && { photo_url: dto.photo_url }),
+            ...(dto.intro_video_url && { intro_video_url: dto.intro_video_url }),
+            updated_at: new Date(),
+          },
+        });
+      }
+
+      // 返回完整的用戶資料
+      const fullUser = await tx.app_user.findUnique({
+        where: { id: userId },
+        include: {
+          teacher_profile: true,
+          student_profile: true
+        }
+      });
+
+      if (!fullUser) throw new NotFoundException('User not found after update');
+
+      return {
+        id: fullUser.id,
+        email: fullUser.email,
+        role: fullUser.role,
+        name: fullUser.name,
+        phone: fullUser.phone,
+        timezone: fullUser.timezone,
+        is_active: fullUser.is_active,
+        teacher_profile: fullUser.teacher_profile,
+        student_profile: fullUser.student_profile,
+      };
+    });
   }
 }

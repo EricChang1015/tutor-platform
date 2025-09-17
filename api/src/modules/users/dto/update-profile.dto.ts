@@ -27,4 +27,18 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   timezone?: string;
+
+  // 老師專用欄位
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  display_name?: string;
+
+  @IsOptional()
+  @IsString()
+  photo_url?: string;
+
+  @IsOptional()
+  @IsString()
+  intro_video_url?: string;
 }
