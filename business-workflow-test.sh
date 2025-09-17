@@ -3,7 +3,7 @@
 # Tutor Platform 業務流程測試腳本
 # 測試完整的業務場景：從用戶註冊到課程預約、上課、結算的完整流程
 
-API_BASE="http://localhost:3001"
+API_BASE="http://localhost/api"
 
 echo "🎓 Tutor Platform 業務流程測試"
 echo "================================"

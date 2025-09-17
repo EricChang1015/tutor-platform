@@ -3,7 +3,7 @@
 # 老師可用時段測試腳本
 # 測試老師從早上8點到晚上9點的完整可用時段
 
-API_BASE="http://localhost:3001"
+API_BASE="http://localhost/api"
 
 echo "🕐 老師可用時段測試"
 echo "================================"

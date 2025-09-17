@@ -90,7 +90,7 @@ cd tutor-platform
 docker-compose up -d --build
 
 # 3. 驗證部署
-curl -s http://localhost:3001/health
+curl -s http://localhost/health
 ./test-api.sh
 ```
 
@@ -115,11 +115,14 @@ docker-compose ps
 
 **驗證部署**
 ```bash
-# 檢查 API 健康狀態
+# 檢查 API 健康狀態 (通過 Nginx)
+curl -s http://localhost/health
+
+# 直接檢查 API 服務 (開發調試)
 curl -s http://localhost:3001/health
 
-# 檢查管理員登入
-curl -s -X POST http://localhost:3001/auth/login \
+# 檢查管理員登入 (通過 Nginx)
+curl -s -X POST http://localhost/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@example.com","password":"admin123"}'
 
@@ -140,10 +143,16 @@ curl -s -X POST http://localhost:3001/auth/login \
 ## 5) 目前進度
 
 ### 基礎設施 ✅ 完成
-- PostgreSQL、Redis、MinIO 已運行並通過健康檢查
-- MinIO bucket 初始化程序完成（proofs）
-- Docker Compose 環境穩定運行
-- MailHog 郵件測試服務正常
+- **Nginx 反向代理**: 統一入口點，負載均衡，安全配置
+  - 主入口: http://localhost (端口 80)
+  - API 代理: /api/* → 後端服務
+  - 前端代理: /* → 前端服務
+  - 健康檢查: /health
+  - Rate limiting 和安全標頭
+- **PostgreSQL、Redis、MinIO**: 已運行並通過健康檢查
+- **MinIO bucket 初始化**: 程序完成（proofs）
+- **Docker Compose 環境**: 穩定運行
+- **MailHog 郵件測試**: 服務正常
 
 ### 後端 API ✅ 完成
 - **系統健康**: NestJS 專案可啟動，Health 檢查通過
@@ -345,11 +354,14 @@ Pricing 查價
 # 前端修復驗證測試
 ./test-frontend-fixes.sh
 
+# Nginx 反向代理測試
+./test-nginx.sh
+
 # Web 測試工具
-open http://localhost:3001/testAPI.html
+open http://localhost/testAPI.html
 
 # 運行所有測試
-./test-api.sh && ./e2e-test.sh && ./business-workflow-test.sh && ./performance-test.sh && ./test-teacher-availability.sh && ./test-student-features.sh && ./test-frontend-fixes.sh
+./test-api.sh && ./e2e-test.sh && ./business-workflow-test.sh && ./performance-test.sh && ./test-teacher-availability.sh && ./test-student-features.sh && ./test-frontend-fixes.sh && ./test-nginx.sh
 ```
 
 ## 9) 項目狀態總結

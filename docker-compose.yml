@@ -23,8 +23,8 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    ports:
-      - "6380:6379"
+    expose:
+      - "6379"
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - ./data/redis:/data
@@ -96,8 +96,8 @@ services:
         condition: service_started
       init-minio:
         condition: service_started
-    ports:
-      - "3001:3001"
+    expose:
+      - "3001"
     volumes:
       # 只掛載需要熱重載的檔案，避免覆蓋 node_modules
       - ./api/src:/app/src
@@ -109,13 +109,13 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      VITE_API_BASE: http://localhost:3001
+      VITE_API_URL: /api
       PORT: "3000"
       NPM_CONFIG_PRODUCTION: "false"
     depends_on:
       - api
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     volumes:
       - ./web:/app
     command: >
@@ -124,3 +124,22 @@ services:
         npm run build &&
         npm run preview
       "
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./data/nginx/logs:/var/log/nginx
+    depends_on:
+      - web
+      - api
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

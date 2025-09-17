@@ -3,7 +3,7 @@
 # Tutor Platform 性能測試腳本
 # 測試系統在負載下的表現
 
-API_BASE="http://localhost:3001"
+API_BASE="http://localhost/api"
 
 echo "🚀 Tutor Platform 性能測試"
 echo "================================"

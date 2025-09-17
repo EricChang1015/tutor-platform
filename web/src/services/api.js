@@ -1,5 +1,5 @@
 // API 基礎配置
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // 錯誤類型
 export class ApiError extends Error {

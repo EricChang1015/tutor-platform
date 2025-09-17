@@ -15,6 +15,7 @@
 | 老師可用時段測試 | `test-teacher-availability.sh` | 9 測試 | 100% | 老師時段設定和學生查看功能 |
 | 學生功能測試 | `test-student-features.sh` | 14 測試 | 100% | 學生主頁面和課程預約功能 |
 | 前端修復驗證測試 | `test-frontend-fixes.sh` | 24 測試 | 100% | 前端路由、Profile、老師和學生功能 |
+| Nginx 反向代理測試 | `test-nginx.sh` | 21 測試 | 100% | Nginx 配置、代理、安全和性能 |
 | 互動測試 | `api/testAPI.html` | 手動 | - | Web 界面 API 測試工具 |
 
 ## ✅ 測試結果詳情

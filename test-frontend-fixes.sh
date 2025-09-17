@@ -3,8 +3,8 @@
 # 前端修復驗證測試腳本
 # 測試所有修復的前端功能
 
-API_BASE="http://localhost:3001"
-WEB_BASE="http://localhost:3000"
+API_BASE="http://localhost/api"
+WEB_BASE="http://localhost"
 
 echo "🔧 前端修復驗證測試"
 echo "================================"

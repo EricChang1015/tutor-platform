@@ -3,7 +3,7 @@
 # Tutor Platform 端到端測試腳本
 # 測試完整的業務流程：用戶註冊 -> 課程創建 -> 預約 -> 上課 -> 結算
 
-API_BASE="http://localhost:3001"
+API_BASE="http://localhost/api"
 WEB_BASE="http://localhost:3000"
 
 echo "🎓 Tutor Platform 端到端測試"

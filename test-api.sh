@@ -3,7 +3,7 @@
 # Tutor Platform API 完整測試腳本
 # 測試所有核心 API 端點
 
-API_BASE="http://localhost:3001"
+API_BASE="http://localhost/api"
 ADMIN_TOKEN=""
 TEACHER_TOKEN=""
 STUDENT_TOKEN=""

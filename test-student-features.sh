@@ -3,7 +3,7 @@
 # 學生功能測試腳本
 # 測試學生主頁面和課程頁面的新功能
 
-API_BASE="http://localhost:3001"
+API_BASE="http://localhost/api"
 
 echo "🎓 學生功能測試"
 echo "================================"
