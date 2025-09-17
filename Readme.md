@@ -80,30 +80,61 @@ Docker 服務
 - VITE_API_BASE（web 前端使用的 API Base）
 ## 4) 專案啟動
 
-初次啟動
+### 🚀 快速啟動 (推薦)
+```bash
+# 1. 克隆專案
+git clone <repository-url> tutor-platform
+cd tutor-platform
+
+# 2. 啟動所有服務
+docker-compose up -d --build
+
+# 3. 驗證部署
+curl -s http://localhost:3001/health
+./test-api.sh
+```
+
+### 📋 詳細啟動步驟
+
+**初次啟動**
 - 建議使用 Docker Compose（已提供 docker-compose.yml）
-- api 映像會在 build 時執行 npm ci 與 prisma generate
-- compose 僅掛載 src、prisma、.env，避免覆蓋 node_modules
+- API 映像會在 build 時執行 npm ci 與 prisma generate
+- 系統會自動創建管理員帳號和基礎數據
 
-指令
-- 啟動
-  - docker compose up -d --build
-  - 僅啟動後端服務（無前端）：docker compose up -d postgres redis minio init-minio api
-- 檢查 API
-  - curl -s http://localhost:3001/health  → 應回傳 {"ok":true,...}
-  - curl -s http://localhost:3001/        → "Hello World!"
-- 登入測試（admin）
-  - 先在 api/.env 設定 ADMIN_SEED_EMAIL、ADMIN_SEED_PASSWORD
-  - 啟動後 API 會自動種子 admin 使用者（日誌會顯示 Seeded admin user 或 Admin already exists）
-  - curl -s -X POST http://localhost:3001/auth/login -H "Content-Type: application/json" -d '{"email":"<ADMIN_SEED_EMAIL>","password":"<ADMIN_SEED_PASSWORD>"}'
+**啟動指令**
+```bash
+# 完整啟動（推薦）
+docker-compose up -d --build
 
-常見問題
-- @prisma/client did not initialize yet：
-  - 確保 prisma/schema.prisma 的 generator client 沒有自訂 output（使用預設）
-  - 只掛載 src/prisma/.env，不要掛載整個 /app
-  - 重新 build：docker compose build --no-cache api → up
-- TypeScript TS2345: $on('beforeExit', ...) 類型錯誤：
-  - 可移除 beforeExit 勾子，改用 onModuleDestroy 斷線；或升級/對齊 Prisma 版本與型別
+# 僅啟動後端服務
+docker-compose up -d postgres minio init-minio mailhog api
+
+# 檢查服務狀態
+docker-compose ps
+```
+
+**驗證部署**
+```bash
+# 檢查 API 健康狀態
+curl -s http://localhost:3001/health
+
+# 檢查管理員登入
+curl -s -X POST http://localhost:3001/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"admin123"}'
+
+# 運行完整測試
+./test-api.sh        # API 端點測試
+./e2e-test.sh        # 端到端測試
+```
+
+**常見問題**
+- **端口衝突**: 修改 docker-compose.yml 中的端口映射
+- **容器啟動失敗**: 查看日誌 `docker-compose logs <service>`
+- **資料庫連接問題**: 確認 PostgreSQL 容器健康狀態
+- **API 無法訪問**: 檢查防火牆設定和容器網路
+
+詳細故障排除請參考 [REBUILD_GUIDE.md](./REBUILD_GUIDE.md)
 
 
 ## 5) 目前進度
@@ -163,8 +194,14 @@ Docker 服務
 ### 測試覆蓋 ✅ 完成
 - **API 測試**: 完整的 API 端點測試腳本（test-api.sh）
 - **端到端測試**: 完整業務流程測試（e2e-test.sh）
+- **業務流程測試**: 完整業務場景測試（business-workflow-test.sh）
+- **性能測試**: 系統性能和負載測試（performance-test.sh）
 - **Web 測試工具**: 互動式 API 測試介面（testAPI.html）
-- **測試結果**: 所有核心功能測試通過（17/17 測試通過）
+- **測試結果**: 所有測試套件通過
+  - API 測試: 所有端點正常
+  - E2E 測試: 17/17 通過
+  - 業務流程測試: 16/16 通過
+  - 性能測試: 9/9 通過
 
 ## 6) 操作指南
 
@@ -293,8 +330,17 @@ Pricing 查價
 # 端到端測試
 ./e2e-test.sh
 
+# 業務流程測試
+./business-workflow-test.sh
+
+# 性能測試
+./performance-test.sh
+
 # Web 測試工具
 open http://localhost:3001/testAPI.html
+
+# 運行所有測試
+./test-api.sh && ./e2e-test.sh && ./business-workflow-test.sh && ./performance-test.sh
 ```
 
 ## 9) 項目狀態總結
@@ -391,7 +437,54 @@ cp .env.production.example .env.production
 - **數據分析**: 學習成效分析
 - **監控系統**: 日誌和效能監控
 
-## 10) 開發注意事項
+## 10) 重建和維護
+
+### 🔧 完整重建指南
+詳細的系統重建步驟請參考 [REBUILD_GUIDE.md](./REBUILD_GUIDE.md)，包含：
+- 新環境部署步驟
+- 資料庫管理和備份
+- 故障排除指南
+- 性能優化建議
+- 監控和維護策略
+
+### 📁 重要檔案
+- `REBUILD_GUIDE.md`: 完整重建指南
+- `db/seed_data.sql`: 資料庫種子數據
+- `docker-compose.yml`: 服務配置
+- `test-*.sh`: 測試腳本套件
+- `api/testAPI.html`: Web 測試工具
+
+### 🗄️ 資料庫管理
+```bash
+# 備份資料庫
+docker-compose exec postgres pg_dump -U app appdb > backup.sql
+
+# 恢復資料庫
+docker-compose exec -T postgres psql -U app -d appdb < backup.sql
+
+# 執行種子數據
+docker-compose exec -T postgres psql -U app -d appdb < db/seed_data.sql
+
+# 重置資料庫
+docker-compose down -v && docker-compose up -d
+```
+
+### 📊 系統監控
+```bash
+# 檢查系統健康
+curl -s http://localhost:3001/health
+
+# 查看容器狀態
+docker-compose ps
+
+# 查看日誌
+docker-compose logs api --tail=50
+
+# 檢查資源使用
+docker stats
+```
+
+## 11) 開發注意事項
 
 - Prisma
   - 使用預設 generator 輸出，import from '@prisma/client'
