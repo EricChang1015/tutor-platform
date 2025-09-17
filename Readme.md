@@ -342,11 +342,14 @@ Pricing 查價
 # 學生功能測試
 ./test-student-features.sh
 
+# 前端修復驗證測試
+./test-frontend-fixes.sh
+
 # Web 測試工具
 open http://localhost:3001/testAPI.html
 
 # 運行所有測試
-./test-api.sh && ./e2e-test.sh && ./business-workflow-test.sh && ./performance-test.sh && ./test-teacher-availability.sh && ./test-student-features.sh
+./test-api.sh && ./e2e-test.sh && ./business-workflow-test.sh && ./performance-test.sh && ./test-teacher-availability.sh && ./test-student-features.sh && ./test-frontend-fixes.sh
 ```
 
 ## 9) 項目狀態總結
