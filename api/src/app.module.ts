@@ -17,7 +17,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { PayoutsModule } from './modules/payouts/payouts.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, UsersModule, AuthModule, PricingModule, PackagesModule, CoursesModule, AvailabilityModule, BookingModule, SessionsModule, StorageModule, NotificationsModule, PayoutsModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true }), PrismaModule, UsersModule, AuthModule, PricingModule, PackagesModule, CoursesModule, AvailabilityModule, BookingModule, SessionsModule, StorageModule, NotificationsModule, PayoutsModule],
   controllers: [HealthController, AppController],
   providers: [AppService],
 })

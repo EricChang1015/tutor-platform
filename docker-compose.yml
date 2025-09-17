@@ -24,7 +24,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "6380:6379"
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - ./data/redis:/data
@@ -87,11 +87,11 @@ services:
       SMTP_SECURE: "false"
       FROM_EMAIL: "noreply@tutorplatform.com"
       FROM_NAME: "Tutor Platform"
+      ADMIN_SEED_EMAIL: "admin@example.com"
+      ADMIN_SEED_PASSWORD: "admin123"
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_started
       minio:
         condition: service_started
       init-minio:
@@ -102,7 +102,6 @@ services:
       # 只掛載需要熱重載的檔案，避免覆蓋 node_modules
       - ./api/src:/app/src
       - ./api/prisma:/app/prisma
-      - ./api/.env:/app/.env
 
   web:
     image: node:20-alpine

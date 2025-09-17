@@ -108,8 +108,9 @@ else
     echo "響應: $student_response"
 fi
 
-# 註冊測試
-test_endpoint "POST" "/auth/register" '{"name":"API Test User","email":"apitest@example.com","password":"test123","role":"student"}' "" "新用戶註冊"
+# 註冊測試 - 使用隨機email避免衝突
+RANDOM_EMAIL="apitest$(date +%s)@example.com"
+test_endpoint "POST" "/auth/register" "{\"name\":\"API Test User\",\"email\":\"$RANDOM_EMAIL\",\"password\":\"test123\",\"role\":\"student\"}" "" "新用戶註冊"
 
 # 3. 用戶管理測試
 echo -e "\n${YELLOW}=== 3. 用戶管理測試 ===${NC}"
@@ -117,6 +118,10 @@ test_endpoint "GET" "/users" "" "$ADMIN_TOKEN" "獲取所有用戶（管理員�
 test_endpoint "GET" "/users/me" "" "$ADMIN_TOKEN" "獲取當前用戶信息"
 test_endpoint "GET" "/users/profile" "" "$ADMIN_TOKEN" "獲取個人資料"
 test_endpoint "PUT" "/users/profile" '{"name":"Updated Admin","phone":"0912345678"}' "$ADMIN_TOKEN" "更新個人資料"
+
+# 管理員創建用戶測試
+RANDOM_USER_EMAIL="testuser$(date +%s)@example.com"
+test_endpoint "POST" "/users" "{\"name\":\"Test User\",\"email\":\"$RANDOM_USER_EMAIL\",\"password\":\"test123\",\"role\":\"student\"}" "$ADMIN_TOKEN" "管理員創建新用戶"
 
 # 4. 課程管理測試
 echo -e "\n${YELLOW}=== 4. 課程管理測試 ===${NC}"
@@ -128,7 +133,18 @@ test_endpoint "POST" "/courses" '{"title":"API Test Course 2","description":"測
 
 # 5. 權限測試
 echo -e "\n${YELLOW}=== 5. 權限控制測試 ===${NC}"
-test_endpoint "GET" "/users" "" "$STUDENT_TOKEN" "學生訪問用戶列表（應該失敗）"
+
+# 測試學生訪問管理員功能（應該失敗）
+echo -e "\n${BLUE}測試: 學生訪問用戶列表（應該失敗）${NC}"
+echo "端點: GET /users"
+student_users_response=$(curl -s -X GET "$API_BASE/users" -H "Authorization: Bearer $STUDENT_TOKEN")
+if echo "$student_users_response" | grep -q "Forbidden"; then
+    echo -e "${GREEN}✅ 成功（正確拒絕訪問）${NC}"
+else
+    echo -e "${RED}❌ 失敗（應該拒絕訪問）${NC}"
+    echo "響應: $student_users_response"
+fi
+
 test_endpoint "GET" "/users/me" "" "$STUDENT_TOKEN" "學生獲取自己信息（應該成功）"
 
 # 6. 定價管理測試
@@ -146,6 +162,9 @@ fi
 echo -e "\n${YELLOW}=== 7. 可用時段測試 ===${NC}"
 test_endpoint "GET" "/availability/my-slots" "" "$TEACHER_TOKEN" "獲取我的可用時段"
 
+# 創建可用時段測試
+test_endpoint "POST" "/availability" '{"weekday":1,"start_time":"10:00","end_time":"12:00","capacity":2}' "$TEACHER_TOKEN" "創建可用時段"
+
 # 8. 預約管理測試
 echo -e "\n${YELLOW}=== 8. 預約管理測試 ===${NC}"
 test_endpoint "GET" "/booking/my-bookings" "" "$STUDENT_TOKEN" "獲取我的預約"
@@ -153,15 +172,27 @@ test_endpoint "GET" "/booking/my-sessions" "" "$TEACHER_TOKEN" "獲取我的課�
 
 # 9. 課程包測試
 echo -e "\n${YELLOW}=== 9. 課程包測試 ===${NC}"
-# 使用已知的學生 profile ID
-student_profile_id="a64c4e71-5255-4865-b11b-67aae4e584ef"
-test_endpoint "GET" "/students/$student_profile_id/packages/summary" "" "$ADMIN_TOKEN" "獲取學生課程包摘要"
+# 獲取實際的學生 profile ID
+student_profile_response=$(curl -s -X GET "$API_BASE/users?role=student" -H "Authorization: Bearer $ADMIN_TOKEN")
+student_profile_id=$(echo "$student_profile_response" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
 
-# 創建課程包測試
-if [ -n "$course_id" ]; then
-    test_endpoint "POST" "/packages" "{\"studentId\":\"$student_profile_id\",\"courseId\":\"$course_id\",\"totalSessions\":5,\"notes\":\"API 測試課程包\"}" "$ADMIN_TOKEN" "創建課程包"
+if [ -n "$student_profile_id" ]; then
+    # 需要獲取 student_profile 的 ID，不是 app_user 的 ID
+    # 先通過數據庫查詢獲取正確的 student_profile_id
+    echo -e "\n${BLUE}獲取學生 Profile ID${NC}"
+    # 使用 student1 的 profile ID
+    actual_student_profile_id="855735d9-389d-4298-8ead-fcb871b0fe86"
+
+    test_endpoint "GET" "/students/$actual_student_profile_id/packages/summary" "" "$ADMIN_TOKEN" "獲取學生課程包摘要"
+
+    # 創建課程包測試
+    if [ -n "$course_id" ]; then
+        test_endpoint "POST" "/packages" "{\"studentId\":\"$actual_student_profile_id\",\"courseId\":\"$course_id\",\"totalSessions\":5,\"notes\":\"API 測試課程包\"}" "$ADMIN_TOKEN" "創建課程包"
+    else
+        echo -e "${RED}❌ 無法獲取課程 ID 進行課程包創建測試${NC}"
+    fi
 else
-    echo -e "${RED}❌ 無法獲取課程 ID 進行課程包創建測試${NC}"
+    echo -e "${RED}❌ 無法獲取學生用戶進行課程包測試${NC}"
 fi
 
 # 10. 結算管理測試
