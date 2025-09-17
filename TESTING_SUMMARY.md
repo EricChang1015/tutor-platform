@@ -12,6 +12,7 @@
 | 端到端測試 | `e2e-test.sh` | 17 測試 | 100% | 完整業務流程測試 |
 | 業務流程測試 | `business-workflow-test.sh` | 16 測試 | 100% | 業務場景和錯誤處理 |
 | 性能測試 | `performance-test.sh` | 9 測試 | 100% | 系統性能和負載測試 |
+| 老師可用時段測試 | `test-teacher-availability.sh` | 9 測試 | 100% | 老師時段設定和學生查看功能 |
 | 互動測試 | `api/testAPI.html` | 手動 | - | Web 界面 API 測試工具 |
 
 ## ✅ 測試結果詳情

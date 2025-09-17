@@ -336,11 +336,14 @@ Pricing 查價
 # 性能測試
 ./performance-test.sh
 
+# 老師可用時段測試
+./test-teacher-availability.sh
+
 # Web 測試工具
 open http://localhost:3001/testAPI.html
 
 # 運行所有測試
-./test-api.sh && ./e2e-test.sh && ./business-workflow-test.sh && ./performance-test.sh
+./test-api.sh && ./e2e-test.sh && ./business-workflow-test.sh && ./performance-test.sh && ./test-teacher-availability.sh
 ```
 
 ## 9) 項目狀態總結
