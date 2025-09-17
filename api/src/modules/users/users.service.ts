@@ -186,4 +186,47 @@ export class UsersService {
       };
     });
   }
+
+  async getRecommendedTeachers(limit: number = 4) {
+    const teachers = await this.prisma.teacher_profile.findMany({
+      include: {
+        app_user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            is_active: true,
+          },
+        },
+        _count: {
+          select: {
+            session: true, // 課程數量
+          },
+        },
+      },
+      where: {
+        app_user: {
+          is_active: true,
+        },
+      },
+      orderBy: [
+        { session: { _count: 'desc' } }, // 按課程數量排序
+        { created_at: 'desc' }, // 然後按創建時間排序
+      ],
+      take: limit,
+    });
+
+    return teachers.map(teacher => ({
+      id: teacher.id,
+      user_id: teacher.app_user.id,
+      name: teacher.app_user.name,
+      email: teacher.app_user.email,
+      display_name: teacher.display_name,
+      bio: teacher.bio,
+      photo_url: teacher.photo_url,
+      intro_video_url: teacher.intro_video_url,
+      session_count: teacher._count.session,
+      rating: 4.5 + Math.random() * 0.5, // 模擬評分，實際應該從評分表計算
+    }));
+  }
 }

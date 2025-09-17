@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { CoursesService } from './courses.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../../common/roles.guard';
@@ -27,6 +27,13 @@ export class CoursesController {
   @Roles(Role.Teacher)
   async getMyCourses(@Req() req: any) {
     return this.courses.getByTeacher(req.user.id);
+  }
+
+  @Get('recommended')
+  @Roles(Role.Student)
+  async getRecommended(@Query('limit') limit?: string) {
+    const limitNum = limit ? parseInt(limit) : 6;
+    return this.courses.getRecommended(limitNum);
   }
 
   @Get(':id')

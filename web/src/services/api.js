@@ -118,6 +118,7 @@ export const usersApi = {
   create: (userData) => api.post('/users', userData),
   update: (id, userData) => api.put(`/users/${id}`, userData),
   delete: (id) => api.delete(`/users/${id}`),
+  getRecommendedTeachers: (limit = 4) => api.get(`/users/teachers/recommended?limit=${limit}`),
 };
 
 // 課程管理 API
@@ -127,6 +128,7 @@ export const coursesApi = {
   create: (courseData) => api.post('/courses', courseData),
   update: (id, courseData) => api.put(`/courses/${id}`, courseData),
   delete: (id) => api.delete(`/courses/${id}`),
+  getRecommended: (limit = 6) => api.get(`/courses/recommended?limit=${limit}`),
 };
 
 // 定價管理 API

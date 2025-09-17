@@ -40,5 +40,35 @@ export class CoursesService {
       orderBy: { created_at: 'desc' }
     });
   }
+
+  async getRecommended(limit: number = 6) {
+    const courses = await this.prisma.course.findMany({
+      where: { active: true },
+      include: {
+        _count: {
+          select: {
+            session: true, // 課程被預約的次數
+          },
+        },
+      },
+      orderBy: [
+        { session: { _count: 'desc' } }, // 按受歡迎程度排序
+        { created_at: 'desc' }, // 然後按創建時間排序
+      ],
+      take: limit,
+    });
+
+    return courses.map(course => ({
+      id: course.id,
+      title: course.title,
+      description: course.description,
+      type: course.type,
+      duration_min: course.duration_min,
+      default_price_cents: course.default_price_cents,
+      active: course.active,
+      session_count: course._count.session,
+      popularity_score: course._count.session * 10 + Math.floor(Math.random() * 50), // 模擬受歡迎程度
+    }));
+  }
 }
 

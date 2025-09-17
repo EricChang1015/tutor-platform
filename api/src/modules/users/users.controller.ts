@@ -40,6 +40,13 @@ export class UsersController {
     return this.users.updateProfile(req.user.id, dto);
   }
 
+  @Get('teachers/recommended')
+  @Roles(Role.Student)
+  async getRecommendedTeachers(@Query('limit') limit?: string) {
+    const limitNum = limit ? parseInt(limit) : 4;
+    return this.users.getRecommendedTeachers(limitNum);
+  }
+
   @Get(':id')
   @Roles(Role.Admin)
   async getOne(@Param('id') id: string) {
