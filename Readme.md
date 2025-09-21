@@ -137,8 +137,20 @@ curl -s -X POST http://localhost/api/auth/login \
 - **資料庫連接問題**: 確認 PostgreSQL 容器健康狀態
 - **API 無法訪問**: 檢查防火牆設定和容器網路
 
-詳細故障排除請參考 [REBUILD_GUIDE.md](./REBUILD_GUIDE.md)
-
+- **403 on /assets (static files cannot be loaded)**
+  - 問題原因：Nginx 原本把所有靜態資源 proxy 到 web dev server（web:3000）。當 web preview/dev server 未啟動或 upstream 無法連線時，會導致資源請求失敗或 403/502。另有可能是 Nginx 的隱藏檔案規則或 CSP 設定阻擋了某些路徑。
+  - 已採取的修正：更新了 nginx/nginx.conf 與 docker-compose.yml，改為由 Nginx 直接從挂載的 ./web/dist 提供靜態檔案（/usr/share/nginx/html），並把 /assets/* 直接透過 try_files 提供，SPA 路由回退到 /index.html。這避免了 proxy 到可能未就緒的 web dev server。
+  - 如何套用修正（在專案根目錄）：
+    1. 重新 build 前端輸出：
+       - 本機：cd web && npm ci && npm run build
+       - 或用 Docker：docker-compose up -d --build web nginx
+    2. 確認 ./web/dist 產生並已被掛載到 nginx 容器：ls ./web/dist && ls ./web/dist/assets
+    3. 重啟 nginx（如需）：docker-compose restart nginx
+    4. 驗證：curl -I http://localhost/assets/<existing-asset>.js 或在瀏覽器開啟 http://localhost
+  - 日誌與除錯：
+    - 查看 Nginx 日誌：./data/nginx/logs/error.log 與 access.log
+    - docker-compose logs nginx
+    - 若仍為 403，檢查 nginx.conf 中的 location 規則與 CSP（Content-Security-Policy）設定是否過嚴
 
 ## 5) 目前進度
 
