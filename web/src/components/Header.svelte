@@ -4,6 +4,7 @@
   import { ROLE_NAMES } from '../stores/auth.js';
   import { t } from '../stores/i18n.js';
   import LanguageSwitcher from './LanguageSwitcher.svelte';
+  import Avatar from './Avatar.svelte';
 
   export let user;
   
@@ -87,11 +88,7 @@
           on:click={toggleDropdown}
         >
           <!-- 用戶頭像 -->
-          <div class="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
-            <span class="text-white text-sm font-medium">
-              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-            </span>
-          </div>
+          <Avatar src={user?.teacher_profile?.photo_url} name={user?.name} userId={user?.id} size={32} />
           
           <!-- 用戶信息 -->
           <div class="hidden md:block text-left">

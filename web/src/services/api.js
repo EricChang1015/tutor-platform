@@ -166,7 +166,7 @@ export const bookingApi = {
   getMySessions: () => api.get('/booking/my-sessions'),
   create: (bookingData) => api.post('/booking', bookingData),
   update: (id, bookingData) => api.put(`/booking/${id}`, bookingData),
-  cancel: (id) => api.delete(`/booking/${id}`),
+  cancel: (id, reason = 'cancelled', technical_issue = false) => api.put(`/booking/${id}/cancel`, { reason, technical_issue }),
 };
 
 // 課程會議 API

@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { coursesApi, usersApi, availabilityApi } from '../../services/api.js';
+  import { coursesApi, usersApi, availabilityApi, bookingApi } from '../../services/api.js';
   import CourseCard from '../../components/CourseCard.svelte';
   import LoadingSpinner from '../../components/LoadingSpinner.svelte';
   import { notify } from '../../stores/notifications.js';
@@ -107,7 +107,8 @@
         }
       } else if (durationMin === 50) {
         // 50分鐘課程：00:00-00:50, 01:00-01:50
-        for (let time = startMinutes; time + 50 <= endMinutes; time += 60) {
+        // 以半小時為基準呈現，50分鐘課程每30分鐘一個可選起點
+        for (let time = startMinutes; time + 50 <= endMinutes; time += 30) {
           bookableSlots.push({
             start: minutesToTime(time),
             end: minutesToTime(time + 50),
@@ -146,10 +147,24 @@
   }
 
   // 處理時段預約
-  function handleSlotBook(slot) {
-    // 這裡應該導航到預約確認頁面或打開預約表單
-    notify.success(`已選擇 ${selectedDate} ${slot.start}-${slot.end} 的時段`);
-    closeBookingModal();
+  async function handleSlotBook(slot) {
+    if (!selectedCourse || !selectedTeacher || !selectedDate) return;
+    try {
+      const startLocal = new Date(`${selectedDate}T${slot.start}:00`);
+      const endLocal = new Date(`${selectedDate}T${slot.end}:00`);
+      const payload = {
+        course_id: selectedCourse.id,
+        teacher_id: selectedTeacher.id,
+        start_at: startLocal.toISOString(),
+        end_at: endLocal.toISOString(),
+      };
+      await bookingApi.create(payload);
+      notify.success(`預約成功：${selectedDate} ${slot.start}-${slot.end}`);
+      closeBookingModal();
+    } catch (err) {
+      console.error('建立預約失敗:', err);
+      notify.error(err?.data?.message || '預約失敗，請稍後再試');
+    }
   }
 
   // 關閉預約模態框

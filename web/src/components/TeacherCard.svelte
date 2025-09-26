@@ -1,33 +1,34 @@
 <script>
   import { createEventDispatcher } from 'svelte';
-  
+  import Avatar from './Avatar.svelte';
+
   export let teacher;
   export let compact = false; // 是否為緊湊模式
-  
+
   const dispatch = createEventDispatcher();
-  
+
   // 處理老師卡片點擊
   function handleTeacherClick() {
     dispatch('teacherSelect', { teacher });
   }
-  
+
   // 處理查看日曆點擊
   function handleCalendarClick(event) {
     event.stopPropagation();
     dispatch('viewCalendar', { teacher });
   }
-  
+
   // 格式化評分
   function formatRating(rating) {
     return rating ? rating.toFixed(1) : '4.5';
   }
-  
+
   // 生成星星評分
   function getStarRating(rating) {
     const stars = [];
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 >= 0.5;
-    
+
     for (let i = 0; i < 5; i++) {
       if (i < fullStars) {
         stars.push('full');
@@ -37,14 +38,14 @@
         stars.push('empty');
       }
     }
-    
+
     return stars;
   }
-  
+
   $: stars = getStarRating(teacher.rating || 4.5);
 </script>
 
-<div 
+<div
   class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 cursor-pointer overflow-hidden
          {compact ? 'p-3' : 'p-4'}"
   on:click={handleTeacherClick}
@@ -56,23 +57,12 @@
     <!-- 老師頭像 -->
     <div class="flex-shrink-0">
       <div class="relative">
-        {#if teacher.photo_url}
-          <img 
-            src={teacher.photo_url} 
-            alt={teacher.display_name || teacher.name}
-            class="w-12 h-12 rounded-full object-cover {compact ? 'w-10 h-10' : 'w-12 h-12'}"
-          />
-        {:else}
-          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold {compact ? 'w-10 h-10 text-sm' : 'w-12 h-12'}">
-            {(teacher.display_name || teacher.name)?.charAt(0)?.toUpperCase() || 'T'}
-          </div>
-        {/if}
-        
+        <Avatar src={teacher.photo_url} name={teacher.display_name || teacher.name} userId={teacher.id} size={compact ? 40 : 48} />
         <!-- 在線狀態指示器 -->
         <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 border-2 border-white rounded-full"></div>
       </div>
     </div>
-    
+
     <!-- 老師信息 -->
     <div class="flex-1 min-w-0">
       <div class="flex items-start justify-between">
@@ -80,7 +70,7 @@
           <h4 class="text-sm font-semibold text-gray-900 truncate {compact ? 'text-sm' : 'text-base'}">
             {teacher.display_name || teacher.name}
           </h4>
-          
+
           <!-- 評分 -->
           <div class="flex items-center space-x-1 mt-1">
             <div class="flex items-center space-x-0.5">
@@ -108,14 +98,14 @@
             </div>
             <span class="text-xs text-gray-600">{formatRating(teacher.rating)}</span>
           </div>
-          
+
           <!-- 課程數量 -->
           {#if !compact}
             <p class="text-xs text-gray-500 mt-1">
               已授課 {teacher.session_count || 0} 堂
             </p>
           {/if}
-          
+
           <!-- 簡介 -->
           {#if teacher.bio && !compact}
             <p class="text-xs text-gray-600 mt-2 line-clamp-2">
@@ -123,7 +113,7 @@
             </p>
           {/if}
         </div>
-        
+
         <!-- 操作按鈕 -->
         {#if !compact}
           <button
@@ -137,7 +127,7 @@
           </button>
         {/if}
       </div>
-      
+
       <!-- 緊湊模式下的額外信息 -->
       {#if compact}
         <div class="flex items-center justify-between mt-2">
@@ -152,7 +142,7 @@
       {/if}
     </div>
   </div>
-  
+
   <!-- 介紹影片預覽 (僅非緊湊模式) -->
   {#if teacher.intro_video_url && !compact}
     <div class="mt-3 pt-3 border-t border-gray-100">
