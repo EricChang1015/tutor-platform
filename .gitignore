@@ -1,0 +1,6 @@
+data
+.idea
+node_modules
+
+api/dist/
+web/dist/
