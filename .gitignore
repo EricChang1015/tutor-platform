@@ -1,6 +1,6 @@
 data
 .idea
 node_modules
-
+allFiles.sh
 api/dist/
 web/dist/
