@@ -1,7 +1,7 @@
 ### 預設帳號
-- **管理員**: admin@example.com / admin123
-- **老師**: teacher1@example.com / teacher123
-- **學生**: student1@example.com / student123
+- **管理員**: admin@example.com / password
+- **老師**: teacher1@example.com / password
+- **學生**: student1@example.com / password
 
 ### Postgresql
 - POSTGRES_USER: tutor

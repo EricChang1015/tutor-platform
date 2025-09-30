@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家教平台 API 測試工具</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .auth-section {
+            background: #e8f4fd;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .test-group {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+        }
+        .test-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 3px;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        button.success {
+            background: #27ae60;
+        }
+        button.error {
+            background: #e74c3c;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .response {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .token-display {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎓 家教平台 API 測試工具</h1>
+    
+    <div class="container auth-section">
+        <h2>🔐 認證管理</h2>
+        <div class="test-item">
+            <h3>登入</h3>
+            <input type="email" id="loginEmail" placeholder="電子郵件" value="admin@example.com">
+            <input type="password" id="loginPassword" placeholder="密碼" value="password">
+            <button onclick="login()">登入</button>
+            <div id="tokenDisplay" class="token-display" style="display: none;"></div>
+            <div id="loginResponse" class="response"></div>
+        </div>
+        
+        <div class="test-item">
+            <h3>取得個人資訊</h3>
+            <button onclick="getProfile()">取得個人資訊</button>
+            <div id="profileResponse" class="response"></div>
+        </div>
+        
+        <div class="test-item">
+            <h3>登出</h3>
+            <button onclick="logout()">登出</button>
+            <div id="logoutResponse" class="response"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>👥 使用者管理</h2>
+        <div class="test-group">
+            <h3>使用者資訊</h3>
+            <div class="test-item">
+                <input type="text" id="userId" placeholder="使用者 ID" value="admin-001">
+                <button onclick="getUser()">取得使用者資訊</button>
+                <div id="userResponse" class="response"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>👨‍🏫 教師管理</h2>
+        <div class="test-group">
+            <h3>教師清單</h3>
+            <div class="test-item">
+                <input type="text" id="teacherDomain" placeholder="教學領域 (可選)">
+                <input type="text" id="teacherRegion" placeholder="教學地區 (可選)">
+                <input type="text" id="teacherSearch" placeholder="搜尋關鍵字 (可選)">
+                <button onclick="getTeachers()">取得教師清單</button>
+                <div id="teachersResponse" class="response"></div>
+            </div>
+            
+            <div class="test-item">
+                <h4>教師詳細資訊</h4>
+                <input type="text" id="teacherDetailId" placeholder="教師 ID" value="teacher-001">
+                <button onclick="getTeacherDetail()">取得教師詳細資訊</button>
+                <div id="teacherDetailResponse" class="response"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📅 預約管理</h2>
+        <div class="test-group">
+            <h3>預約清單</h3>
+            <div class="test-item">
+                <select id="roleView">
+                    <option value="">全部</option>
+                    <option value="student">學生視角</option>
+                    <option value="teacher">教師視角</option>
+                </select>
+                <button onclick="getBookings()">取得預約清單</button>
+                <div id="bookingsResponse" class="response"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>💳 購買項目管理</h2>
+        <div class="test-group">
+            <h3>購買項目清單</h3>
+            <div class="test-item">
+                <button onclick="getPurchases()">取得購買項目</button>
+                <div id="purchasesResponse" class="response"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>⚙️ 管理員功能</h2>
+        <div class="test-group">
+            <h3>建立教師</h3>
+            <div class="test-item">
+                <input type="text" id="teacherName" placeholder="教師姓名" value="新教師">
+                <input type="email" id="teacherEmail" placeholder="教師電子郵件" value="newteacher@example.com">
+                <textarea id="teacherIntro" placeholder="教師介紹">經驗豐富的英語教師</textarea>
+                <button onclick="createTeacher()">建立教師</button>
+                <div id="createTeacherResponse" class="response"></div>
+            </div>
+            
+            <div class="test-item">
+                <h4>授予學生卡片</h4>
+                <input type="text" id="grantStudentId" placeholder="學生 ID" value="student-001">
+                <input type="text" id="grantPackageName" placeholder="套餐名稱" value="測試卡片">
+                <input type="number" id="grantQuantity" placeholder="數量" value="10">
+                <select id="grantType">
+                    <option value="lesson_card">約課次卡</option>
+                    <option value="trial_card">體驗次卡</option>
+                    <option value="compensation_card">補償次卡</option>
+                    <option value="cancel_card">取消約課次卡</option>
+                </select>
+                <button onclick="grantCards()">授予卡片</button>
+                <div id="grantCardsResponse" class="response"></div>
+            </div>
+            
+            <div class="test-item">
+                <h4>查看報表</h4>
+                <button onclick="getReports()">取得報表</button>
+                <div id="reportsResponse" class="response"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let accessToken = '';
+        const API_BASE = window.location.origin;
+
+        async function makeRequest(endpoint, options = {}) {
+            const url = `${API_BASE}${endpoint}`;
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+            }
+
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    headers
+                });
+
+                const data = await response.json();
+                return {
+                    status: response.status,
+                    ok: response.ok,
+                    data
+                };
+            } catch (error) {
+                return {
+                    status: 0,
+                    ok: false,
+                    data: { error: error.message }
+                };
+            }
+        }
+
+        function displayResponse(elementId, response) {
+            const element = document.getElementById(elementId);
+            const statusClass = response.ok ? 'success' : 'error';
+            element.innerHTML = `<span class="status ${statusClass}">HTTP ${response.status}</span>\n${JSON.stringify(response.data, null, 2)}`;
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            const response = await makeRequest('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({
+                    username: email,
+                    password: password
+                })
+            });
+
+            if (response.ok && response.data.accessToken) {
+                accessToken = response.data.accessToken;
+                document.getElementById('tokenDisplay').style.display = 'block';
+                document.getElementById('tokenDisplay').innerHTML = `<strong>Access Token:</strong> ${accessToken.substring(0, 50)}...`;
+            }
+
+            displayResponse('loginResponse', response);
+        }
+
+        async function getProfile() {
+            const response = await makeRequest('/auth/me');
+            displayResponse('profileResponse', response);
+        }
+
+        async function logout() {
+            const response = await makeRequest('/auth/logout', { method: 'POST' });
+            if (response.ok) {
+                accessToken = '';
+                document.getElementById('tokenDisplay').style.display = 'none';
+            }
+            displayResponse('logoutResponse', response);
+        }
+
+        async function getUser() {
+            const userId = document.getElementById('userId').value;
+            const response = await makeRequest(`/users/${userId}`);
+            displayResponse('userResponse', response);
+        }
+
+        async function getTeachers() {
+            const domain = document.getElementById('teacherDomain').value;
+            const region = document.getElementById('teacherRegion').value;
+            const search = document.getElementById('teacherSearch').value;
+            
+            const params = new URLSearchParams();
+            if (domain) params.append('domain', domain);
+            if (region) params.append('region', region);
+            if (search) params.append('q', search);
+            
+            const response = await makeRequest(`/teachers?${params.toString()}`);
+            displayResponse('teachersResponse', response);
+        }
+
+        async function getTeacherDetail() {
+            const teacherId = document.getElementById('teacherDetailId').value;
+            const response = await makeRequest(`/teachers/${teacherId}`);
+            displayResponse('teacherDetailResponse', response);
+        }
+
+        async function getBookings() {
+            const roleView = document.getElementById('roleView').value;
+            const params = new URLSearchParams();
+            if (roleView) params.append('roleView', roleView);
+            
+            const response = await makeRequest(`/bookings?${params.toString()}`);
+            displayResponse('bookingsResponse', response);
+        }
+
+        async function getPurchases() {
+            const response = await makeRequest('/purchases');
+            displayResponse('purchasesResponse', response);
+        }
+
+        async function createTeacher() {
+            const name = document.getElementById('teacherName').value;
+            const email = document.getElementById('teacherEmail').value;
+            const intro = document.getElementById('teacherIntro').value;
+
+            const response = await makeRequest('/admin/teachers', {
+                method: 'POST',
+                body: JSON.stringify({
+                    name,
+                    email,
+                    intro,
+                    experienceYears: 3,
+                    domains: ['English'],
+                    regions: ['Philippines'],
+                    certifications: ['TESOL']
+                })
+            });
+            displayResponse('createTeacherResponse', response);
+        }
+
+        async function grantCards() {
+            const studentId = document.getElementById('grantStudentId').value;
+            const packageName = document.getElementById('grantPackageName').value;
+            const quantity = parseInt(document.getElementById('grantQuantity').value);
+            const type = document.getElementById('grantType').value;
+
+            const response = await makeRequest('/admin/grant-cards', {
+                method: 'POST',
+                body: JSON.stringify({
+                    studentId,
+                    packageName,
+                    quantity,
+                    type,
+                    notes: '測試授予'
+                })
+            });
+            displayResponse('grantCardsResponse', response);
+        }
+
+        async function getReports() {
+            const response = await makeRequest('/admin/reports');
+            displayResponse('reportsResponse', response);
+        }
+
+        // 頁面載入時的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('家教平台 API 測試工具已載入');
+        });
+    </script>
+</body>
+</html>
