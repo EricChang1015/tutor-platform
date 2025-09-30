@@ -8,6 +8,8 @@ info:
     - 排序：sort=field:asc|desc，多欄逗號分隔
     - 衝突 409，政策違反 422，權限 403
 servers:
+  - url: http://localhost:3001
+    description: Development (Docker)
   - url: https://api.example.com
     description: Production
   - url: https://staging.api.example.com
