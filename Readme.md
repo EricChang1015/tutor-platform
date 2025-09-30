@@ -10,7 +10,7 @@ Tutor Platform 是一個完整的線上家教平台後端系統，提供從用�
 - **認證**: JWT
 - **檔案存儲**: MinIO (S3 相容)
 - **郵件服務**: Nodemailer + MailHog
-- **容器化**: Docker + Docker Compose
+- **容器化**: Docker + Docker Compose (ps: network使用host即可,省去port mapping)
 
 ### 資料庫設計
 - 完整的關聯式資料庫設計
@@ -63,12 +63,6 @@ docker-compose logs api
 - **MailHog Web UI**: http://localhost:8025
 - **MinIO Console**: http://localhost:9001
 - **PostgreSQL**: localhost:5432
-
-### 預設帳號
-- **管理員**: admin@example.com / admin123
-- **老師**: teacher1@example.com / teacher123
-- **學生**: student1@example.com / student123
-
 
 ## 🎨 前端應用
 
