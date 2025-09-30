@@ -4,3 +4,5 @@ node_modules
 allFiles.sh
 api/dist/
 web/dist/
+apps/api/dist/
+apps/web/dist/

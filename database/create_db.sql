@@ -112,6 +112,27 @@ CREATE INDEX idx_bookings_teacher_id ON bookings(teacher_id);
 CREATE INDEX idx_bookings_status ON bookings(status);
 CREATE INDEX idx_bookings_time_range ON bookings(starts_at, ends_at);
 
+-- 教師可用時間表
+CREATE TABLE teacher_availability (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    teacher_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    time_slot INTEGER NOT NULL CHECK (time_slot >= 0 AND time_slot <= 47),
+    status VARCHAR(20) CHECK (status IN ('available', 'booked', 'unavailable')) DEFAULT 'available',
+    booking_id UUID NULL REFERENCES bookings(id) ON DELETE SET NULL,
+    reason TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(teacher_id, date, time_slot)
+);
+
+CREATE INDEX idx_teacher_availability_teacher_id ON teacher_availability(teacher_id);
+CREATE INDEX idx_teacher_availability_date ON teacher_availability(date);
+CREATE INDEX idx_teacher_availability_status ON teacher_availability(status);
+CREATE INDEX idx_teacher_availability_teacher_date ON teacher_availability(teacher_id, date);
+CREATE INDEX idx_teacher_availability_date_time_slot ON teacher_availability(date, time_slot);
+CREATE INDEX idx_teacher_availability_search ON teacher_availability(date, time_slot, status) WHERE status = 'available';
+
 -- 通知表
 CREATE TABLE notifications (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -132,15 +153,27 @@ CREATE INDEX idx_notifications_read_at ON notifications(read_at);
 INSERT INTO users (id, email, password_hash, role, name, timezone, locale) VALUES
 ('11111111-1111-1111-1111-111111111111', 'admin@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'System Admin', 'Asia/Taipei', 'zh-TW'),
 ('22222222-2222-2222-2222-222222222222', 'teacher1@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher', 'Teacher One', 'Asia/Taipei', 'zh-TW'),
-('33333333-3333-3333-3333-333333333333', 'student1@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'Student One', 'Asia/Taipei', 'zh-TW');
+('44444444-4444-4444-4444-444444444444', 'teacher2@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher', 'Teacher Two', 'Asia/Taipei', 'zh-TW'),
+('33333333-3333-3333-3333-333333333333', 'student1@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'Student One', 'Asia/Taipei', 'zh-TW'),
+('55555555-5555-5555-5555-555555555555', 'student2@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'Student Two', 'Asia/Taipei', 'zh-TW');
 
 -- 插入教師詳細資料
 INSERT INTO teacher_profiles (user_id, intro, experience_years, domains, regions, unit_price_usd) VALUES
-('22222222-2222-2222-2222-222222222222', '經驗豐富的英語教師，專精於會話和文法教學。', 5, '["English", "Conversation"]', '["Philippines"]', 5.00);
+('22222222-2222-2222-2222-222222222222', '經驗豐富的英語教師，專精於會話和文法教學。', 5, '["English", "Conversation"]', '["Taiwan"]', 25.00),
+('44444444-4444-4444-4444-444444444444', '母語英語教師，專精於發音和口音訓練。', 8, '["English", "Pronunciation", "IELTS"]', '["Taiwan", "Online"]', 30.00);
+
+-- 插入教材資料
+INSERT INTO materials (title, description, type, level, active) VALUES
+('Free Talking', 'Open conversation practice', 'conversation', 'all', true),
+('Business English Basics', 'Introduction to business communication', 'business', 'intermediate', true),
+('IELTS Speaking Practice', 'IELTS speaking test preparation', 'test_prep', 'advanced', true),
+('Grammar Fundamentals', 'Basic English grammar rules and exercises', 'grammar', 'beginner', true),
+('Pronunciation Workshop', 'Improve your English pronunciation', 'pronunciation', 'intermediate', true);
 
 -- 插入學生購買項目範例
 INSERT INTO purchases (id, student_id, package_name, quantity, remaining, type, purchased_at, activated_at, expires_at, status) VALUES
-('44444444-4444-4444-4444-444444444444', '33333333-3333-3333-3333-333333333333', '體驗卡', 1, 1, 'trial_card', NOW(), NOW(), NOW() + INTERVAL '14 days', 'active'),
-('55555555-5555-5555-5555-555555555555', '33333333-3333-3333-3333-333333333333', '約課次卡', 10, 10, 'lesson_card', NOW(), NULL, NULL, 'draft');
+('44444444-4444-4444-4444-444444444444', '33333333-3333-3333-3333-333333333333', '體驗卡', 2, 2, 'trial_card', NOW(), NOW(), NOW() + INTERVAL '14 days', 'active'),
+('55555555-5555-5555-5555-555555555555', '33333333-3333-3333-3333-333333333333', '約課次卡', 10, 10, 'lesson_card', NOW(), NOW(), NOW() + INTERVAL '90 days', 'active'),
+('66666666-6666-6666-6666-666666666666', '55555555-5555-5555-5555-555555555555', '體驗卡', 2, 2, 'trial_card', NOW(), NOW(), NOW() + INTERVAL '14 days', 'active');
 
 COMMIT;

@@ -2,6 +2,7 @@
 export { User, UserRole } from './user.entity';
 export { TeacherProfile } from './teacher-profile.entity';
 export { TeacherGallery, MediaType } from './teacher-gallery.entity';
+export { TeacherAvailability, AvailabilityStatus } from './teacher-availability.entity';
 export { Booking, BookingStatus, BookingSource } from './booking.entity';
 export { Purchase, PurchaseType, PurchaseStatus } from './purchase.entity';
 export { Material, MaterialType } from './material.entity';

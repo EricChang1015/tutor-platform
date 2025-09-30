@@ -5,9 +5,13 @@ import { BookingsService } from './bookings.service';
 import { Booking } from '../entities/booking.entity';
 import { User } from '../entities/user.entity';
 import { Purchase } from '../entities/purchase.entity';
+import { TeacherAvailabilityModule } from '../teacher-availability/teacher-availability.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Booking, User, Purchase])],
+  imports: [
+    TypeOrmModule.forFeature([Booking, User, Purchase]),
+    TeacherAvailabilityModule
+  ],
   controllers: [BookingsController],
   providers: [BookingsService],
   exports: [BookingsService],

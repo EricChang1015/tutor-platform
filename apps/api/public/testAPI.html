@@ -542,6 +542,40 @@
                 ]
             },
             {
+                id: 'teacher-availability',
+                name: '🕒 教師可用時間',
+                description: '測試教師可用時間管理功能',
+                tests: [
+                    {
+                        id: 'search_teachers',
+                        name: '搜尋可用教師',
+                        method: 'GET',
+                        endpoint: '/teacher-availability/search-teachers?date=2025-10-01&fromTime=18:00&toTime=23:30',
+                        requireAuth: false,
+                        expectedStatus: 200,
+                        expectedFields: ['code', 'msg', 'data']
+                    },
+                    {
+                        id: 'teacher_timetable',
+                        name: '教師時間表',
+                        method: 'GET',
+                        endpoint: '/teacher-availability/teacher-timetable?teacherId=22222222-2222-2222-2222-222222222222&date=2025-10-01',
+                        requireAuth: false,
+                        expectedStatus: 200,
+                        expectedFields: ['code', 'msg', 'data']
+                    },
+                    {
+                        id: 'all_time_slots',
+                        name: '所有時間槽',
+                        method: 'GET',
+                        endpoint: '/teacher-availability/time-slots',
+                        requireAuth: false,
+                        expectedStatus: 200,
+                        expectedFields: ['code', 'msg', 'data']
+                    }
+                ]
+            },
+            {
                 id: 'bookings',
                 name: '📅 預約管理',
                 description: '測試預約相關功能',
@@ -562,12 +596,17 @@
                         endpoint: '/bookings',
                         requireAuth: true,
                         expectedStatus: 201,
-                        data: () => ({
-                            teacherId: '22222222-2222-2222-2222-222222222222',
-                            startsAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-                            durationMinutes: 30,
-                            courseTitle: '測試課程'
-                        })
+                        data: () => {
+                            // 建立一個對齊到30分鐘時間槽的時間
+                            const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+                            tomorrow.setHours(10, 0, 0, 0); // 設定為明天上午10:00
+                            return {
+                                teacherId: '22222222-2222-2222-2222-222222222222',
+                                startsAt: tomorrow.toISOString(),
+                                durationMinutes: 30,
+                                courseTitle: '測試課程'
+                            };
+                        }
                     }
                 ]
             },
@@ -716,6 +755,16 @@
                             type: 'lesson_card',
                             notes: '自動測試授予'
                         })
+                    },
+                    {
+                        id: 'admin_reset_data',
+                        name: '重置系統資料',
+                        method: 'POST',
+                        endpoint: '/admin/reset-data',
+                        requireAuth: true,
+                        expectedStatus: 200,
+                        expectedFields: ['message'],
+                        roles: ['admin']
                     },
                     {
                         id: 'admin_forbidden',

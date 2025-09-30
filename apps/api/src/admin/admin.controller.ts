@@ -54,8 +54,18 @@ export class AdminController {
     } else {
       this.checkAdminRole(req.user.role);
     }
-    
+
     return this.adminService.getReports(query);
+  }
+
+  @Post('reset-data')
+  @ApiOperation({ summary: '重置系統資料到初始狀態' })
+  @ApiResponse({ status: 200, description: '資料重置成功' })
+  async resetData(@Request() req) {
+    this.checkAdminRole(req.user.role);
+
+    await this.adminService.resetSystemData();
+    return { message: 'System data has been reset to initial state' };
   }
 
   private checkAdminRole(role: string) {

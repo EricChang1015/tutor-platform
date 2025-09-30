@@ -8,6 +8,7 @@ import { join } from 'path';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { TeachersModule } from './teachers/teachers.module';
+import { TeacherAvailabilityModule } from './teacher-availability/teacher-availability.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { PurchasesModule } from './purchases/purchases.module';
 import { AdminModule } from './admin/admin.module';
@@ -49,6 +50,7 @@ import { LibraryModule } from './library/library.module';
     AuthModule,
     UsersModule,
     TeachersModule,
+    TeacherAvailabilityModule,
     BookingsModule,
     PurchasesModule,
     AdminModule,
