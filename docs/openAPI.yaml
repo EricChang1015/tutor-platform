@@ -1,0 +1,1729 @@
+openapi: 3.0.0
+info:
+  title: 家教系統 API
+  version: 1.1.0
+  description: >
+    MVP 對齊需求 + 可擴展。時間 ISO 8601（UTC）；查詢可帶 tz 僅影響呈現。
+    - 分頁：page=1、pageSize=20（<=100）
+    - 排序：sort=field:asc|desc，多欄逗號分隔
+    - 衝突 409，政策違反 422，權限 403
+servers:
+  - url: https://api.example.com
+    description: Production
+  - url: https://staging.api.example.com
+    description: Staging
+tags:
+  - name: Auth
+  - name: Users
+  - name: Teachers
+  - name: Availability
+  - name: Favorites
+  - name: Library
+  - name: Materials
+  - name: Uploads
+  - name: Timeslots & Holds
+  - name: Bookings
+  - name: Post-Class
+  - name: Purchases
+  - name: Consumptions
+  - name: Cancellations
+  - name: Reviews
+  - name: Notifications
+  - name: Gallery
+  - name: Admin
+  - name: Assignments
+  - name: Reports
+  - name: Meta
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  headers:
+    Idempotency-Key:
+      description: 用於冪等建立請求之唯一鍵（UUID）
+      schema: { type: string }
+  parameters:
+    Page: { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+    PageSize: { in: query, name: pageSize, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+    Sort: { in: query, name: sort, schema: { type: string, description: "e.g. createdAt:desc,startAt:asc" } }
+    From: { in: query, name: from, schema: { type: string, format: date-time } }
+    To: { in: query, name: to, schema: { type: string, format: date-time } }
+    Tz: { in: query, name: tz, schema: { type: string, description: IANA time zone, example: Asia/Taipei } }
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - BOOKING_CONFLICT
+                - POLICY_VIOLATION
+                - UNAUTHORIZED
+                - FORBIDDEN
+                - NOT_FOUND
+                - VALIDATION_ERROR
+                - DUPLICATE
+                - RATE_LIMITED
+                - INSUFFICIENT_CREDITS
+                - HOLD_EXPIRED
+                - SETTLEMENT_BLOCKED
+                - ALREADY_REVIEWED
+                - CANCEL_NOT_ALLOWED
+                - INTERNAL_ERROR
+            message: { type: string }
+            details:
+              oneOf: [ { type: string }, { type: object }, { type: array } ]
+      required: [error]
+    Paginated:
+      type: object
+      properties: { page: {type: integer}, pageSize: {type: integer}, total: {type: integer} }
+    Role: { type: string, enum: [admin, teacher, student] }
+    UserPublic:
+      type: object
+      properties:
+        id: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+        name: { type: string }
+        avatarUrl: { type: string, format: uri, nullable: true }
+        bio: { type: string, nullable: true }
+    Me:
+      allOf:
+        - $ref: '#/components/schemas/UserPublic'
+        - type: object
+          properties:
+            email: { type: string, format: email, nullable: true }
+            settings: { type: object, additionalProperties: true }
+            timezone: { type: string, nullable: true }
+            locale: { type: string, nullable: true }
+    TeacherCard:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        avatarUrl: { type: string, format: uri, nullable: true }
+        rating: { type: number }
+        ratingsCount: { type: integer }
+        experienceYears: { type: integer }
+        domains: { type: array, items: { type: string } }
+        region: { type: string }
+        pricePer30min: { type: number }
+        nextAvailableAt: { type: string, format: date-time, nullable: true }
+        introSnippet: { type: string, nullable: true }
+    TeacherDetail:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        avatarUrl: { type: string, format: uri, nullable: true }
+        intro: { type: string }
+        certifications: { type: array, items: { type: string } }
+        experienceYears: { type: integer }
+        domains: { type: array, items: { type: string } }
+        region: { type: string }
+        gallery:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              url: { type: string, format: uri }
+              type: { type: string, enum: [image, video, other], default: image }
+        rating: { type: number }
+        ratingsBreakdown: { type: object, additionalProperties: { type: integer } }
+        languages: { type: array, items: { type: string } }
+        pricePolicies: { type: array, items: { type: object, additionalProperties: true } }
+        meetingPreference:
+          type: object
+          properties:
+            mode: { type: string, enum: [zoom_personal, custom_each_time], default: zoom_personal }
+            defaultUrl: { type: string, format: uri, nullable: true }
+    Slot:
+      type: object
+      properties:
+        start: { type: string, format: date-time }
+        end: { type: string, format: date-time }
+        status: { type: string, enum: [available, booked, blocked] }
+        capacity: { type: integer, default: 1 }
+    AvailabilityRule:
+      type: object
+      properties:
+        id: { type: string, nullable: true }
+        dow: { type: integer, minimum: 0, maximum: 6, description: 0=Sunday ... 6=Saturday }
+        startTime: { type: string, pattern: '^\\d{2}:\\d{2}$', example: '09:00' }
+        endTime: { type: string, pattern: '^\\d{2}:\\d{2}$', example: '12:00' }
+        capacity: { type: integer, default: 1 }
+        active: { type: boolean, default: true }
+    AvailabilityOverride:
+      type: object
+      properties:
+        id: { type: string, nullable: true }
+        dateLocal: { type: string, format: date, example: '2025-01-15' }
+        startTime: { type: string, pattern: '^\\d{2}:\\d{2}$', nullable: true }
+        endTime: { type: string, pattern: '^\\d{2}:\\d{2}$', nullable: true }
+        isOpen: { type: boolean }
+        note: { type: string, nullable: true }
+    LibraryNode:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        type: { type: string, enum: [folder] }
+        parentId: { type: string, nullable: true }
+        path: { type: string, nullable: true }
+        children: { type: array, items: { $ref: '#/components/schemas/LibraryNode' } }
+    MaterialItem:
+      type: object
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [page, pdf] }
+        title: { type: string }
+        folderId: { type: string }
+        content: { type: string, nullable: true }
+        fileUrl: { type: string, format: uri, nullable: true }
+        previewUrl: { type: string, format: uri, nullable: true }
+        meta: { type: object, additionalProperties: true, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    Hold:
+      type: object
+      properties:
+        id: { type: string }
+        teacherId: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+    BookingStatus:
+      type: string
+      enum: [scheduled, pending, pending_teacher, canceled, completed, noshow]
+    BookingSource:
+      type: string
+      enum: [student, admin, teacher, system]
+    BookingSummary:
+      type: object
+      properties:
+        id: { type: string }
+        teacher: { type: object, properties: { id: {type: string}, name: {type: string}, avatarUrl: {type: string, format: uri, nullable: true} } }
+        student: { type: object, properties: { id: {type: string}, name: {type: string} } }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        status: { $ref: '#/components/schemas/BookingStatus' }
+        material: { $ref: '#/components/schemas/MaterialItem' }
+        lastMessageAt: { type: string, format: date-time, nullable: true }
+        meetingUrl: { type: string, format: uri, nullable: true }
+        source: { $ref: '#/components/schemas/BookingSource' }
+    BookingDetail:
+      allOf:
+        - $ref: '#/components/schemas/BookingSummary'
+        - type: object
+          properties:
+            courseTitle: { type: string, nullable: true }
+            message: { type: string, nullable: true }
+            messages:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string }
+                  senderId: { type: string }
+                  text: { type: string }
+                  createdAt: { type: string, format: date-time }
+            canReschedule: { type: boolean }
+            canCancel: { type: boolean }
+            cancelPolicy:
+              type: object
+              properties:
+                freeBeforeHours: { type: integer, default: 24 }
+                tiered:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      minHours: { type: integer }
+                      maxHours: { type: integer }
+                      cancelCardCost: { type: integer }
+            settlement:
+              type: object
+              properties:
+                status: { type: string, enum: [pending, blocked, ready, settled], default: pending }
+                teacherUnitUSD: { type: number, nullable: true }
+                payableAt: { type: string, format: date-time, nullable: true }
+            postClass:
+              type: object
+              properties:
+                teacherReportSubmittedAt: { type: string, format: date-time, nullable: true }
+                studentGoal: { type: string, nullable: true }
+    ReviewItem:
+      type: object
+      properties:
+        id: { type: string }
+        bookingId: { type: string }
+        teacherId: { type: string }
+        studentMaskedName: { type: string, nullable: true }
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        comment: { type: string, nullable: true }
+        status: { type: string, enum: [pending, approved, rejected] }
+        createdAt: { type: string, format: date-time }
+        reason: { type: string, nullable: true }
+    NotificationItem:
+      type: object
+      properties:
+        id: { type: string }
+        type: { type: string }
+        title: { type: string }
+        body: { type: string }
+        createdAt: { type: string, format: date-time }
+        readAt: { type: string, format: date-time, nullable: true }
+        data: { type: object, additionalProperties: true }
+    PurchaseType:
+      type: string
+      enum: [lesson_card, trial_card, compensation_card, cancel_card]
+    PurchaseItem:
+      type: object
+      properties:
+        id: { type: string }
+        studentId: { type: string }
+        packageName: { type: string }
+        quantity: { type: integer, description: 張數總量 }
+        remaining: { type: integer, description: 剩餘張數 }
+        type: { $ref: '#/components/schemas/PurchaseType' }
+        suggestedLabel: { type: string, nullable: true }
+        purchasedAt: { type: string, format: date-time }
+        activatedAt: { type: string, format: date-time, nullable: true }
+        expiresAt:
+          oneOf:
+            - { type: string, format: date-time }
+            - { type: string, example: '14天', description: 僅用於尚未啟動時顯示相對期限 }
+        status: { type: string, enum: [draft, active, expired, consumed], default: active }
+        notes: { type: string, nullable: true }
+        meta: { type: object, additionalProperties: true, nullable: true }
+    ConsumptionRecord:
+      type: object
+      properties:
+        id: { type: string }
+        bookingId: { type: string, nullable: true }
+        studentId: { type: string }
+        purchaseId: { type: string }
+        type: { $ref: '#/components/schemas/PurchaseType' }
+        amount: { type: integer, description: 消耗張數, default: 1 }
+        createdAt: { type: string, format: date-time }
+        reason:
+          type: string
+          description: 消耗原因
+          enum:
+            - booking
+            - cancel_tier_1
+            - cancel_tier_2
+            - cancel_tier_locked
+            - admin_adjust
+            - refund
+        meta: { type: object, additionalProperties: true, nullable: true }
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: 登入
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken: { type: string }
+                  refreshToken: { type: string }
+                  user:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      role: { $ref: '#/components/schemas/Role' }
+                      name: { type: string }
+                      avatarUrl: { type: string, format: uri, nullable: true }
+        '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: 重新取得存取權杖
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties: { refreshToken: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken: { type: string }
+                  refreshToken: { type: string }
+        '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: 登出
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204': { description: No Content }
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: 目前使用者資訊
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Me' } } } }
+        '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /auth/demo-reset:
+    post:
+      tags: [Auth]
+      summary: 重置 Demo（限 demo/admin）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean } } }
+
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: 取得使用者公開資訊
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/UserPublic' } } } }
+        '404': { description: Not Found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    patch:
+      tags: [Users]
+      summary: 更新使用者個人資料
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                avatarUrl: { type: string, format: uri }
+                bio: { type: string }
+                phone: { type: string }
+                timezone: { type: string }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/UserPublic' } } } }
+        '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: Forbidden, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /teachers:
+    get:
+      tags: [Teachers]
+      summary: 教師清單
+      parameters:
+        - in: query
+          name: domain
+          schema: { type: string }
+        - in: query
+          name: region
+          schema: { type: string }
+        - in: query
+          name: q
+          schema: { type: string }
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/TeacherCard' } }
+  /teachers/{id}:
+    get:
+      tags: [Teachers]
+      summary: 教師詳細
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TeacherDetail' } } } }
+        '404': { description: Not Found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /teachers/{id}/availability/slots:
+    get:
+      tags: [Availability]
+      summary: 查教師實際可預約切片
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        - $ref: '#/components/parameters/Tz'
+        - in: query
+          name: duration
+          schema: { type: integer, default: 30 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { slots: { type: array, items: { $ref: '#/components/schemas/Slot' } } } }
+  /teachers/{id}/availability/rules:
+    get:
+      tags: [Availability]
+      summary: 讀取每週規則與例外
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rules: { type: array, items: { $ref: '#/components/schemas/AvailabilityRule' } }
+                  overrides: { type: array, items: { $ref: '#/components/schemas/AvailabilityOverride' } }
+    put:
+      tags: [Availability]
+      summary: 寫入/覆寫每週規則
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { rules: { type: array, items: { $ref: '#/components/schemas/AvailabilityRule' } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { type: object, properties: { updated: { type: boolean } } } } } }
+  /teachers/{id}/availability/overrides:
+    put:
+      tags: [Availability]
+      summary: 設定單日例外（開/封鎖）
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { overrides: { type: array, items: { $ref: '#/components/schemas/AvailabilityOverride' } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { type: object, properties: { updated: { type: boolean } } } } } }
+
+  /favorites:
+    get:
+      tags: [Favorites]
+      summary: 取得收藏列表
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        teacherId: { type: string }
+                        addedAt: { type: string, format: date-time }
+    post:
+      tags: [Favorites]
+      summary: 新增收藏
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [teacherId], properties: { teacherId: { type: string } } }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { type: object, properties: { teacherId: { type: string }, addedAt: { type: string, format: date-time } } }
+        '409': { description: Duplicate favorite, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /favorites/{teacherId}:
+    delete:
+      tags: [Favorites]
+      summary: 移除收藏
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: teacherId, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '204': { description: No Content }
+
+  /library:
+    get:
+      tags: [Library]
+      summary: 取得教材資料夾樹或扁平清單
+      parameters:
+        - in: query
+          name: include
+          schema: { type: string, enum: [all, root, flat], default: all }
+        - in: query
+          name: depth
+          schema: { type: integer, minimum: 1, default: 2 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties: { tree: { type: array, items: { $ref: '#/components/schemas/LibraryNode' } } }
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            name: { type: string }
+                            parentId: { type: string, nullable: true }
+                            path: { type: string, nullable: true }
+    post:
+      tags: [Library]
+      summary: 新增資料夾
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [name], properties: { name: { type: string }, parentId: { type: string, nullable: true } } }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { type: object, properties: { id: { type: string }, name: { type: string }, parentId: { type: string, nullable: true } } }
+  /library/{id}:
+    patch:
+      tags: [Library]
+      summary: 更新資料夾
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { name: { type: string }, parentId: { type: string } } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { id: { type: string }, name: { type: string }, parentId: { type: string, nullable: true } } }
+    delete:
+      tags: [Library]
+      summary: 刪除資料夾
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '204': { description: No Content }
+
+  /materials:
+    get:
+      tags: [Materials]
+      summary: 查詢教材清單
+      parameters:
+        - in: query
+          name: folderId
+          schema: { type: string }
+        - in: query
+          name: type
+          schema: { type: string, enum: [page, pdf] }
+        - in: query
+          name: q
+          schema: { type: string }
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties: { items: { type: array, items: { $ref: '#/components/schemas/MaterialItem' } } }
+    post:
+      tags: [Materials]
+      summary: 新增教材（multipart）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [type, title, folderId]
+              properties:
+                type: { type: string, enum: [page, pdf] }
+                title: { type: string }
+                folderId: { type: string }
+                content: { type: string, description: 僅 page 使用 }
+                file: { type: string, format: binary, description: 僅 pdf 使用 }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/MaterialItem' } } } }
+  /materials/{id}:
+    get:
+      tags: [Materials]
+      summary: 取得教材
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/MaterialItem' } } } }
+        '404': { description: Not Found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    patch:
+      tags: [Materials]
+      summary: 更新教材
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { title: { type: string }, folderId: { type: string }, content: { type: string } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/MaterialItem' } } } }
+    delete:
+      tags: [Materials]
+      summary: 刪除教材
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '204': { description: No Content }
+
+  /uploads/url:
+    post:
+      tags: [Uploads]
+      summary: 取得預簽上傳 URL（私有/公開皆可）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filename, contentType]
+              properties:
+                filename: { type: string }
+                contentType: { type: string }
+                bucket:
+                  type: string
+                  nullable: true
+                  description: 指定目標 bucket（可選）
+                  enum: [private, public]
+                acl:
+                  type: string
+                  enum: [private, public-read]
+                  default: private
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uploadUrl: { type: string, format: uri }
+                  fileUrl: { type: string, format: uri }
+                  expiresAt: { type: string, format: date-time }
+
+  /timeslots:
+    get:
+      tags: [Timeslots & Holds]
+      summary: 搜尋可約時段（跨老師或指定老師）
+      parameters:
+        - in: query
+          name: domain
+          schema: { type: string }
+        - in: query
+          name: region
+          schema: { type: string }
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        - $ref: '#/components/parameters/Tz'
+        - in: query
+          name: duration
+          schema: { type: integer, default: 30 }
+        - in: query
+          name: teacherId
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        teacherId: { type: string }
+                        start: { type: string, format: date-time }
+                        end: { type: string, format: date-time }
+
+  /holds:
+    post:
+      tags: [Timeslots & Holds]
+      summary: 建立暫存鎖以避免搶單
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [teacherId, startsAt, durationMinutes]
+              properties:
+                teacherId: { type: string }
+                startsAt: { type: string, format: date-time }
+                durationMinutes: { type: integer }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Hold' } } } }
+        '409': { description: 與既有 booking/hold 衝突, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /holds/{id}:
+    delete:
+      tags: [Timeslots & Holds]
+      summary: 取消暫存鎖
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '204': { description: No Content }
+
+  /bookings:
+    get:
+      tags: [Bookings]
+      summary: 我的預約清單
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: roleView
+          schema: { type: string, enum: [student, teacher] }
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        - in: query
+          name: status
+          schema: { type: string, enum: [upcoming, past, canceled, pending] }
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties: { items: { type: array, items: { $ref: '#/components/schemas/BookingSummary' } } }
+    post:
+      tags: [Bookings]
+      summary: 建立預約（建立即自動審批，除非衝突/超容量）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mode, startsAt, durationMinutes]
+              properties:
+                mode: { type: string, enum: [assign, specific] }
+                teacherId: { type: string, nullable: true }
+                startsAt: { type: string, format: date-time }
+                durationMinutes: { type: integer, enum: [30] }
+                materialId: { type: string, nullable: true }
+                courseTitle: { type: string, nullable: true }
+                message: { type: string, nullable: true }
+                holdId: { type: string, nullable: true }
+                source: { $ref: '#/components/schemas/BookingSource' }
+                studentId: { type: string, nullable: true, description: 管理員代客預約可帶 }
+                dryRun: { type: boolean, default: false, description: 僅檢查扣卡可行性與政策，返回不建立 booking }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/BookingDetail' } } } }
+        '409': { description: 時間衝突, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: 政策違反/無可用次卡, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /bookings/{id}:
+    get:
+      tags: [Bookings]
+      summary: 取得預約詳情
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/BookingDetail' } } } }
+        '404': { description: Not Found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /bookings/{id}/messages:
+    post:
+      tags: [Bookings]
+      summary: 預約留言
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [text], properties: { text: { type: string } } }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { type: object, properties: { id: { type: string }, text: { type: string }, senderId: { type: string }, createdAt: { type: string, format: date-time } } }
+
+  /bookings/{id}/reschedule:
+    post:
+      tags: [Bookings]
+      summary: 改期
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newStartsAt, durationMinutes]
+              properties:
+                newStartsAt: { type: string, format: date-time }
+                durationMinutes: { type: integer, enum: [30] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  status: { type: string, enum: [scheduled, pending_teacher] }
+                  startsAt: { type: string, format: date-time }
+                  endsAt: { type: string, format: date-time }
+        '409': { description: 衝突, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: 政策違反, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /bookings/{id}/cancel:
+    post:
+      tags: [Cancellations]
+      summary: 取消預約（依角色與距離上課時間套用取消政策）
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+                cause:
+                  type: string
+                  enum: [student_request, teacher_request, admin_force, technical_issue]
+                waivePolicy: { type: boolean, default: false, description: 僅 admin 可用以免除政策/扣卡 }
+      responses:
+        '200':
+          description: Canceled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  status: { type: string, enum: [canceled] }
+                  refund:
+                    type: object
+                    nullable: true
+                    properties:
+                      lessonCardsReturned: { type: integer }
+                      cancelCardsConsumed: { type: integer }
+                      compensationGranted: { type: integer }
+                      notes: { type: string, nullable: true }
+        '422': { description: 政策違反或不可取消時間窗, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /bookings/{id}/ics:
+    get:
+      tags: [Bookings]
+      summary: 下載 .ics
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200':
+          description: ICS file
+          content:
+            text/calendar:
+              schema: { type: string }
+
+  /bookings/{id}/confirm:
+    post:
+      tags: [Bookings]
+      summary: 老師/管理確認預約
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200':
+          description: Confirmed
+          content:
+            application/json:
+              schema: { type: object, properties: { id: { type: string }, status: { type: string, enum: [scheduled] } } }
+
+  /post-class/{id}/teacher-report:
+    post:
+      tags: [Post-Class]
+      summary: 老師課後回報與上傳證明
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rubrics]
+              properties:
+                rubrics:
+                  type: object
+                  properties:
+                    assignment: { type: string, nullable: true }
+                    vocabulary: { type: string, nullable: true }
+                    grammar: { type: string, nullable: true }
+                    pronunciation: { type: string, nullable: true }
+                    coherence: { type: string, nullable: true }
+                    performance: { type: string, nullable: true }
+                evidenceUrls:
+                  type: array
+                  items: { type: string, format: uri }
+      responses:
+        '200':
+          description: OK（回報完成才可進入結算）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bookingId: { type: string }
+                  settlementStatus: { type: string, enum: [ready] }
+
+  /post-class/{id}/student-goal:
+    post:
+      tags: [Post-Class]
+      summary: 學生課後填寫學習目標/心得
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [goal], properties: { goal: { type: string } } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { bookingId: { type: string }, goal: { type: string } } }
+
+  /purchases:
+    get:
+      tags: [Purchases]
+      summary: 學生購買項目列表（Dashboard）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: studentId
+          schema: { type: string }
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties: { items: { type: array, items: { $ref: '#/components/schemas/PurchaseItem' } } }
+
+  /purchases/{id}/activate:
+    post:
+      tags: [Purchases]
+      summary: 啟動卡片（啟動後每張卡=一週效期；體驗卡優先；相同卡 First-Expire-First-Use）
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200':
+          description: Activated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PurchaseItem' }
+
+  /purchases/{id}/extend:
+    post:
+      tags: [Purchases]
+      summary: 管理員延長或修改過期時間
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newExpiresAt: { type: string, format: date-time }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PurchaseItem' } } } }
+
+  /consumptions:
+    get:
+      tags: [Consumptions]
+      summary: 扣卡紀錄
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: studentId
+          schema: { type: string }
+        - in: query
+          name: bookingId
+          schema: { type: string }
+        - in: query
+          name: type
+          schema: { $ref: '#/components/schemas/PurchaseType' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties: { items: { type: array, items: { $ref: '#/components/schemas/ConsumptionRecord' } } }
+
+  /cancellations/policy-preview:
+    post:
+      tags: [Cancellations]
+      summary: 取消政策預覽（告知將扣幾張取消卡/是否退回約課卡）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bookingId]
+              properties:
+                bookingId: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  window: { type: string, enum: [free, h12_24, h2_12, less_2h, locked] }
+                  cancelCardsRequired: { type: integer }
+                  lessonCardRefund: { type: integer }
+                  allowed: { type: boolean }
+                  policyText: { type: string }
+
+  /reviews:
+    get:
+      tags: [Reviews]
+      summary: 查詢評價
+      parameters:
+        - in: query
+          name: teacherId
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string, enum: [approved, pending] }
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties: { items: { type: array, items: { $ref: '#/components/schemas/ReviewItem' } } }
+    post:
+      tags: [Reviews]
+      summary: 新增評價（學生端，一堂課僅能一次）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bookingId, teacherId, rating]
+              properties:
+                bookingId: { type: string }
+                teacherId: { type: string }
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                comment: { type: string }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/ReviewItem' } } } }
+        '409': { description: 該 booking 已有評價, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: booking 非 completed 或非本人, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /reviews/{id}/approve:
+    post:
+      tags: [Reviews]
+      summary: 審核通過
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200': { description: Approved, content: { application/json: { schema: { $ref: '#/components/schemas/ReviewItem' } } } }
+  /reviews/{id}/reject:
+    post:
+      tags: [Reviews]
+      summary: 審核拒絕
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [reason], properties: { reason: { type: string } } }
+      responses:
+        '200': { description: Rejected, content: { application/json: { schema: { $ref: '#/components/schemas/ReviewItem' } } } }
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: 通知列表（預約成功、課前 24h/1h、課後提醒、審核結果等）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: unreadOnly
+          schema: { type: boolean }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties: { items: { type: array, items: { $ref: '#/components/schemas/NotificationItem' } } }
+  /notifications/ack/{id}:
+    post:
+      tags: [Notifications]
+      summary: 單筆已讀
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { id: { type: string }, readAt: { type: string, format: date-time } } } } } }
+  /notifications/ack:
+    post:
+      tags: [Notifications]
+      summary: 批次已讀
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [ids], properties: { ids: { type: array, items: { type: string } } } }
+      responses:
+        '200': { description: Updated count, content: { application/json: { schema: { type: object, properties: { updated: { type: integer } } } } } }
+  /notifications/stream:
+    get:
+      tags: [Notifications]
+      summary: 通知 SSE 串流
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: header
+          name: Accept
+          required: true
+          schema: { type: string, enum: [text/event-stream] }
+      responses:
+        '200': { description: SSE stream（heartbeat 每 25s）, content: { text/event-stream: { schema: { type: string } } } }
+
+  /teachers/{id}/gallery:
+    post:
+      tags: [Gallery]
+      summary: 上傳老師相簿
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                caption: { type: string }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  url: { type: string, format: uri }
+                  caption: { type: string, nullable: true }
+                  type: { type: string, enum: [image, video, other] }
+                  uploadedAt: { type: string, format: date-time }
+  /teachers/{id}/gallery/{mediaId}:
+    delete:
+      tags: [Gallery]
+      summary: 刪除相簿項目
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: mediaId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: No Content }
+
+  /admin/teachers:
+    post:
+      tags: [Admin]
+      summary: 建立/上架教師
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, regions, domains, pricePolicies, experienceYears, intro, certifications]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                regions: { type: array, items: { type: string } }
+                domains: { type: array, items: { type: string } }
+                pricePolicies: { type: array, items: { type: object, additionalProperties: true } }
+                experienceYears: { type: integer }
+                intro: { type: string }
+                certifications: { type: array, items: { type: string } }
+                active: { type: boolean, default: true }
+                unitPriceUSD: { type: number, description: 預設每 30 分鐘分潤, default: 5 }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/TeacherDetail' } } } }
+  /admin/teachers/{id}:
+    patch:
+      tags: [Admin]
+      summary: 編輯教師資料/上下架
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                regions: { type: array, items: { type: string } }
+                domains: { type: array, items: { type: string } }
+                pricePolicies: { type: array, items: { type: object } }
+                experienceYears: { type: integer }
+                intro: { type: string }
+                certifications: { type: array, items: { type: string } }
+                active: { type: boolean }
+                unitPriceUSD: { type: number }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TeacherDetail' } } } }
+
+  /admin/students:
+    post:
+      tags: [Admin]
+      summary: 建立學生
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                initialTimezone: { type: string, nullable: true }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { id: { type: string }, name: { type: string }, email: { type: string, format: email } }
+
+  /admin/purchases:
+    post:
+      tags: [Admin]
+      summary: 管理員授予卡片（約課卡/體驗卡/補償卡/取消卡）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [studentId, type, packageName, quantity]
+              properties:
+                studentId: { type: string }
+                type: { $ref: '#/components/schemas/PurchaseType' }
+                packageName: { type: string }
+                quantity: { type: integer }
+                suggestedLabel: { type: string, nullable: true }
+                notes: { type: string, nullable: true }
+                autoActivate: { type: boolean, default: false }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/PurchaseItem' } } } }
+
+  /admin/bookings:
+    post:
+      tags: [Admin]
+      summary: 管理員代客預約（仍會扣課卡）
+      security: [{ bearerAuth: [] }]
+      parameters: [ { in: header, name: Idempotency-Key, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/paths/~1bookings/post/requestBody/content/application~1json/schema'
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/BookingDetail' } } } }
+
+  /admin/bookings/{id}/compensate:
+    post:
+      tags: [Admin]
+      summary: 技術問題補償（授予補償次卡 N 張或退回堂數）
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                grantCompensationCards: { type: integer, default: 0 }
+                refundLessonCards: { type: integer, default: 0 }
+                notes: { type: string, nullable: true }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { bookingId: { type: string }, granted: { type: integer }, refunded: { type: integer } } }
+
+  /admin/bookings/{id}/mark-noshow:
+    post:
+      tags: [Admin]
+      summary: 標記未到課（依政策是否扣堂/不退回/備註）
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { type: object, properties: { notes: { type: string, nullable: true } } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BookingDetail' }
+
+  /admin/settlements:
+    get:
+      tags: [Admin]
+      summary: 月結列表（老師）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: month
+          schema: { type: string, pattern: '^\\d{4}-\\d{2}$', example: '2025-09' }
+        - in: query
+          name: teacherId
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string, enum: [pending, ready, settled] }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            teacherId: { type: string }
+                            month: { type: string }
+                            lessons: { type: integer }
+                            payableUSD: { type: number }
+                            status: { type: string, enum: [pending, ready, settled] }
+
+  /admin/settlements/{teacherId}/{month}/approve:
+    post:
+      tags: [Admin]
+      summary: 月結審核通過並結清
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: teacherId
+          in: path
+          schema: { type: string }
+          required: true
+        - name: month
+          in: path
+          schema: { type: string }
+          required: true
+      responses:
+        '200':
+          description: Settled
+          content:
+            application/json:
+              schema: { type: object, properties: { teacherId: { type: string }, month: { type: string }, status: { type: string, enum: [settled] } } }
+
+  /reports/admin:
+    get:
+      tags: [Reports]
+      summary: Admin 報表：預約數、完成率、取消率、技術取消比例
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bookings:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      completed: { type: integer }
+                      canceled: { type: integer }
+                      technicalCanceled: { type: integer }
+                      completionRate: { type: number }
+                      cancelRate: { type: number }
+                      technicalCancelRate: { type: number }
+  /reports/teacher:
+    get:
+      tags: [Reports]
+      summary: Teacher 報表（僅自己）
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bookings:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      completed: { type: integer }
+                      canceled: { type: integer }
+                      technicalCanceled: { type: integer }
+                  earningsEstimateUSD: { type: number }
+
+  /admin/reviews:
+    get:
+      tags: [Admin]
+      summary: 評價審核列表/匯出
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [pending, approved, rejected] }
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - in: query
+          name: export
+          schema: { type: string, enum: [csv] }
+      responses:
+        '200':
+          description: OK（export=csv 時以 text/csv 回應）
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties: { items: { type: array, items: { $ref: '#/components/schemas/ReviewItem' } } }
+            text/csv:
+              schema: { type: string }
+
+  /admin/stats:
+    get:
+      tags: [Admin]
+    # 與原版相同
+      summary: 儀表板統計
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users: { type: integer }
+                  teachers: { type: integer }
+                  bookings:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      upcoming: { type: integer }
+                      canceled: { type: integer }
+                  revenue: { type: number, nullable: true }
+                  ratings: { type: object, additionalProperties: { type: number } }
+
+  /assignments/auto:
+    post:
+      tags: [Assignments]
+      summary: 系統自動指派老師（自由對話）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [startsAt, durationMinutes]
+              properties:
+                domain: { type: string, nullable: true }
+                region: { type: string, nullable: true }
+                startsAt: { type: string, format: date-time }
+                durationMinutes: { type: integer, enum: [30] }
+                studentId: { type: string, nullable: true }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  teacherId: { type: string }
+                  score: { type: number }
+                  reason: { type: string }
+
+  /meta/domains:
+    get:
+      tags: [Meta]
+      summary: 課程領域
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { type: string } } } } }
+  /meta/regions:
+    get:
+      tags: [Meta]
+      summary: 地區
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { type: string } } } } }
+  /meta/sort-options:
+    get:
+      tags: [Meta]
+      summary: 排序選項
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    key: { type: string }
+                    label: { type: string }
