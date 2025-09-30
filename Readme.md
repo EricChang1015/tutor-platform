@@ -137,9 +137,6 @@ Tutor Platform 是一個完整的線上家教平台後端系統，提供從用�
 │       ├── package.json
 │       └── svelte.config.js
 │
-├── api/                                  # API 測試工具（靜態）
-│   └── testAPI.html                      # Web 端點測試面板（Readme 已提及）
-│
 ├── .env                          # 環境變數範本（DB/MINIO/JWT/MailHog）
 └── Readme.md
 ```
@@ -169,7 +166,7 @@ Tutor Platform 是一個完整的線上家教平台後端系統，提供從用�
 ## 🧪 測試工具
 TDB
 ### API 測試介面
-- 完整的 Web 測試工具 (`api/testAPI.html`)
+- 完整的 Web 測試工具 (`testAPI.html`)
 - 所有 API 端點的測試功能
 - 實時狀態監控
 - 用戶友好的介面設計
