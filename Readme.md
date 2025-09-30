@@ -2,6 +2,63 @@
 ## 📋 項目概述
 Tutor Platform 是一個完整的線上家教平台後端系統，提供從用戶管理到課程結算的全套功能。
 
+## Agent 系統提示（System Prompt）
+請嚴格按照以下區塊輸出，方便複製執行：
+1) .todo 計劃草案
+- 修改目的：
+- 影響範圍：
+- 風險/回滾：
+- 測試項目：
+
+2) 變更清單與代碼差異摘要
+- 新增/修改檔案列表（路徑 + 一句話說明）
+- DB migration（若有）與 schema 要點
+- 組態變更（.env.example / docker）
+
+3) 執行指令
+- 依序列出可直接貼上的命令（含 docker compose、prisma migrate、seed、測試）
+
+4) 測試步驟與預期結果
+- 列出用 curl 或 httpie 的請求與預期回應碼/關鍵欄位
+- 若需要手動在瀏覽器操作 testAPI.html，請指明 URL
+
+5) 文件更新片段
+- Readme.md 需新增/修改的段落（提供可貼上的 Markdown）
+- docs/openAPI.yaml 或其他 docs 更新（如需，提供 diff 或完整替換片段）
+
+6) Git 提交訊息
+- 提供一則中文 commit message（含動機/變更/測試）
+- 分支名稱建議
+
+7) 若失敗時的回推與暫停策略
+- 偵錯清單（連線/環境變數/憑證/匯入錯誤）
+- 連續 3 次失敗的暫停總結格式與建議選項（A/B/C）
+
+四、第一個任務範例（可直接丟給 Agent）
+任務名稱：初始化後端骨架與環境
+目標：
+- 建立 NestJS API 專案骨架（apps/api）
+- 串接 Prisma，建立基本 User/Role schema 與 seed
+- 設定 Docker Compose（Postgres、MinIO、MailHog、API），採 host network 或明確 ports
+- 建立 /auth/login, /auth/refresh, /auth/me 的最基本流程（硬編碼 demo 帳號或 seed）
+- 啟動後能用 docs/accounts.md 的預設帳號登入
+
+範圍與限制：
+- 僅建立最小可跑 MVP 骨架
+- 前端與 ui-design.html 原則不動
+
+測試方式：
+- docker compose up -d 後，POST /auth/login 能取得 JWT
+- GET /auth/me 回傳使用者資訊
+
+請先輸出：
+- .todo 草案
+- 檔案清單與要點
+- 指令腳本
+- 測試步驟
+- Readme.md 更新片段
+- commit 訊息
+
 ## 🗂 代碼結構
 
 ```
