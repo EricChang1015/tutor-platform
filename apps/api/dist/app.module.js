@@ -19,6 +19,8 @@ const teachers_module_1 = require("./teachers/teachers.module");
 const bookings_module_1 = require("./bookings/bookings.module");
 const purchases_module_1 = require("./purchases/purchases.module");
 const admin_module_1 = require("./admin/admin.module");
+const favorites_module_1 = require("./favorites/favorites.module");
+const library_module_1 = require("./library/library.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -52,6 +54,8 @@ exports.AppModule = AppModule = __decorate([
             bookings_module_1.BookingsModule,
             purchases_module_1.PurchasesModule,
             admin_module_1.AdminModule,
+            favorites_module_1.FavoritesModule,
+            library_module_1.LibraryModule,
         ],
     })
 ], AppModule);
