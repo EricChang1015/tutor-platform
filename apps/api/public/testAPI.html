@@ -326,6 +326,71 @@
         .hidden {
             display: none;
         }
+        
+        /* 新增：請求參數顯示 */
+        .request-params {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .request-params-title {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+        
+        /* 新增：curl 指令區域 */
+        .curl-container {
+            margin-top: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .curl-header {
+            background: #2d2d2d;
+            color: white;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .curl-body {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .btn-copy-curl {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .btn-copy-curl:hover {
+            background: #0056b3;
+        }
+        
+        .btn-copy-curl.copied {
+            background: #28a745;
+        }
     </style>
 </head>
 <body>
@@ -867,6 +932,17 @@
                             執行測試
                         </button>
                     </div>
+                    <div class="request-params" id="params-${test.id}" style="display: none;">
+                        <div class="request-params-title">📤 傳送參數</div>
+                        <div id="params-content-${test.id}"></div>
+                    </div>
+                    <div class="curl-container" id="curl-${test.id}" style="display: none;">
+                        <div class="curl-header">
+                            <span>📋 cURL 指令</span>
+                            <button class="btn-copy-curl" onclick="copyCurlCommand('${test.id}')">複製</button>
+                        </div>
+                        <div class="curl-body" id="curl-body-${test.id}"></div>
+                    </div>
                     <div class="response-container hidden" id="response-${test.id}">
                         <div class="response-header">
                             <span>回應結果</span>
@@ -876,6 +952,42 @@
                     </div>
                 </div>
             `;
+        }
+
+        // 生成 cURL 指令
+        function generateCurlCommand(test, endpoint, requestData) {
+            let curl = `curl -X ${test.method} '${API_BASE}${endpoint}'`;
+            
+            if (test.requireAuth && accessToken) {
+                curl += ` \\\n  -H 'Authorization: Bearer ${accessToken}'`;
+            }
+            
+            curl += ` \\\n  -H 'Content-Type: application/json'`;
+            
+            if (requestData && (test.method === 'POST' || test.method === 'PATCH' || test.method === 'PUT')) {
+                curl += ` \\\n  -d '${JSON.stringify(requestData)}'`;
+            }
+            
+            return curl;
+        }
+
+        // 複製 cURL 指令
+        function copyCurlCommand(testId) {
+            const curlBody = document.getElementById(`curl-body-${testId}`);
+            const copyBtn = event.target;
+            
+            navigator.clipboard.writeText(curlBody.textContent).then(() => {
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '已複製!';
+                copyBtn.classList.add('copied');
+                
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                alert('複製失敗：' + err.message);
+            });
         }
 
         // 切換測試套件顯示
@@ -991,9 +1103,18 @@
                     requireAuth: test.requireAuth
                 };
 
+                let requestData = null;
                 if (test.data && (test.method === 'POST' || test.method === 'PATCH' || test.method === 'PUT')) {
-                    requestOptions.body = JSON.stringify(test.data());
+                    requestData = test.data();
+                    requestOptions.body = JSON.stringify(requestData);
                 }
+
+                // 顯示傳送參數
+                displayRequestParams(testId, test, endpoint, requestData);
+
+                // 生成並顯示 cURL 指令
+                const curlCommand = generateCurlCommand(test, endpoint, requestData);
+                displayCurlCommand(testId, curlCommand);
 
                 // 發送請求
                 const response = await makeRequest(endpoint, requestOptions);
@@ -1019,6 +1140,35 @@
 
             updateStats();
             updateSuiteProgress(suiteId);
+        }
+
+        // 顯示傳送參數
+        function displayRequestParams(testId, test, endpoint, requestData) {
+            const paramsContainer = document.getElementById(`params-${testId}`);
+            const paramsContent = document.getElementById(`params-content-${testId}`);
+            
+            let paramsHTML = `<strong>方法:</strong> ${test.method}<br>`;
+            paramsHTML += `<strong>端點:</strong> ${endpoint}<br>`;
+            
+            if (test.requireAuth) {
+                paramsHTML += `<strong>認證:</strong> Bearer Token<br>`;
+            }
+            
+            if (requestData) {
+                paramsHTML += `<strong>請求體:</strong><br><pre>${JSON.stringify(requestData, null, 2)}</pre>`;
+            }
+            
+            paramsContent.innerHTML = paramsHTML;
+            paramsContainer.style.display = 'block';
+        }
+
+        // 顯示 cURL 指令
+        function displayCurlCommand(testId, curlCommand) {
+            const curlContainer = document.getElementById(`curl-${testId}`);
+            const curlBody = document.getElementById(`curl-body-${testId}`);
+            
+            curlBody.textContent = curlCommand;
+            curlContainer.style.display = 'block';
         }
 
         // 驗證回應
@@ -1094,17 +1244,32 @@
             statusElement.textContent = statusText[status];
         }
 
-        // 更新套件進度
+        // 更新套件進度（新增失敗個數統計）
         function updateSuiteProgress(suiteId) {
             const suite = testSuites.find(s => s.id === suiteId);
             if (!suite) return;
 
-            const completed = suite.tests.filter(test => {
+            let completed = 0;
+            let failed = 0;
+            
+            suite.tests.forEach(test => {
                 const statusElement = document.getElementById(`status-${test.id}`);
-                return statusElement && !statusElement.textContent.includes('待測試') && !statusElement.textContent.includes('執行中');
-            }).length;
+                if (statusElement) {
+                    const statusText = statusElement.textContent;
+                    if (!statusText.includes('待測試') && !statusText.includes('執行中')) {
+                        completed++;
+                        if (statusText.includes('失敗') || statusText.includes('錯誤') || statusText.includes('權限不符')) {
+                            failed++;
+                        }
+                    }
+                }
+            });
 
-            document.getElementById(`progress-${suiteId}`).textContent = `${completed}/${suite.tests.length}`;
+            const progressText = failed > 0 
+                ? `${completed}/${suite.tests.length} (失敗: ${failed})`
+                : `${completed}/${suite.tests.length}`;
+            
+            document.getElementById(`progress-${suiteId}`).textContent = progressText;
         }
 
         // 執行所有測試
