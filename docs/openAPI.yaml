@@ -409,6 +409,7 @@ paths:
     patch:
       tags: [Users]
       summary: 更新使用者個人資料
+      description: 管理員可以更新所有人的資料，其他用戶只能更新自己的資料
       security: [{ bearerAuth: [] }]
       parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
       requestBody:
@@ -426,7 +427,7 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/UserPublic' } } } }
         '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: Forbidden, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: 'Forbidden - 非管理員只能更新自己的資料', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
   /teachers:
     get:
@@ -465,33 +466,11 @@ paths:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TeacherDetail' } } } }
         '404': { description: Not Found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
-  /teachers/{id}/availability/slots:
+  /teacher-availability/time-slots:
     get:
       tags: [Availability]
-      summary: 查教師實際可預約切片
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string }
-        - $ref: '#/components/parameters/From'
-        - $ref: '#/components/parameters/To'
-        - $ref: '#/components/parameters/Tz'
-        - in: query
-          name: duration
-          schema: { type: integer, default: 30 }
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { type: object, properties: { slots: { type: array, items: { $ref: '#/components/schemas/Slot' } } } }
-  /teachers/{id}/availability/rules:
-    get:
-      tags: [Availability]
-      summary: 讀取每週規則與例外
-      security: [{ bearerAuth: [] }]
-      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      summary: 取得所有可用時間槽
+      description: 返回所有30分鐘時間槽 (00:00-23:30)
       responses:
         '200':
           description: OK
@@ -500,37 +479,138 @@ paths:
               schema:
                 type: object
                 properties:
-                  rules: { type: array, items: { $ref: '#/components/schemas/AvailabilityRule' } }
-                  overrides: { type: array, items: { $ref: '#/components/schemas/AvailabilityOverride' } }
-    put:
+                  code: { type: integer, example: 0 }
+                  msg: { type: string, example: "ok" }
+                  data: { type: array, items: { type: string, example: "09:00" } }
+
+  /teacher-availability/search-teachers:
+    get:
       tags: [Availability]
-      summary: 寫入/覆寫每週規則
+      summary: 搜尋可用教師
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema: { type: string, format: date, example: "2025-10-01" }
+        - name: fromTime
+          in: query
+          required: true
+          schema: { type: string, pattern: '^\\d{2}:\\d{2}$', example: "09:00" }
+        - name: toTime
+          in: query
+          required: true
+          schema: { type: string, pattern: '^\\d{2}:\\d{2}$', example: "10:00" }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code: { type: integer, example: 0 }
+                  msg: { type: string, example: "ok" }
+                  data: { type: array, items: { $ref: '#/components/schemas/TeacherCard' } }
+
+  /teacher-availability/teacher-timetable:
+    get:
+      tags: [Availability]
+      summary: 查看教師時間表
+      parameters:
+        - name: teacherId
+          in: query
+          required: true
+          schema: { type: string }
+        - name: date
+          in: query
+          required: true
+          schema: { type: string, format: date, example: "2025-10-01" }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code: { type: integer, example: 0 }
+                  msg: { type: string, example: "ok" }
+                  data:
+                    type: object
+                    properties:
+                      date: { type: string, format: date }
+                      teacherId: { type: string }
+                      timeSlots:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            timeSlot: { type: integer, minimum: 0, maximum: 47 }
+                            time: { type: string, example: "09:00" }
+                            status: { type: string, enum: [available, booked, unavailable] }
+  /teacher-availability/set-availability:
+    post:
+      tags: [Availability]
+      summary: 設定教師可用時間
       security: [{ bearerAuth: [] }]
-      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              properties: { rules: { type: array, items: { $ref: '#/components/schemas/AvailabilityRule' } } }
+              required: [teacherId, date, timeSlots]
+              properties:
+                teacherId: { type: string }
+                date: { type: string, format: date, example: "2025-10-01" }
+                timeSlots: { type: array, items: { type: integer, minimum: 0, maximum: 47 } }
       responses:
-        '200': { description: Updated, content: { application/json: { schema: { type: object, properties: { updated: { type: boolean } } } } } }
-  /teachers/{id}/availability/overrides:
-    put:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code: { type: integer, example: 0 }
+                  msg: { type: string, example: "ok" }
+                  data: { type: object, properties: { updated: { type: boolean } } }
+
+  /teacher-availability/set-weekly-schedule:
+    post:
       tags: [Availability]
-      summary: 設定單日例外（開/封鎖）
+      summary: 設定教師週間時間表
       security: [{ bearerAuth: [] }]
-      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              properties: { overrides: { type: array, items: { $ref: '#/components/schemas/AvailabilityOverride' } } }
+              required: [teacherId, weeklySchedule]
+              properties:
+                teacherId: { type: string }
+                weeklySchedule:
+                  type: object
+                  properties:
+                    monday: { type: array, items: { type: integer, minimum: 0, maximum: 47 } }
+                    tuesday: { type: array, items: { type: integer, minimum: 0, maximum: 47 } }
+                    wednesday: { type: array, items: { type: integer, minimum: 0, maximum: 47 } }
+                    thursday: { type: array, items: { type: integer, minimum: 0, maximum: 47 } }
+                    friday: { type: array, items: { type: integer, minimum: 0, maximum: 47 } }
+                    saturday: { type: array, items: { type: integer, minimum: 0, maximum: 47 } }
+                    sunday: { type: array, items: { type: integer, minimum: 0, maximum: 47 } }
       responses:
-        '200': { description: Updated, content: { application/json: { schema: { type: object, properties: { updated: { type: boolean } } } } } }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code: { type: integer, example: 0 }
+                  msg: { type: string, example: "ok" }
+                  data: { type: object, properties: { updated: { type: boolean } } }
 
   /favorites:
     get:

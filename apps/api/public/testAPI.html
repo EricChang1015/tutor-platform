@@ -957,6 +957,33 @@
                         })
                     },
                     {
+                        id: 'admin_update_user_profile',
+                        name: '管理員更新用戶資料',
+                        method: 'PATCH',
+                        endpoint: '/users/33333333-3333-3333-3333-333333333333',
+                        requireAuth: true,
+                        expectedStatus: 200,
+                        expectedFields: ['id', 'name'],
+                        roles: ['admin'],
+                        data: () => ({
+                            name: '管理員更新的名稱',
+                            bio: '管理員更新的簡介'
+                        })
+                    },
+                    {
+                        id: 'non_admin_update_other_profile',
+                        name: '非管理員更新他人資料（應失敗）',
+                        method: 'PATCH',
+                        endpoint: '/users/33333333-3333-3333-3333-333333333333',
+                        requireAuth: true,
+                        expectedStatus: 403,
+                        roles: ['teacher', 'student'],
+                        shouldFail: true,
+                        data: () => ({
+                            name: '嘗試更新他人名稱'
+                        })
+                    },
+                    {
                         id: 'admin_forbidden',
                         name: '非管理員訪問（應失敗）',
                         method: 'GET',

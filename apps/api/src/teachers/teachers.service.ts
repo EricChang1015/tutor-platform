@@ -23,14 +23,14 @@ export class TeachersService {
       .andWhere('user.active = :active', { active: true });
 
     if (domain) {
-      queryBuilder.andWhere('JSON_CONTAINS(profile.domains, :domain)', { 
-        domain: JSON.stringify(domain) 
+      queryBuilder.andWhere('profile.domains @> :domain', {
+        domain: JSON.stringify([domain])
       });
     }
 
     if (region) {
-      queryBuilder.andWhere('JSON_CONTAINS(profile.regions, :region)', { 
-        region: JSON.stringify(region) 
+      queryBuilder.andWhere('profile.regions @> :region', {
+        region: JSON.stringify([region])
       });
     }
 
@@ -44,7 +44,11 @@ export class TeachersService {
     // 排序
     if (sort) {
       const [field, order] = sort.split(':');
-      queryBuilder.orderBy(`profile.${field}`, order.toUpperCase() as 'ASC' | 'DESC');
+      if (field && order) {
+        queryBuilder.orderBy(`profile.${field}`, order.toUpperCase() as 'ASC' | 'DESC');
+      } else {
+        queryBuilder.orderBy('profile.rating', 'DESC');
+      }
     } else {
       queryBuilder.orderBy('profile.rating', 'DESC');
     }

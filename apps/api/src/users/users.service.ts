@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../entities/user.entity';
+import { User, UserRole } from '../entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
@@ -24,10 +24,10 @@ export class UsersService {
     return user;
   }
 
-  async updateUser(id: string, updateUserDto: UpdateUserDto, currentUserId: string): Promise<User> {
-    // 檢查權限：只能更新自己的資料
-    if (id !== currentUserId) {
-      throw new Error('Forbidden: Can only update own profile');
+  async updateUser(id: string, updateUserDto: UpdateUserDto, currentUserId: string, currentUserRole?: string): Promise<User> {
+    // 檢查權限：管理員可以更新所有人的資料，其他人只能更新自己的資料
+    if (currentUserRole !== UserRole.ADMIN && id !== currentUserId) {
+      throw new ForbiddenException('Forbidden: Can only update own profile');
     }
 
     const user = await this.userRepository.findOne({ where: { id } });
