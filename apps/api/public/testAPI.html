@@ -925,11 +925,29 @@
                         data: () => ({
                             name: '測試教師',
                             email: `test-teacher-${Date.now()}@example.com`,
+                            password: 'teacher123',
                             intro: '這是一位測試教師',
                             experienceYears: 3,
                             domains: ['English'],
                             regions: ['Taiwan'],
-                            certifications: ['TESOL']
+                            certifications: ['TESOL'],
+                            pricePolicies: []
+                        })
+                    },
+                    {
+                        id: 'admin_create_student',
+                        name: '建立學生',
+                        method: 'POST',
+                        endpoint: '/admin/students',
+                        requireAuth: true,
+                        expectedStatus: 201,
+                        expectedFields: ['id', 'email'],
+                        roles: ['admin'],
+                        data: () => ({
+                            name: '測試學生',
+                            email: `test-student-${Date.now()}@example.com`,
+                            password: 'student123',
+                            initialTimezone: 'Asia/Taipei'
                         })
                     },
                     {

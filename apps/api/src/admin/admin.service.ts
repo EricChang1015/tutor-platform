@@ -43,7 +43,8 @@ export class AdminService {
 
   async createTeacher(createTeacherDto: any) {
     // 建立用戶帳號
-    const hashedPassword = await bcrypt.hash('teacher123', 10);
+    const password = createTeacherDto.password || 'teacher123';
+    const hashedPassword = await bcrypt.hash(password, 10);
     
     const user = this.userRepository.create({
       email: createTeacherDto.email,
@@ -79,7 +80,8 @@ export class AdminService {
   }
 
   async createStudent(createStudentDto: any) {
-    const hashedPassword = await bcrypt.hash('student123', 10);
+    const password = createStudentDto.password || 'student123';
+    const hashedPassword = await bcrypt.hash(password, 10);
     
     const user = this.userRepository.create({
       email: createStudentDto.email,

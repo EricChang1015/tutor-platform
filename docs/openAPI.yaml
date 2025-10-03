@@ -1364,10 +1364,11 @@ paths:
           application/json:
             schema:
               type: object
-              required: [name, email, regions, domains, pricePolicies, experienceYears, intro, certifications]
+              required: [name, email, password, regions, domains, pricePolicies, experienceYears, intro, certifications]
               properties:
                 name: { type: string }
                 email: { type: string, format: email }
+                password: { type: string, description: 教師登入密碼, minLength: 6 }
                 regions: { type: array, items: { type: string } }
                 domains: { type: array, items: { type: string } }
                 pricePolicies: { type: array, items: { type: object, additionalProperties: true } }
@@ -1414,10 +1415,11 @@ paths:
           application/json:
             schema:
               type: object
-              required: [name, email]
+              required: [name, email, password]
               properties:
                 name: { type: string }
                 email: { type: string, format: email }
+                password: { type: string, description: 學生登入密碼, minLength: 6 }
                 initialTimezone: { type: string, nullable: true }
       responses:
         '201':

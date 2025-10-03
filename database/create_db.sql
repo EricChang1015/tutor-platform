@@ -133,6 +133,24 @@ CREATE INDEX idx_teacher_availability_teacher_date ON teacher_availability(teach
 CREATE INDEX idx_teacher_availability_date_time_slot ON teacher_availability(date, time_slot);
 CREATE INDEX idx_teacher_availability_search ON teacher_availability(date, time_slot, status) WHERE status = 'available';
 
+-- 教材表
+CREATE TABLE materials (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    type VARCHAR(10) CHECK (type IN ('page', 'pdf')) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    folder_id UUID NULL,
+    content TEXT NULL,
+    file_url VARCHAR(500) NULL,
+    preview_url VARCHAR(500) NULL,
+    meta JSONB NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_materials_type ON materials(type);
+CREATE INDEX idx_materials_folder_id ON materials(folder_id);
+CREATE INDEX idx_materials_title ON materials(title);
+
 -- 建立觸發器以自動更新 updated_at 欄位
 CREATE OR REPLACE FUNCTION update_teacher_availability_updated_at()
 RETURNS TRIGGER AS $$
@@ -146,6 +164,20 @@ CREATE TRIGGER trigger_teacher_availability_updated_at
     BEFORE UPDATE ON teacher_availability
     FOR EACH ROW
     EXECUTE FUNCTION update_teacher_availability_updated_at();
+
+-- 建立 materials 表的更新觸發器
+CREATE OR REPLACE FUNCTION update_materials_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER trigger_materials_updated_at
+    BEFORE UPDATE ON materials
+    FOR EACH ROW
+    EXECUTE FUNCTION update_materials_updated_at();
 
 -- 為現有教師建立範例可用時間（可選）
 -- 這裡為每個教師建立未來7天的基本可用時間槽
@@ -232,12 +264,12 @@ INSERT INTO teacher_profiles (user_id, intro, experience_years, domains, regions
 ('44444444-4444-4444-4444-444444444444', '母語英語教師，專精於發音和口音訓練。', 8, '["English", "Pronunciation", "IELTS"]', '["Taiwan", "Online"]', 30.00);
 
 -- 插入教材資料
-INSERT INTO materials (title, description, type, level, active) VALUES
-('Free Talking', 'Open conversation practice', 'conversation', 'all', true),
-('Business English Basics', 'Introduction to business communication', 'business', 'intermediate', true),
-('IELTS Speaking Practice', 'IELTS speaking test preparation', 'test_prep', 'advanced', true),
-('Grammar Fundamentals', 'Basic English grammar rules and exercises', 'grammar', 'beginner', true),
-('Pronunciation Workshop', 'Improve your English pronunciation', 'pronunciation', 'intermediate', true);
+INSERT INTO materials (title, type, folder_id, content) VALUES
+('Free Talking', 'page', NULL, 'Open conversation practice - no specific materials needed'),
+('Business English Basics', 'page', NULL, 'Introduction to business communication and professional vocabulary'),
+('IELTS Speaking Practice', 'pdf', NULL, 'IELTS speaking test preparation materials and practice questions'),
+('Grammar Fundamentals', 'page', NULL, 'Basic English grammar rules and exercises for beginners'),
+('Pronunciation Workshop', 'page', NULL, 'Improve your English pronunciation with guided exercises');
 
 -- 插入學生購買項目範例
 INSERT INTO purchases (id, student_id, package_name, quantity, remaining, type, purchased_at, activated_at, expires_at, status) VALUES
