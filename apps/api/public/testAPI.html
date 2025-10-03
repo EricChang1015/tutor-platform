@@ -821,7 +821,7 @@
         {
             id: 'favorites',
             name: '⭐ 收藏系統',
-            description: '測試教師收藏功能',
+            description: '測試教師收藏功能 - 所有角色都可使用',
             tests: [
                 {
                     id: 'favorites_list',
@@ -831,7 +831,7 @@
                     requireAuth: true,
                     expectedStatus: 200,
                     expectedFields: ['items'],
-                    roles: ['student', 'teacher']
+                    roles: ['student', 'teacher', 'admin']
                 },
                 {
                     id: 'favorites_add',
@@ -840,10 +840,36 @@
                     endpoint: '/favorites',
                     requireAuth: true,
                     expectedStatus: 201,
-                    expectedFields: ['teacherId'],
-                    roles: ['student'],
+                    expectedFields: ['teacherId', 'addedAt'],
+                    roles: ['student', 'teacher', 'admin'],
                     data: () => ({
                         teacherId: 'ae73d133-6d96-4640-a4d8-aefb8f43d4d2'
+                    })
+                },
+                {
+                    id: 'favorites_add_duplicate',
+                    name: '重複收藏（應失敗）',
+                    method: 'POST',
+                    endpoint: '/favorites',
+                    requireAuth: true,
+                    expectedStatus: 409,
+                    roles: ['student', 'teacher', 'admin'],
+                    shouldFail: true,
+                    data: () => ({
+                        teacherId: 'ae73d133-6d96-4640-a4d8-aefb8f43d4d2'
+                    })
+                },
+                {
+                    id: 'favorites_add_invalid_teacher',
+                    name: '收藏不存在的教師（應失敗）',
+                    method: 'POST',
+                    endpoint: '/favorites',
+                    requireAuth: true,
+                    expectedStatus: 404,
+                    roles: ['student'],
+                    shouldFail: true,
+                    data: () => ({
+                        teacherId: '99999999-9999-9999-9999-999999999999'
                     })
                 },
                 {
@@ -853,7 +879,17 @@
                     endpoint: '/favorites/ae73d133-6d96-4640-a4d8-aefb8f43d4d2',
                     requireAuth: true,
                     expectedStatus: 204,
-                    roles: ['student']
+                    roles: ['student', 'teacher', 'admin']
+                },
+                {
+                    id: 'favorites_remove_not_found',
+                    name: '移除不存在的收藏（應失敗）',
+                    method: 'DELETE',
+                    endpoint: '/favorites/99999999-9999-9999-9999-999999999999',
+                    requireAuth: true,
+                    expectedStatus: 404,
+                    roles: ['student'],
+                    shouldFail: true
                 }
             ]
         },

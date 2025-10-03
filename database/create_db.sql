@@ -151,6 +151,19 @@ CREATE INDEX idx_materials_type ON materials(type);
 CREATE INDEX idx_materials_folder_id ON materials(folder_id);
 CREATE INDEX idx_materials_title ON materials(title);
 
+-- 收藏表
+CREATE TABLE favorites (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    teacher_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, teacher_id)
+);
+
+CREATE INDEX idx_favorites_user_id ON favorites(user_id);
+CREATE INDEX idx_favorites_teacher_id ON favorites(teacher_id);
+CREATE INDEX idx_favorites_added_at ON favorites(added_at);
+
 -- 建立觸發器以自動更新 updated_at 欄位
 CREATE OR REPLACE FUNCTION update_teacher_availability_updated_at()
 RETURNS TRIGGER AS $$

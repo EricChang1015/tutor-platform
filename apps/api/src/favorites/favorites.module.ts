@@ -3,10 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { FavoritesController } from './favorites.controller';
 import { FavoritesService } from './favorites.service';
 import { User } from '../entities/user.entity';
+import { Favorite } from '../entities/favorite.entity';
 
-// 簡化的收藏實體
 @Module({
-  imports: [TypeOrmModule.forFeature([User])],
+  imports: [TypeOrmModule.forFeature([User, Favorite])],
   controllers: [FavoritesController],
   providers: [FavoritesService],
   exports: [FavoritesService],

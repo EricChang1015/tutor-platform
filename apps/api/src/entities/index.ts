@@ -12,3 +12,4 @@ export { Settlement, SettlementStatus } from './settlement.entity';
 export { ConsumptionRecord, ConsumptionReason } from './consumption-record.entity';
 export { Review, ReviewStatus } from './review.entity';
 export { Notification } from './notification.entity';
+export { Favorite } from './favorite.entity';
