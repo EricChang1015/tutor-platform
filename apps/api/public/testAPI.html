@@ -954,6 +954,111 @@
             ]
         },
         {
+            id: 'uploads',
+            name: '📁 文件上傳系統',
+            description: '測試文件上傳功能 - 支援多種文件類型',
+            tests: [
+                {
+                    id: 'uploads_my_files',
+                    name: '取得我的文件列表',
+                    method: 'GET',
+                    endpoint: '/uploads/my-files',
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    expectedFields: ['items', 'total', 'page', 'pageSize'],
+                    roles: ['student', 'teacher', 'admin']
+                },
+                {
+                    id: 'uploads_my_files_category',
+                    name: '取得特定類型文件列表',
+                    method: 'GET',
+                    endpoint: '/uploads/my-files?category=avatar&page=1&pageSize=10',
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    expectedFields: ['items', 'total'],
+                    roles: ['student', 'teacher', 'admin']
+                },
+                {
+                    id: 'uploads_avatar_permission_student',
+                    name: '學生上傳頭像（應成功）',
+                    method: 'POST',
+                    endpoint: '/uploads/avatar',
+                    requireAuth: true,
+                    expectedStatus: 201,
+                    expectedFields: ['id', 'originalName', 'category', 'visibility'],
+                    roles: ['student'],
+                    isFileUpload: true,
+                    fileField: 'file',
+                    testFile: 'avatar_test.jpg'
+                },
+                {
+                    id: 'uploads_teacher_video_permission',
+                    name: '教師上傳介紹影片（應成功）',
+                    method: 'POST',
+                    endpoint: '/uploads/teacher_intro_video',
+                    requireAuth: true,
+                    expectedStatus: 201,
+                    expectedFields: ['id', 'originalName', 'category'],
+                    roles: ['teacher'],
+                    isFileUpload: true,
+                    fileField: 'file',
+                    testFile: 'video_test.mp4'
+                },
+                {
+                    id: 'uploads_student_homework',
+                    name: '學生上傳作業',
+                    method: 'POST',
+                    endpoint: '/uploads/student_homework',
+                    requireAuth: true,
+                    expectedStatus: 201,
+                    expectedFields: ['id', 'originalName', 'visibility'],
+                    roles: ['student'],
+                    isFileUpload: true,
+                    fileField: 'file',
+                    testFile: 'homework_test.pdf'
+                },
+                {
+                    id: 'uploads_teaching_material',
+                    name: '教師上傳教材',
+                    method: 'POST',
+                    endpoint: '/uploads/teaching_material',
+                    requireAuth: true,
+                    expectedStatus: 201,
+                    expectedFields: ['id', 'originalName', 'category'],
+                    roles: ['teacher'],
+                    isFileUpload: true,
+                    fileField: 'file',
+                    testFile: 'material_test.pdf'
+                },
+                {
+                    id: 'uploads_permission_denied',
+                    name: '學生上傳教師影片（應失敗）',
+                    method: 'POST',
+                    endpoint: '/uploads/teacher_intro_video',
+                    requireAuth: true,
+                    expectedStatus: 403,
+                    roles: ['student'],
+                    shouldFail: true,
+                    isFileUpload: true,
+                    fileField: 'file',
+                    testFile: 'video_test.mp4'
+                },
+                {
+                    id: 'uploads_invalid_category',
+                    name: '無效文件類型（應失敗）',
+                    method: 'POST',
+                    endpoint: '/uploads/invalid_category',
+                    requireAuth: true,
+                    expectedStatus: 400,
+                    roles: ['student'],
+                    shouldFail: true,
+                    isFileUpload: true,
+                    fileField: 'file',
+                    testFile: 'avatar_test.jpg'
+                }
+            ]
+        },
+        {
             id: 'notifications',
             name: '🔔 通知系統',
             description: '測試通知功能',
@@ -1356,9 +1461,13 @@ ${'='.repeat(80)}`;
     async function makeRequest(endpoint, options = {}) {
         const url = `${API_BASE}${endpoint}`;
         const headers = {
-            'Content-Type': 'application/json',
             ...options.headers
         };
+
+        // 文件上傳不設置 Content-Type，讓瀏覽器自動設置
+        if (!options.isFileUpload) {
+            headers['Content-Type'] = 'application/json';
+        }
 
         if (options.requireAuth && accessToken) {
             headers['Authorization'] = `Bearer ${accessToken}`;
@@ -1498,7 +1607,19 @@ ${'='.repeat(80)}`;
             };
 
             let requestData = null;
-            if (test.data && (test.method === 'POST' || test.method === 'PATCH' || test.method === 'PUT')) {
+
+            // 處理文件上傳
+            if (test.isFileUpload) {
+                const formData = new FormData();
+
+                // 創建測試文件
+                const testFile = createTestFile(test.testFile || 'test.txt');
+                formData.append(test.fileField || 'file', testFile);
+
+                requestOptions.body = formData;
+                requestOptions.isFileUpload = true;
+                requestData = { [test.fileField || 'file']: test.testFile || 'test.txt' };
+            } else if (test.data && (test.method === 'POST' || test.method === 'PATCH' || test.method === 'PUT')) {
                 requestData = test.data();
                 requestOptions.body = JSON.stringify(requestData);
             }
@@ -1697,6 +1818,48 @@ ${'='.repeat(80)}`;
 
         const progress = testResults.total > 0 ? ((testResults.passed + testResults.failed) / testResults.total) * 100 : 0;
         document.getElementById('progressFill').style.width = `${progress}%`;
+    }
+
+    // 創建測試文件
+    function createTestFile(fileName) {
+        let content, mimeType;
+
+        if (fileName.includes('avatar') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png')) {
+            // 創建 1x1 像素的 PNG 圖片
+            const canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = 1;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(0, 0, 1, 1);
+
+            // 同步返回 blob
+            const dataURL = canvas.toDataURL('image/png');
+            const byteString = atob(dataURL.split(',')[1]);
+            const arrayBuffer = new ArrayBuffer(byteString.length);
+            const uint8Array = new Uint8Array(arrayBuffer);
+            for (let i = 0; i < byteString.length; i++) {
+                uint8Array[i] = byteString.charCodeAt(i);
+            }
+            return new File([uint8Array], fileName, { type: 'image/png' });
+        } else if (fileName.endsWith('.pdf')) {
+            // 創建簡單的 PDF 內容
+            content = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n>>\nendobj\nxref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000074 00000 n \n0000000120 00000 n \ntrailer\n<<\n/Size 4\n/Root 1 0 R\n>>\nstartxref\n179\n%%EOF';
+            mimeType = 'application/pdf';
+        } else if (fileName.endsWith('.mp4')) {
+            // 創建最小的 MP4 文件頭
+            const mp4Header = new Uint8Array([
+                0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6F, 0x6D, 0x00, 0x00, 0x02, 0x00,
+                0x69, 0x73, 0x6F, 0x6D, 0x69, 0x73, 0x6F, 0x32, 0x61, 0x76, 0x63, 0x31, 0x6D, 0x70, 0x34, 0x31
+            ]);
+            return new File([mp4Header], fileName, { type: 'video/mp4' });
+        } else {
+            // 默認文本文件
+            content = 'This is a test file for upload testing.';
+            mimeType = 'text/plain';
+        }
+
+        return new File([content], fileName, { type: mimeType });
     }
 </script>
 </body>

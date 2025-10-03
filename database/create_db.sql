@@ -164,6 +164,36 @@ CREATE INDEX idx_favorites_user_id ON favorites(user_id);
 CREATE INDEX idx_favorites_teacher_id ON favorites(teacher_id);
 CREATE INDEX idx_favorites_added_at ON favorites(added_at);
 
+-- 文件上傳表
+CREATE TABLE uploads (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    original_name VARCHAR(255) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(500) NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    file_size BIGINT NOT NULL,
+    category VARCHAR(50) NOT NULL CHECK (category IN (
+        'avatar', 'teacher_intro_video', 'teacher_audio',
+        'teaching_material', 'student_homework', 'class_recording', 'teacher_gallery'
+    )),
+    visibility VARCHAR(20) NOT NULL DEFAULT 'private' CHECK (visibility IN ('public', 'private')),
+    minio_bucket VARCHAR(100) NOT NULL,
+    minio_key VARCHAR(500) NOT NULL,
+    cdn_url VARCHAR(500) NULL,
+    public_url VARCHAR(500) NULL,
+    metadata JSONB NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_uploads_user_id ON uploads(user_id);
+CREATE INDEX idx_uploads_category ON uploads(category);
+CREATE INDEX idx_uploads_visibility ON uploads(visibility);
+CREATE INDEX idx_uploads_user_category ON uploads(user_id, category);
+CREATE INDEX idx_uploads_category_visibility ON uploads(category, visibility);
+CREATE INDEX idx_uploads_created_at ON uploads(created_at);
+
 -- 建立觸發器以自動更新 updated_at 欄位
 CREATE OR REPLACE FUNCTION update_teacher_availability_updated_at()
 RETURNS TRIGGER AS $$

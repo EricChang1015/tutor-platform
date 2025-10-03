@@ -29,13 +29,28 @@ This document lists APIs that need clarification or confirmation regarding their
 - ✅ Comprehensive test coverage
 
 ### 3. File Upload System
-**Status**: Not implemented
-- ❌ `POST /uploads/url` - Get presigned upload URL
-- ❌ File storage integration (MinIO/S3)
+**Status**: Fully implemented with MinIO integration
+- ✅ Complete file upload system with MinIO storage
+- ✅ Multiple file categories: avatar, teacher_intro_video, teacher_audio, teaching_material, student_homework, class_recording, teacher_gallery
+- ✅ Configurable file size and type restrictions
+- ✅ Role-based upload permissions
+- ✅ Public/private file visibility management
+- ✅ CDN-ready architecture (expandable)
+- ✅ Full CRUD operations: upload, list, get, delete
+- ✅ Comprehensive test coverage
 
-**Questions**:
-1. Should we implement MinIO integration for file uploads?
-2. What file types and size limits should be supported?
+**Implemented Features**:
+- Avatar uploads (1MB limit, image formats)
+- Teacher intro videos (100MB limit, video formats)
+- Teacher audio files (10MB limit, audio formats)
+- Teaching materials (20MB limit, document formats)
+- Student homework (20MB limit, documents/images)
+- Class recordings (500MB limit, video formats)
+- Teacher gallery images (5MB limit, image formats)
+
+**Resolved Questions**:
+1. ✅ MinIO integration fully implemented with public/private buckets
+2. ✅ Comprehensive file type and size limits configured per category
 
 ### 4. Timeslots & Holds System
 **Status**: Not implemented
@@ -148,7 +163,7 @@ This document lists APIs that need clarification or confirmation regarding their
 4. ✅ ~~Add notifications system~~ (Completed)
 
 ### Medium Priority (Enhanced UX)
-1. File upload system
+1. ✅ ~~File upload system~~ (Completed)
 2. Booking holds/timeslots system
 3. Post-class reports
 4. Gallery system

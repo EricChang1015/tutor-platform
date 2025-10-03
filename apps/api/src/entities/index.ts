@@ -13,3 +13,4 @@ export { ConsumptionRecord, ConsumptionReason } from './consumption-record.entit
 export { Review, ReviewStatus } from './review.entity';
 export { Notification } from './notification.entity';
 export { Favorite } from './favorite.entity';
+export { Upload } from './upload.entity';

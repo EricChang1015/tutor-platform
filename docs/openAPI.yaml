@@ -193,6 +193,23 @@ components:
         meta: { type: object, additionalProperties: true, nullable: true }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+    UploadFile:
+      type: object
+      properties:
+        id: { type: string }
+        originalName: { type: string }
+        fileName: { type: string }
+        fileSize: { type: integer }
+        mimeType: { type: string }
+        category:
+          type: string
+          enum: [avatar, teacher_intro_video, teacher_audio, teaching_material, student_homework, class_recording, teacher_gallery]
+        visibility: { type: string, enum: [public, private] }
+        publicUrl: { type: string, format: uri, nullable: true }
+        cdnUrl: { type: string, format: uri, nullable: true }
+        metadata: { type: object, additionalProperties: true, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
     Hold:
       type: object
       properties:
@@ -776,41 +793,141 @@ paths:
       responses:
         '204': { description: No Content }
 
-  /uploads/url:
+  /uploads/{category}:
     post:
       tags: [Uploads]
-      summary: 取得預簽上傳 URL（私有/公開皆可）
+      summary: 上傳文件
+      description: 支援多種文件類型上傳，包含頭像、教學影片、音頻、教材等
       security: [{ bearerAuth: [] }]
+      parameters:
+        - name: category
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [avatar, teacher_intro_video, teacher_audio, teaching_material, student_homework, class_recording, teacher_gallery]
+          description: 文件類型分類
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               type: object
-              required: [filename, contentType]
+              required: [file]
               properties:
-                filename: { type: string }
-                contentType: { type: string }
-                bucket:
+                file:
                   type: string
-                  nullable: true
-                  description: 指定目標 bucket（可選）
-                  enum: [private, public]
-                acl:
-                  type: string
-                  enum: [private, public-read]
-                  default: private
+                  format: binary
+                  description: 要上傳的文件
       responses:
-        '200':
-          description: OK
+        '201':
+          description: 文件上傳成功
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  uploadUrl: { type: string, format: uri }
-                  fileUrl: { type: string, format: uri }
-                  expiresAt: { type: string, format: date-time }
+                  id: { type: string }
+                  originalName: { type: string }
+                  fileName: { type: string }
+                  fileSize: { type: integer }
+                  mimeType: { type: string }
+                  category: { type: string }
+                  visibility: { type: string, enum: [public, private] }
+                  publicUrl: { type: string, nullable: true }
+                  cdnUrl: { type: string, nullable: true }
+                  createdAt: { type: string, format: date-time }
+        '400': { description: 文件格式或大小不符合要求 }
+        '403': { description: 沒有權限上傳此類型文件 }
+
+  /uploads/my-files:
+    get:
+      tags: [Uploads]
+      summary: 取得用戶上傳的文件列表
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [avatar, teacher_intro_video, teacher_audio, teaching_material, student_homework, class_recording, teacher_gallery]
+        - name: page
+          in: query
+          required: false
+          schema: { type: integer, default: 1 }
+        - name: pageSize
+          in: query
+          required: false
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: 文件列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/UploadFile' }
+                  total: { type: integer }
+                  page: { type: integer }
+                  pageSize: { type: integer }
+
+  /uploads/{fileId}:
+    get:
+      tags: [Uploads]
+      summary: 取得文件信息
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 文件信息
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UploadFile' }
+        '404': { description: 文件不存在 }
+        '403': { description: 沒有權限訪問此文件 }
+    delete:
+      tags: [Uploads]
+      summary: 刪除文件
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: 文件刪除成功 }
+        '404': { description: 文件不存在 }
+        '403': { description: 沒有權限刪除此文件 }
+
+  /uploads/{fileId}/url:
+    get:
+      tags: [Uploads]
+      summary: 取得文件訪問URL
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 文件訪問URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string, format: uri }
+        '404': { description: 文件不存在 }
+        '403': { description: 沒有權限訪問此文件 }
 
   /timeslots:
     get:
