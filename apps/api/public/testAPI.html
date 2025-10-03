@@ -857,44 +857,11 @@
                 }
             ]
         },
-        {
-            id: 'library',
-            name: '📚 教材庫',
-            description: '測試教材庫功能',
-            tests: [
-                {
-                    id: 'library_get',
-                    name: '取得教材庫',
-                    method: 'GET',
-                    endpoint: '/library',
-                    requireAuth: false,
-                    expectedStatus: 200,
-                    expectedFields: ['folders']
-                },
-                {
-                    id: 'library_get_flat',
-                    name: '取得扁平教材列表',
-                    method: 'GET',
-                    endpoint: '/library?include=flat',
-                    requireAuth: false,
-                    expectedStatus: 200,
-                    expectedFields: ['materials']
-                },
-                {
-                    id: 'library_material',
-                    name: '取得教材詳情',
-                    method: 'GET',
-                    endpoint: '/library/materials/material-001',
-                    requireAuth: false,
-                    expectedStatus: 200,
-                    expectedFields: ['id', 'title', 'content']
-                }
-            ]
-        },
+
         {
             id: 'materials',
             name: '📄 教材管理',
-            description: '測試教材CRUD功能',
+            description: '測試教材CRUD功能與資料夾樹',
             tests: [
                 {
                     id: 'materials_list',
@@ -904,6 +871,24 @@
                     requireAuth: false,
                     expectedStatus: 200,
                     expectedFields: ['items', 'total']
+                },
+                {
+                    id: 'materials_tree',
+                    name: '取得資料夾樹',
+                    method: 'GET',
+                    endpoint: '/materials?include=all',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['folders']
+                },
+                {
+                    id: 'materials_flat',
+                    name: '取得扁平教材列表',
+                    method: 'GET',
+                    endpoint: '/materials?include=flat',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['materials']
                 },
                 {
                     id: 'materials_search',

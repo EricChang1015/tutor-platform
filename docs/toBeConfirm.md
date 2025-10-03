@@ -4,22 +4,20 @@ This document lists APIs that need clarification or confirmation regarding their
 
 ## Missing Implementations
 
-### 1. Library/Materials Management
-**Status**: Partially implemented
-- ✅ `GET /library` - Basic implementation exists
-- ✅ `GET /library/materials/:id` - Basic implementation exists
-- ❌ `POST /library` - Create folder (not implemented)
-- ❌ `PATCH /library/:id` - Update folder (not implemented)
-- ❌ `DELETE /library/:id` - Delete folder (not implemented)
-- ❌ `GET /materials` - List materials with filtering (not implemented)
-- ❌ `POST /materials` - Create material (not implemented)
-- ❌ `PATCH /materials/:id` - Update material (not implemented)
-- ❌ `DELETE /materials/:id` - Delete material (not implemented)
+### 1. Materials Management (Merged with Library)
+**Status**: Implemented and consolidated
+- ✅ `GET /materials` - List materials with filtering and folder tree support
+- ✅ `GET /materials?include=all` - Get folder tree structure
+- ✅ `GET /materials?include=flat` - Get flat materials list
+- ✅ `GET /materials/:id` - Get material details
+- ✅ `POST /materials` - Create material (Admin/Teacher only)
+- ✅ `PATCH /materials/:id` - Update material (Admin/Teacher only)
+- ✅ `DELETE /materials/:id` - Delete material (Admin only)
 
-**Questions**:
-1. Should materials be managed through `/library` or `/materials` endpoints?
-2. What's the relationship between library folders and materials?
-3. Should we implement both or consolidate into one approach?
+**Resolved**:
+- Consolidated `/library` and `/materials` endpoints into unified `/materials` system
+- Single endpoint supports both list and tree modes via `include` parameter
+- Proper permission controls implemented
 
 ### 2. Favorites System
 **Status**: Controller exists but needs verification
@@ -127,7 +125,7 @@ This document lists APIs that need clarification or confirmation regarding their
 
 ### 3. Materials Management
 **UI Design**: Shows folder tree structure, add/edit materials
-**Implementation**: ❌ Basic library API exists but full CRUD missing
+**Implementation**: ✅ Fully implemented with unified materials API
 
 ### 4. Booking Calendar
 **UI Design**: Shows calendar interface, time slot selection
@@ -140,10 +138,10 @@ This document lists APIs that need clarification or confirmation regarding their
 ## Priority Recommendations
 
 ### High Priority (Core Functionality)
-1. Complete materials/library management system
+1. ✅ ~~Complete materials/library management system~~ (Completed)
 2. Implement booking messages and reschedule
-3. Implement reviews system
-4. Add notifications system
+3. ✅ ~~Implement reviews system~~ (Completed)
+4. ✅ ~~Add notifications system~~ (Completed)
 
 ### Medium Priority (Enhanced UX)
 1. File upload system
@@ -159,9 +157,9 @@ This document lists APIs that need clarification or confirmation regarding their
 
 ## Questions for Clarification
 
-1. **Materials vs Library**: Should we consolidate these into one system or keep separate?
+1. ✅ ~~**Materials vs Library**: Should we consolidate these into one system or keep separate?~~ (Resolved: Consolidated into unified materials system)
 2. **File Storage**: Do we need to implement MinIO integration for file uploads?
 3. **Booking Holds**: Is the temporary hold system necessary for the MVP?
-4. **Notifications**: Should we implement real-time SSE notifications or just basic CRUD?
+4. ✅ ~~**Notifications**: Should we implement real-time SSE notifications or just basic CRUD?~~ (Resolved: Basic CRUD implemented, SSE can be added later)
 5. **Admin Features**: Which admin features are essential for the MVP vs nice-to-have?
 6. **Reports**: Are detailed reports needed for the initial release?

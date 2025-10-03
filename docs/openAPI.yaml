@@ -20,7 +20,6 @@ tags:
   - name: Teachers
   - name: Availability
   - name: Favorites
-  - name: Library
   - name: Materials
   - name: Uploads
   - name: Timeslots & Holds
@@ -179,7 +178,8 @@ components:
         type: { type: string, enum: [folder] }
         parentId: { type: string, nullable: true }
         path: { type: string, nullable: true }
-        children: { type: array, items: { $ref: '#/components/schemas/LibraryNode' } }
+        children: { type: array, items: { $ref: '#/components/schemas/LibraryNode' }, nullable: true }
+        materials: { type: array, items: { $ref: '#/components/schemas/MaterialItem' }, nullable: true }
     MaterialItem:
       type: object
       properties:
@@ -657,82 +657,24 @@ paths:
       responses:
         '204': { description: No Content }
 
-  /library:
-    get:
-      tags: [Library]
-      summary: 取得教材資料夾樹或扁平清單
-      parameters:
-        - in: query
-          name: include
-          schema: { type: string, enum: [all, root, flat], default: all }
-        - in: query
-          name: depth
-          schema: { type: integer, minimum: 1, default: 2 }
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                oneOf:
-                  - type: object
-                    properties: { tree: { type: array, items: { $ref: '#/components/schemas/LibraryNode' } } }
-                  - type: object
-                    properties:
-                      items:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id: { type: string }
-                            name: { type: string }
-                            parentId: { type: string, nullable: true }
-                            path: { type: string, nullable: true }
-    post:
-      tags: [Library]
-      summary: 新增資料夾
-      security: [{ bearerAuth: [] }]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { type: object, required: [name], properties: { name: { type: string }, parentId: { type: string, nullable: true } } }
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema: { type: object, properties: { id: { type: string }, name: { type: string }, parentId: { type: string, nullable: true } } }
-  /library/{id}:
-    patch:
-      tags: [Library]
-      summary: 更新資料夾
-      security: [{ bearerAuth: [] }]
-      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { type: object, properties: { name: { type: string }, parentId: { type: string } } }
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { type: object, properties: { id: { type: string }, name: { type: string }, parentId: { type: string, nullable: true } } }
-    delete:
-      tags: [Library]
-      summary: 刪除資料夾
-      security: [{ bearerAuth: [] }]
-      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
-      responses:
-        '204': { description: No Content }
+
 
   /materials:
     get:
       tags: [Materials]
-      summary: 查詢教材清單
+      summary: 查詢教材清單或資料夾樹
+      description: 支援兩種模式：1) 教材清單模式（預設）2) 資料夾樹模式（使用include參數）
       parameters:
+        - in: query
+          name: include
+          required: false
+          schema: { type: string, enum: [all, root, flat] }
+          description: '資料夾樹模式：all=完整樹狀, root=根目錄, flat=扁平清單'
+        - in: query
+          name: depth
+          required: false
+          schema: { type: integer, minimum: 1, default: 2 }
+          description: '樹狀結構深度'
         - in: query
           name: folderId
           schema: { type: string }
@@ -751,10 +693,21 @@ paths:
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: '#/components/schemas/Paginated'
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/Paginated'
+                      - type: object
+                        properties: { items: { type: array, items: { $ref: '#/components/schemas/MaterialItem' } } }
                   - type: object
-                    properties: { items: { type: array, items: { $ref: '#/components/schemas/MaterialItem' } } }
+                    properties:
+                      folders:
+                        type: array
+                        items: { $ref: '#/components/schemas/LibraryNode' }
+                  - type: object
+                    properties:
+                      materials:
+                        type: array
+                        items: { $ref: '#/components/schemas/MaterialItem' }
     post:
       tags: [Materials]
       summary: 新增教材（multipart）

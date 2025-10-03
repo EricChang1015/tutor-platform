@@ -26,14 +26,21 @@ export class MaterialsController {
   constructor(private materialsService: MaterialsService) {}
 
   @Get()
-  @ApiOperation({ summary: '查詢教材清單' })
+  @ApiOperation({ summary: '查詢教材清單或資料夾樹' })
+  @ApiQuery({ name: 'include', required: false, enum: ['all', 'root', 'flat'], description: '資料夾樹模式：all=完整樹狀, root=根目錄, flat=扁平清單' })
+  @ApiQuery({ name: 'depth', required: false, type: 'number', description: '樹狀結構深度' })
   @ApiQuery({ name: 'type', required: false, enum: ['page', 'pdf'] })
   @ApiQuery({ name: 'folderId', required: false, type: 'string' })
   @ApiQuery({ name: 'q', required: false, description: '搜尋關鍵字' })
   @ApiQuery({ name: 'page', required: false, type: 'number' })
   @ApiQuery({ name: 'pageSize', required: false, type: 'number' })
-  @ApiResponse({ status: 200, description: '教材清單' })
+  @ApiResponse({ status: 200, description: '教材清單或資料夾樹' })
   async getMaterials(@Query() query: any) {
+    // 如果有 include 參數，返回資料夾樹結構
+    if (query.include) {
+      return this.materialsService.getLibraryTree(query);
+    }
+    // 否則返回教材清單
     return this.materialsService.findAll(query);
   }
 

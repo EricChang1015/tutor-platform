@@ -84,4 +84,79 @@ export class MaterialsService {
     const material = await this.findById(id);
     await this.materialRepository.remove(material);
   }
+
+  // 合併原 library 功能
+  async getLibraryTree(query: any = {}) {
+    const { include = 'all', depth = 2 } = query;
+
+    // 從資料庫獲取所有教材
+    const materials = await this.materialRepository.find({
+      order: { createdAt: 'DESC' },
+    });
+
+    // 建立資料夾樹結構
+    const mockLibrary = {
+      folders: [
+        {
+          id: 'folder-001',
+          name: 'English Materials',
+          parentId: null,
+          path: '/English Materials',
+          children: [
+            {
+              id: 'folder-002',
+              name: 'Beginner',
+              parentId: 'folder-001',
+              path: '/English Materials/Beginner',
+              materials: materials.filter(m => m.title.includes('Basic') || m.title.includes('beginner'))
+            },
+            {
+              id: 'folder-003',
+              name: 'Intermediate',
+              parentId: 'folder-001',
+              path: '/English Materials/Intermediate',
+              materials: materials.filter(m => m.title.includes('Intermediate') || m.title.includes('Daily'))
+            },
+            {
+              id: 'folder-004',
+              name: 'Advanced',
+              parentId: 'folder-001',
+              path: '/English Materials/Advanced',
+              materials: materials.filter(m => m.title.includes('Advanced') || m.title.includes('Business'))
+            }
+          ]
+        },
+        {
+          id: 'folder-005',
+          name: 'Other Materials',
+          parentId: null,
+          path: '/Other Materials',
+          materials: materials.filter(m =>
+            !m.title.includes('Basic') &&
+            !m.title.includes('Intermediate') &&
+            !m.title.includes('Advanced') &&
+            !m.title.includes('Daily') &&
+            !m.title.includes('Business')
+          )
+        }
+      ]
+    };
+
+    if (include === 'flat') {
+      // 返回扁平結構
+      return { materials };
+    }
+
+    if (include === 'root') {
+      // 只返回根目錄
+      return {
+        folders: mockLibrary.folders.map(folder => ({
+          ...folder,
+          children: undefined // 移除子資料夾
+        }))
+      };
+    }
+
+    return mockLibrary;
+  }
 }
