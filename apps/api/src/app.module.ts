@@ -14,6 +14,9 @@ import { PurchasesModule } from './purchases/purchases.module';
 import { AdminModule } from './admin/admin.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { LibraryModule } from './library/library.module';
+import { MaterialsModule } from './materials/materials.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -56,6 +59,9 @@ import { LibraryModule } from './library/library.module';
     AdminModule,
     FavoritesModule,
     LibraryModule,
+    MaterialsModule,
+    NotificationsModule,
+    ReviewsModule,
   ],
 })
 export class AppModule {}

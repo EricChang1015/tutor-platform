@@ -994,6 +994,198 @@
                         shouldFail: true
                     }
                 ]
+            },
+            {
+                id: 'favorites',
+                name: '⭐ 收藏系統',
+                description: '測試教師收藏功能',
+                tests: [
+                    {
+                        id: 'favorites_list',
+                        name: '取得收藏列表',
+                        method: 'GET',
+                        endpoint: '/favorites',
+                        requireAuth: true,
+                        expectedStatus: 200,
+                        expectedFields: ['items'],
+                        roles: ['student', 'teacher']
+                    },
+                    {
+                        id: 'favorites_add',
+                        name: '新增收藏',
+                        method: 'POST',
+                        endpoint: '/favorites',
+                        requireAuth: true,
+                        expectedStatus: 201,
+                        expectedFields: ['teacherId'],
+                        roles: ['student'],
+                        data: () => ({
+                            teacherId: 'ae73d133-6d96-4640-a4d8-aefb8f43d4d2'
+                        })
+                    },
+                    {
+                        id: 'favorites_remove',
+                        name: '移除收藏',
+                        method: 'DELETE',
+                        endpoint: '/favorites/ae73d133-6d96-4640-a4d8-aefb8f43d4d2',
+                        requireAuth: true,
+                        expectedStatus: 204,
+                        roles: ['student']
+                    }
+                ]
+            },
+            {
+                id: 'purchases',
+                name: '💳 購買項目',
+                description: '測試購買項目管理',
+                tests: [
+                    {
+                        id: 'purchases_list',
+                        name: '取得購買項目列表',
+                        method: 'GET',
+                        endpoint: '/purchases',
+                        requireAuth: true,
+                        expectedStatus: 200,
+                        expectedFields: ['items'],
+                        roles: ['student']
+                    },
+                    {
+                        id: 'purchases_activate',
+                        name: '啟動卡片',
+                        method: 'POST',
+                        endpoint: '/purchases/test-purchase-id/activate',
+                        requireAuth: true,
+                        expectedStatus: 200,
+                        roles: ['student']
+                    }
+                ]
+            },
+            {
+                id: 'library',
+                name: '📚 教材庫',
+                description: '測試教材庫功能',
+                tests: [
+                    {
+                        id: 'library_get',
+                        name: '取得教材庫',
+                        method: 'GET',
+                        endpoint: '/library',
+                        requireAuth: false,
+                        expectedStatus: 200,
+                        expectedFields: ['folders']
+                    },
+                    {
+                        id: 'library_get_flat',
+                        name: '取得扁平教材列表',
+                        method: 'GET',
+                        endpoint: '/library?include=flat',
+                        requireAuth: false,
+                        expectedStatus: 200,
+                        expectedFields: ['materials']
+                    },
+                    {
+                        id: 'library_material',
+                        name: '取得教材詳情',
+                        method: 'GET',
+                        endpoint: '/library/materials/material-001',
+                        requireAuth: false,
+                        expectedStatus: 200,
+                        expectedFields: ['id', 'title', 'content']
+                    }
+                ]
+            },
+            {
+                id: 'materials',
+                name: '📄 教材管理',
+                description: '測試教材CRUD功能',
+                tests: [
+                    {
+                        id: 'materials_list',
+                        name: '取得教材列表',
+                        method: 'GET',
+                        endpoint: '/materials',
+                        requireAuth: false,
+                        expectedStatus: 200,
+                        expectedFields: ['items', 'total']
+                    },
+                    {
+                        id: 'materials_search',
+                        name: '搜尋教材',
+                        method: 'GET',
+                        endpoint: '/materials?q=English&type=page',
+                        requireAuth: false,
+                        expectedStatus: 200,
+                        expectedFields: ['items']
+                    },
+                    {
+                        id: 'materials_create',
+                        name: '建立教材',
+                        method: 'POST',
+                        endpoint: '/materials',
+                        requireAuth: true,
+                        expectedStatus: 201,
+                        expectedFields: ['id', 'title'],
+                        roles: ['admin', 'teacher'],
+                        data: () => ({
+                            type: 'page',
+                            title: '測試教材',
+                            content: '這是一個測試教材內容',
+                            folderId: null
+                        })
+                    }
+                ]
+            },
+            {
+                id: 'notifications',
+                name: '🔔 通知系統',
+                description: '測試通知功能',
+                tests: [
+                    {
+                        id: 'notifications_list',
+                        name: '取得通知列表',
+                        method: 'GET',
+                        endpoint: '/notifications',
+                        requireAuth: true,
+                        expectedStatus: 200,
+                        expectedFields: ['items'],
+                        roles: ['student', 'teacher', 'admin']
+                    },
+                    {
+                        id: 'notifications_unread',
+                        name: '取得未讀通知',
+                        method: 'GET',
+                        endpoint: '/notifications?unreadOnly=true',
+                        requireAuth: true,
+                        expectedStatus: 200,
+                        expectedFields: ['items'],
+                        roles: ['student', 'teacher', 'admin']
+                    }
+                ]
+            },
+            {
+                id: 'reviews',
+                name: '⭐ 評價系統',
+                description: '測試評價功能',
+                tests: [
+                    {
+                        id: 'reviews_list',
+                        name: '取得評價列表',
+                        method: 'GET',
+                        endpoint: '/reviews',
+                        requireAuth: false,
+                        expectedStatus: 200,
+                        expectedFields: ['items']
+                    },
+                    {
+                        id: 'reviews_by_teacher',
+                        name: '取得教師評價',
+                        method: 'GET',
+                        endpoint: '/reviews?teacherId=ae73d133-6d96-4640-a4d8-aefb8f43d4d2',
+                        requireAuth: false,
+                        expectedStatus: 200,
+                        expectedFields: ['items']
+                    }
+                ]
             }
         ];
 

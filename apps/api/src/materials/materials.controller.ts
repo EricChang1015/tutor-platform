@@ -1,0 +1,93 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+
+import { MaterialsService } from './materials.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+@ApiTags('Materials')
+@Controller('materials')
+export class MaterialsController {
+  constructor(private materialsService: MaterialsService) {}
+
+  @Get()
+  @ApiOperation({ summary: '查詢教材清單' })
+  @ApiQuery({ name: 'type', required: false, enum: ['page', 'pdf'] })
+  @ApiQuery({ name: 'folderId', required: false, type: 'string' })
+  @ApiQuery({ name: 'q', required: false, description: '搜尋關鍵字' })
+  @ApiQuery({ name: 'page', required: false, type: 'number' })
+  @ApiQuery({ name: 'pageSize', required: false, type: 'number' })
+  @ApiResponse({ status: 200, description: '教材清單' })
+  async getMaterials(@Query() query: any) {
+    return this.materialsService.findAll(query);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: '取得教材' })
+  @ApiResponse({ status: 200, description: '教材詳細資料' })
+  @ApiResponse({ status: 404, description: '教材不存在' })
+  async getMaterial(@Param('id') id: string) {
+    return this.materialsService.findById(id);
+  }
+
+  @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '新增教材' })
+  @ApiResponse({ status: 201, description: '教材建立成功' })
+  async createMaterial(@Body() createMaterialDto: any, @Request() req) {
+    // 檢查權限：只有管理員和教師可以建立教材
+    if (!['admin', 'teacher'].includes(req.user.role)) {
+      throw new Error('Insufficient permissions');
+    }
+    
+    return this.materialsService.create(createMaterialDto);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '更新教材' })
+  @ApiResponse({ status: 200, description: '教材更新成功' })
+  @ApiResponse({ status: 404, description: '教材不存在' })
+  async updateMaterial(
+    @Param('id') id: string,
+    @Body() updateMaterialDto: any,
+    @Request() req,
+  ) {
+    // 檢查權限：只有管理員和教師可以更新教材
+    if (!['admin', 'teacher'].includes(req.user.role)) {
+      throw new Error('Insufficient permissions');
+    }
+    
+    return this.materialsService.update(id, updateMaterialDto);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: '刪除教材' })
+  @ApiResponse({ status: 204, description: '教材刪除成功' })
+  @ApiResponse({ status: 404, description: '教材不存在' })
+  async deleteMaterial(@Param('id') id: string, @Request() req) {
+    // 檢查權限：只有管理員可以刪除教材
+    if (req.user.role !== 'admin') {
+      throw new Error('Only admin can delete materials');
+    }
+    
+    await this.materialsService.delete(id);
+  }
+}
