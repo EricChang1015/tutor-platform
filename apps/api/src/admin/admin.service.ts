@@ -173,8 +173,8 @@ export class AdminService {
   async resetSystemData(): Promise<void> {
     // 清除所有動態資料，保留基本設定
     await this.clearDynamicData();
-
-    // 資料庫已有預設資料，不需要重新建立
+    // 重新建立預設資料
+    await this.createDefaultData();
     console.log('System data has been reset to initial state');
   }
 
