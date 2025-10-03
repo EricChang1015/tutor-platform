@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository, DeepPartial } from 'typeorm';
 import { Material } from '../entities/material.entity';
+import { CreateMaterialDto } from './dto/create-material.dto';
+import { UpdateMaterialDto } from './dto/update-material.dto';
 
 @Injectable()
 export class MaterialsService {
@@ -19,15 +21,17 @@ export class MaterialsService {
       pageSize = 20,
     } = query;
 
+    const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
+    const pageSizeNum = Math.min(100, Math.max(1, parseInt(String(pageSize), 10) || 20));
+
     const queryBuilder = this.materialRepository.createQueryBuilder('material');
 
-    // 篩選條件
     if (type) {
       queryBuilder.andWhere('material.type = :type', { type });
     }
 
     if (folderId) {
-      queryBuilder.andWhere('material.folder_id = :folderId', { folderId });
+      queryBuilder.andWhere('material.folderId = :folderId', { folderId });
     }
 
     if (q) {
@@ -37,19 +41,17 @@ export class MaterialsService {
       );
     }
 
-    // 排序
-    queryBuilder.orderBy('material.created_at', 'DESC');
+    queryBuilder.orderBy('material.createdAt', 'DESC');
 
-    // 分頁
-    const skip = (page - 1) * pageSize;
-    queryBuilder.skip(skip).take(pageSize);
+    const skip = (pageNum - 1) * pageSizeNum;
+    queryBuilder.skip(skip).take(pageSizeNum);
 
     const [items, total] = await queryBuilder.getManyAndCount();
 
     return {
       items,
-      page: parseInt(page),
-      pageSize: parseInt(pageSize),
+      page: pageNum,
+      pageSize: pageSizeNum,
       total,
     };
   }
@@ -66,12 +68,12 @@ export class MaterialsService {
     return material;
   }
 
-  async create(createMaterialDto: any): Promise<Material> {
-    const material = this.materialRepository.create(createMaterialDto);
+  async create(createMaterialDto: CreateMaterialDto): Promise<Material> {
+    const material = this.materialRepository.create(createMaterialDto as DeepPartial<Material>);
     return this.materialRepository.save(material);
   }
 
-  async update(id: string, updateMaterialDto: any): Promise<Material> {
+  async update(id: string, updateMaterialDto: UpdateMaterialDto): Promise<Material> {
     const material = await this.findById(id);
     
     Object.assign(material, updateMaterialDto);
@@ -80,6 +82,6 @@ export class MaterialsService {
 
   async delete(id: string): Promise<void> {
     const material = await this.findById(id);
-    await this.materialRepository.delete(id);
+    await this.materialRepository.remove(material);
   }
 }

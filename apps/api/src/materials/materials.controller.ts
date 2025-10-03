@@ -11,11 +11,14 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 
 import { MaterialsService } from './materials.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CreateMaterialDto } from './dto/create-material.dto';
+import { UpdateMaterialDto } from './dto/update-material.dto';
 
 @ApiTags('Materials')
 @Controller('materials')
@@ -47,10 +50,9 @@ export class MaterialsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: '新增教材' })
   @ApiResponse({ status: 201, description: '教材建立成功' })
-  async createMaterial(@Body() createMaterialDto: any, @Request() req) {
-    // 檢查權限：只有管理員和教師可以建立教材
+  async createMaterial(@Body() createMaterialDto: CreateMaterialDto, @Request() req) {
     if (!['admin', 'teacher'].includes(req.user.role)) {
-      throw new Error('Insufficient permissions');
+      throw new ForbiddenException('Insufficient permissions');
     }
     
     return this.materialsService.create(createMaterialDto);
@@ -64,12 +66,11 @@ export class MaterialsController {
   @ApiResponse({ status: 404, description: '教材不存在' })
   async updateMaterial(
     @Param('id') id: string,
-    @Body() updateMaterialDto: any,
+    @Body() updateMaterialDto: UpdateMaterialDto,
     @Request() req,
   ) {
-    // 檢查權限：只有管理員和教師可以更新教材
     if (!['admin', 'teacher'].includes(req.user.role)) {
-      throw new Error('Insufficient permissions');
+      throw new ForbiddenException('Insufficient permissions');
     }
     
     return this.materialsService.update(id, updateMaterialDto);
@@ -83,9 +84,8 @@ export class MaterialsController {
   @ApiResponse({ status: 204, description: '教材刪除成功' })
   @ApiResponse({ status: 404, description: '教材不存在' })
   async deleteMaterial(@Param('id') id: string, @Request() req) {
-    // 檢查權限：只有管理員可以刪除教材
     if (req.user.role !== 'admin') {
-      throw new Error('Only admin can delete materials');
+      throw new ForbiddenException('Only admin can delete materials');
     }
     
     await this.materialsService.delete(id);

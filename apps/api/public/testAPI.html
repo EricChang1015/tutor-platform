@@ -10,14 +10,14 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
-        
+
         .container {
             max-width: 1400px;
             margin: 0 auto;
@@ -26,48 +26,48 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             overflow: hidden;
         }
-        
+
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 30px;
             text-align: center;
         }
-        
+
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
         }
-        
+
         .header p {
             font-size: 1.2em;
             opacity: 0.9;
         }
-        
+
         .main-content {
             display: flex;
             min-height: 80vh;
         }
-        
+
         .sidebar {
             width: 300px;
             background: #f8f9fa;
             border-right: 1px solid #dee2e6;
             padding: 20px;
         }
-        
+
         .content {
             flex: 1;
             padding: 20px;
         }
-        
+
         .test-suite {
             margin-bottom: 30px;
             border: 1px solid #dee2e6;
             border-radius: 10px;
             overflow: hidden;
         }
-        
+
         .test-suite-header {
             background: #f8f9fa;
             padding: 15px 20px;
@@ -77,18 +77,18 @@
             align-items: center;
             cursor: pointer;
         }
-        
+
         .test-suite-header h3 {
             color: #495057;
             margin: 0;
         }
-        
+
         .test-suite-status {
             display: flex;
             align-items: center;
             gap: 10px;
         }
-        
+
         .status-badge {
             padding: 4px 8px;
             border-radius: 12px;
@@ -96,36 +96,36 @@
             font-weight: bold;
             text-transform: uppercase;
         }
-        
+
         .status-pending {
             background: #ffc107;
             color: #212529;
         }
-        
+
         .status-running {
             background: #17a2b8;
             color: white;
         }
-        
+
         .status-success {
             background: #28a745;
             color: white;
         }
-        
+
         .status-error {
             background: #dc3545;
             color: white;
         }
-        
+
         .test-suite-body {
             padding: 20px;
             display: none;
         }
-        
+
         .test-suite-body.active {
             display: block;
         }
-        
+
         .test-item {
             margin-bottom: 20px;
             padding: 15px;
@@ -133,25 +133,25 @@
             border-radius: 8px;
             background: #fff;
         }
-        
+
         .test-item-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
         }
-        
+
         .test-item h4 {
             color: #495057;
             margin: 0;
         }
-        
+
         .test-controls {
             display: flex;
             gap: 10px;
             margin: 10px 0;
         }
-        
+
         .btn {
             padding: 8px 16px;
             border: none;
@@ -161,60 +161,60 @@
             font-weight: 500;
             transition: all 0.2s;
         }
-        
+
         .btn-primary {
             background: #007bff;
             color: white;
         }
-        
+
         .btn-primary:hover {
             background: #0056b3;
         }
-        
+
         .btn-success {
             background: #28a745;
             color: white;
         }
-        
+
         .btn-danger {
             background: #dc3545;
             color: white;
         }
-        
+
         .btn-warning {
             background: #ffc107;
             color: #212529;
         }
-        
+
         .btn-warning:hover {
             background: #e0a800;
         }
-        
+
         .btn-secondary {
             background: #6c757d;
             color: white;
         }
-        
+
         .btn-info {
             background: #17a2b8;
             color: white;
         }
-        
+
         .btn-info:hover {
             background: #138496;
         }
-        
+
         .input-group {
             margin: 10px 0;
         }
-        
+
         .input-group label {
             display: block;
             margin-bottom: 5px;
             font-weight: 500;
             color: #495057;
         }
-        
+
         .input-group input,
         .input-group select,
         .input-group textarea {
@@ -224,14 +224,14 @@
             border-radius: 4px;
             font-size: 14px;
         }
-        
+
         .response-container {
             margin-top: 15px;
             border: 1px solid #dee2e6;
             border-radius: 6px;
             overflow: hidden;
         }
-        
+
         .response-header {
             background: #f8f9fa;
             padding: 10px 15px;
@@ -240,7 +240,7 @@
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .response-body {
             padding: 15px;
             background: #f8f9fa;
@@ -250,7 +250,7 @@
             max-height: 300px;
             overflow-y: auto;
         }
-        
+
         .auth-panel {
             background: #e3f2fd;
             border: 1px solid #bbdefb;
@@ -258,12 +258,12 @@
             padding: 15px;
             margin-bottom: 20px;
         }
-        
+
         .auth-panel h4 {
             color: #1976d2;
             margin-bottom: 15px;
         }
-        
+
         .token-display {
             background: #fff;
             border: 1px solid #ccc;
@@ -274,7 +274,7 @@
             font-family: monospace;
             font-size: 12px;
         }
-        
+
         .progress-bar {
             width: 100%;
             height: 6px;
@@ -283,21 +283,21 @@
             overflow: hidden;
             margin: 10px 0;
         }
-        
+
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, #28a745, #20c997);
             width: 0%;
             transition: width 0.3s ease;
         }
-        
+
         .summary-stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
-        
+
         .stat-card {
             background: white;
             border: 1px solid #dee2e6;
@@ -305,32 +305,32 @@
             padding: 15px;
             text-align: center;
         }
-        
+
         .stat-number {
             font-size: 2em;
             font-weight: bold;
             margin-bottom: 5px;
         }
-        
+
         .stat-label {
             color: #6c757d;
             font-size: 0.9em;
         }
-        
+
         .collapsible {
             cursor: pointer;
             user-select: none;
         }
-        
+
         .collapsible:hover {
             background: #e9ecef;
         }
-        
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
+
         .loading {
             display: inline-block;
             width: 16px;
@@ -340,11 +340,11 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-        
+
         .hidden {
             display: none;
         }
-        
+
         /* 新增：請求參數顯示 */
         .request-params {
             margin-top: 10px;
@@ -355,13 +355,13 @@
             font-family: 'Courier New', monospace;
             font-size: 12px;
         }
-        
+
         .request-params-title {
             font-weight: bold;
             color: #495057;
             margin-bottom: 5px;
         }
-        
+
         /* 新增：curl 指令區域 */
         .curl-container {
             margin-top: 10px;
@@ -369,7 +369,7 @@
             border-radius: 6px;
             overflow: hidden;
         }
-        
+
         .curl-header {
             background: #2d2d2d;
             color: white;
@@ -378,7 +378,7 @@
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .curl-body {
             background: #1e1e1e;
             color: #d4d4d4;
@@ -390,7 +390,7 @@
             max-height: 200px;
             overflow-y: auto;
         }
-        
+
         .btn-copy-curl {
             background: #007bff;
             color: white;
@@ -401,39 +401,39 @@
             font-size: 12px;
             transition: all 0.2s;
         }
-        
+
         .btn-copy-curl:hover {
             background: #0056b3;
         }
-        
+
         .btn-copy-curl.copied {
             background: #28a745;
         }
-        
+
         /* 新增：日誌區域 */
         .log-section {
             margin-top: 30px;
             border-top: 2px solid #dee2e6;
             padding-top: 20px;
         }
-        
+
         .log-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
         }
-        
+
         .log-header h3 {
             color: #495057;
             margin: 0;
         }
-        
+
         .log-controls {
             display: flex;
             gap: 10px;
         }
-        
+
         .log-container {
             background: #1e1e1e;
             border: 1px solid #dee2e6;
@@ -442,7 +442,7 @@
             overflow-y: auto;
             padding: 15px;
         }
-        
+
         .log-entry {
             margin-bottom: 15px;
             padding: 12px;
@@ -453,46 +453,46 @@
             font-size: 12px;
             color: #d4d4d4;
         }
-        
+
         .log-entry.success {
             border-left-color: #28a745;
         }
-        
+
         .log-entry.error {
             border-left-color: #dc3545;
         }
-        
+
         .log-time {
             color: #6c757d;
             font-size: 11px;
             margin-bottom: 5px;
         }
-        
+
         .log-request {
             color: #61dafb;
             font-weight: bold;
             margin-bottom: 5px;
         }
-        
+
         .log-status {
             margin-bottom: 5px;
         }
-        
+
         .log-status.success {
             color: #28a745;
         }
-        
+
         .log-status.error {
             color: #dc3545;
         }
-        
+
         .log-response {
             color: #98c379;
             margin-top: 5px;
             white-space: pre-wrap;
             word-break: break-all;
         }
-        
+
         .log-empty {
             text-align: center;
             color: #6c757d;
@@ -502,736 +502,640 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🎓 家教平台 API 完整測試工具</h1>
-            <p>自動化測試所有 API 端點，驗證功能和權限</p>
+<div class="container">
+    <div class="header">
+        <h1>🎓 家教平台 API 完整測試工具</h1>
+        <p>自動化測試所有 API 端點，驗證功能和權限</p>
+    </div>
+
+    <div class="main-content">
+        <div class="sidebar">
+            <div class="auth-panel">
+                <h4>🔐 認證管理</h4>
+                <div class="input-group">
+                    <label>角色</label>
+                    <select id="userRole">
+                        <option value="admin">管理員</option>
+                        <option value="teacher">教師</option>
+                        <option value="student">學生</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>電子郵件</label>
+                    <input type="email" id="loginEmail" value="admin@example.com">
+                </div>
+                <div class="input-group">
+                    <label>密碼</label>
+                    <input type="password" id="loginPassword" value="password">
+                </div>
+                <button class="btn btn-primary" onclick="login()">登入</button>
+                <button class="btn btn-secondary" onclick="logout()">登出</button>
+                <div id="tokenDisplay" class="token-display hidden"></div>
+            </div>
+
+            <div class="summary-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalTests">0</div>
+                    <div class="stat-label">總測試</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="passedTests">0</div>
+                    <div class="stat-label">通過</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="failedTests">0</div>
+                    <div class="stat-label">失敗</div>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+
+            <button class="btn btn-success" onclick="runAllTests()" style="width: 100%; margin-bottom: 10px;">
+                🚀 執行所有測試
+            </button>
+
+            <button class="btn btn-danger" onclick="resetTests()" style="width: 100%; margin-bottom: 10px;">
+                🔄 重置測試
+            </button>
+
+            <button class="btn btn-warning" onclick="clearTestData()" style="width: 100%;">
+                🗑️ 清除測試資料
+            </button>
         </div>
-        
-        <div class="main-content">
-            <div class="sidebar">
-                <div class="auth-panel">
-                    <h4>🔐 認證管理</h4>
-                    <div class="input-group">
-                        <label>角色</label>
-                        <select id="userRole">
-                            <option value="admin">管理員</option>
-                            <option value="teacher">教師</option>
-                            <option value="student">學生</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>電子郵件</label>
-                        <input type="email" id="loginEmail" value="admin@example.com">
-                    </div>
-                    <div class="input-group">
-                        <label>密碼</label>
-                        <input type="password" id="loginPassword" value="password">
-                    </div>
-                    <button class="btn btn-primary" onclick="login()">登入</button>
-                    <button class="btn btn-secondary" onclick="logout()">登出</button>
-                    <div id="tokenDisplay" class="token-display hidden"></div>
-                </div>
-                
-                <div class="summary-stats">
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalTests">0</div>
-                        <div class="stat-label">總測試</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="passedTests">0</div>
-                        <div class="stat-label">通過</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="failedTests">0</div>
-                        <div class="stat-label">失敗</div>
-                    </div>
-                </div>
-                
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-                
-                <button class="btn btn-success" onclick="runAllTests()" style="width: 100%; margin-bottom: 10px;">
-                    🚀 執行所有測試
-                </button>
-                
-                <button class="btn btn-danger" onclick="resetTests()" style="width: 100%; margin-bottom: 10px;">
-                    🔄 重置測試
-                </button>
-                
-                <button class="btn btn-warning" onclick="clearTestData()" style="width: 100%;">
-                    🗑️ 清除測試資料
-                </button>
-            </div>
-            
-            <div class="content" id="testContent">
-                <!-- 測試內容將由 JavaScript 動態生成 -->
-            </div>
-        </div>
-        
-        <!-- 新增：日誌區域 -->
-        <div class="log-section" style="padding: 20px;">
-            <div class="log-header">
-                <h3>📋 請求日誌</h3>
-                <div class="log-controls">
-                    <button class="btn btn-info" onclick="copyLogs()">📄 複製日誌</button>
-                    <button class="btn btn-secondary" onclick="clearLogs()">🗑️ 清除日誌</button>
-                </div>
-            </div>
-            <div class="log-container" id="logContainer">
-                <div class="log-empty">尚無請求記錄</div>
-            </div>
+
+        <div class="content" id="testContent">
+            <!-- 測試內容將由 JavaScript 動態生成 -->
         </div>
     </div>
 
-    <script>
-        // 全域變數
-        let accessToken = '';
-        let currentUser = null;
-        let testResults = {
-            total: 0,
-            passed: 0,
-            failed: 0,
-            running: false
+    <!-- 新增：日誌區域 -->
+    <div class="log-section" style="padding: 20px;">
+        <div class="log-header">
+            <h3>📋 請求日誌</h3>
+            <div class="log-controls">
+                <button class="btn btn-info" onclick="copyLogs()">📄 複製日誌</button>
+                <button class="btn btn-secondary" onclick="clearLogs()">🗑️ 清除日誌</button>
+            </div>
+        </div>
+        <div class="log-container" id="logContainer">
+            <div class="log-empty">尚無請求記錄</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 全域變數
+    let accessToken = '';
+    let currentUser = null;
+    let testResults = {
+        total: 0,
+        passed: 0,
+        failed: 0,
+        running: false
+    };
+    let requestLogs = []; // 新增：儲存所有請求日誌
+
+    const API_BASE = window.location.origin;
+
+    // 測試配置
+    const testSuites = [
+        {
+            id: 'auth',
+            name: '🔐 認證系統',
+            description: '測試登入、登出、權杖管理',
+            tests: [
+                {
+                    id: 'auth_login',
+                    name: '用戶登入',
+                    method: 'POST',
+                    endpoint: '/auth/login',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['accessToken', 'refreshToken', 'user'],
+                    data: () => ({
+                        username: document.getElementById('loginEmail').value,
+                        password: document.getElementById('loginPassword').value
+                    })
+                },
+                {
+                    id: 'auth_me',
+                    name: '取得個人資訊',
+                    method: 'GET',
+                    endpoint: '/auth/me',
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    expectedFields: ['id', 'role', 'name']
+                },
+                {
+                    id: 'auth_me_unauthorized',
+                    name: '未授權訪問',
+                    method: 'GET',
+                    endpoint: '/auth/me',
+                    requireAuth: false,
+                    expectedStatus: 401,
+                    expectedFields: ['statusCode']
+                },
+                {
+                    id: 'auth_refresh',
+                    name: '刷新權杖',
+                    method: 'POST',
+                    endpoint: '/auth/refresh',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['accessToken', 'refreshToken'],
+                    data: () => ({
+                        refreshToken: 'invalid_token'
+                    }),
+                    shouldFail: true,
+                    expectedStatus: 401
+                },
+                {
+                    id: 'auth_logout',
+                    name: '用戶登出',
+                    method: 'POST',
+                    endpoint: '/auth/logout',
+                    requireAuth: true,
+                    expectedStatus: 204
+                }
+            ]
+        },
+        {
+            id: 'users',
+            name: '👥 用戶管理',
+            description: '測試用戶資訊查詢和更新',
+            tests: [
+                {
+                    id: 'users_get',
+                    name: '取得用戶資訊',
+                    method: 'GET',
+                    endpoint: '/users/11111111-1111-1111-1111-111111111111',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['id', 'role', 'name']
+                },
+                {
+                    id: 'users_update',
+                    name: '更新個人資料',
+                    method: 'PATCH',
+                    endpoint: () => `/users/${currentUser?.id}`,
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    expectedFields: ['id', 'name'],
+                    data: () => ({
+                        name: '測試更新名稱'
+                    })
+                }
+            ]
+        },
+        {
+            id: 'teachers',
+            name: '👨‍🏫 教師管理',
+            description: '測試教師清單和詳細資訊',
+            tests: [
+                {
+                    id: 'teachers_list',
+                    name: '教師清單',
+                    method: 'GET',
+                    endpoint: '/teachers',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['items', 'total']
+                },
+                {
+                    id: 'teachers_detail',
+                    name: '教師詳細資訊',
+                    method: 'GET',
+                    endpoint: '/teachers/22222222-2222-2222-2222-222222222222',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['id', 'name', 'intro']
+                },
+                {
+                    id: 'teachers_search',
+                    name: '教師搜尋',
+                    method: 'GET',
+                    endpoint: '/teachers?q=English',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['items']
+                }
+            ]
+        },
+        {
+            id: 'teacher-availability',
+            name: '🕒 教師可用時間',
+            description: '測試教師可用時間管理功能',
+            tests: [
+                {
+                    id: 'search_teachers',
+                    name: '搜尋可用教師',
+                    method: 'GET',
+                    endpoint: '/teacher-availability/search-teachers?date=2025-10-01&fromTime=18:00&toTime=23:30',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['code', 'msg', 'data']
+                },
+                {
+                    id: 'teacher_timetable',
+                    name: '教師時間表',
+                    method: 'GET',
+                    endpoint: '/teacher-availability/teacher-timetable?teacherId=22222222-2222-2222-2222-222222222222&date=2025-10-01',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['code', 'msg', 'data']
+                },
+                {
+                    id: 'all_time_slots',
+                    name: '所有時間槽',
+                    method: 'GET',
+                    endpoint: '/teacher-availability/time-slots',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['code', 'msg', 'data']
+                }
+            ]
+        },
+        {
+            id: 'bookings',
+            name: '📅 預約管理',
+            description: '測試預約相關功能',
+            tests: [
+                {
+                    id: 'bookings_list',
+                    name: '預約清單',
+                    method: 'GET',
+                    endpoint: '/bookings',
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    expectedFields: ['items']
+                },
+                {
+                    id: 'bookings_create',
+                    name: '建立預約',
+                    method: 'POST',
+                    endpoint: '/bookings',
+                    requireAuth: true,
+                    expectedStatus: 201,
+                    data: () => {
+                        // 建立一個對齊到30分鐘時間槽的時間
+                        const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+                        tomorrow.setHours(10, 0, 0, 0); // 設定為明天上午10:00
+                        return {
+                            teacherId: '22222222-2222-2222-2222-222222222222',
+                            startsAt: tomorrow.toISOString(),
+                            durationMinutes: 30,
+                            courseTitle: '測試課程'
+                        };
+                    }
+                }
+            ]
+        },
+        {
+            id: 'purchases',
+            name: '💳 購買項目',
+            description: '測試購買項目管理',
+            tests: [
+                {
+                    id: 'purchases_list',
+                    name: '取得購買項目列表',
+                    method: 'GET',
+                    endpoint: '/purchases',
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    expectedFields: ['items'],
+                    roles: ['student']
+                },
+                {
+                    id: 'purchases_activate',
+                    name: '啟動卡片',
+                    method: 'POST',
+                    endpoint: '/purchases/test-purchase-id/activate',
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    roles: ['student']
+                }
+            ]
+        },
+        {
+            id: 'favorites',
+            name: '⭐ 收藏系統',
+            description: '測試教師收藏功能',
+            tests: [
+                {
+                    id: 'favorites_list',
+                    name: '取得收藏列表',
+                    method: 'GET',
+                    endpoint: '/favorites',
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    expectedFields: ['items'],
+                    roles: ['student', 'teacher']
+                },
+                {
+                    id: 'favorites_add',
+                    name: '新增收藏',
+                    method: 'POST',
+                    endpoint: '/favorites',
+                    requireAuth: true,
+                    expectedStatus: 201,
+                    expectedFields: ['teacherId'],
+                    roles: ['student'],
+                    data: () => ({
+                        teacherId: 'ae73d133-6d96-4640-a4d8-aefb8f43d4d2'
+                    })
+                },
+                {
+                    id: 'favorites_remove',
+                    name: '移除收藏',
+                    method: 'DELETE',
+                    endpoint: '/favorites/ae73d133-6d96-4640-a4d8-aefb8f43d4d2',
+                    requireAuth: true,
+                    expectedStatus: 204,
+                    roles: ['student']
+                }
+            ]
+        },
+        {
+            id: 'library',
+            name: '📚 教材庫',
+            description: '測試教材庫功能',
+            tests: [
+                {
+                    id: 'library_get',
+                    name: '取得教材庫',
+                    method: 'GET',
+                    endpoint: '/library',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['folders']
+                },
+                {
+                    id: 'library_get_flat',
+                    name: '取得扁平教材列表',
+                    method: 'GET',
+                    endpoint: '/library?include=flat',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['materials']
+                },
+                {
+                    id: 'library_material',
+                    name: '取得教材詳情',
+                    method: 'GET',
+                    endpoint: '/library/materials/material-001',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['id', 'title', 'content']
+                }
+            ]
+        },
+        {
+            id: 'materials',
+            name: '📄 教材管理',
+            description: '測試教材CRUD功能',
+            tests: [
+                {
+                    id: 'materials_list',
+                    name: '取得教材列表',
+                    method: 'GET',
+                    endpoint: '/materials',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['items', 'total']
+                },
+                {
+                    id: 'materials_search',
+                    name: '搜尋教材',
+                    method: 'GET',
+                    endpoint: '/materials?q=English&type=page',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['items']
+                },
+                {
+                    id: 'materials_create',
+                    name: '建立教材',
+                    method: 'POST',
+                    endpoint: '/materials',
+                    requireAuth: true,
+                    expectedStatus: 201,
+                    expectedFields: ['id', 'title'],
+                    roles: ['admin', 'teacher'],
+                    data: () => ({
+                        type: 'page',
+                        title: '測試教材',
+                        content: '這是一個測試教材內容',
+                        folderId: null
+                    })
+                }
+            ]
+        },
+        {
+            id: 'notifications',
+            name: '🔔 通知系統',
+            description: '測試通知功能',
+            tests: [
+                {
+                    id: 'notifications_list',
+                    name: '取得通知列表',
+                    method: 'GET',
+                    endpoint: '/notifications',
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    expectedFields: ['items'],
+                    roles: ['student', 'teacher', 'admin']
+                },
+                {
+                    id: 'notifications_unread',
+                    name: '取得未讀通知',
+                    method: 'GET',
+                    endpoint: '/notifications?unreadOnly=true',
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    expectedFields: ['items'],
+                    roles: ['student', 'teacher', 'admin']
+                }
+            ]
+        },
+        {
+            id: 'reviews',
+            name: '⭐ 評價系統',
+            description: '測試評價功能',
+            tests: [
+                {
+                    id: 'reviews_list',
+                    name: '取得評價列表',
+                    method: 'GET',
+                    endpoint: '/reviews',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['items']
+                },
+                {
+                    id: 'reviews_by_teacher',
+                    name: '取得教師評價',
+                    method: 'GET',
+                    endpoint: '/reviews?teacherId=ae73d133-6d96-4640-a4d8-aefb8f43d4d2',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['items']
+                }
+            ]
+        },
+        {
+            id: 'admin',
+            name: '⚙️ 管理員功能',
+            description: '測試管理員專用功能',
+            tests: [
+                {
+                    id: 'admin_reports',
+                    name: '查看報表',
+                    method: 'GET',
+                    endpoint: '/admin/reports',
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    expectedFields: ['totalBookings'],
+                    roles: ['admin']
+                },
+                {
+                    id: 'admin_create_teacher',
+                    name: '建立教師',
+                    method: 'POST',
+                    endpoint: '/admin/teachers',
+                    requireAuth: true,
+                    expectedStatus: 201,
+                    expectedFields: ['id', 'email'],
+                    roles: ['admin'],
+                    data: () => ({
+                        name: '測試教師',
+                        email: `test-teacher-${Date.now()}@example.com`,
+                        password: 'teacher123',
+                        intro: '這是一位測試教師',
+                        experienceYears: 3,
+                        domains: ['English'],
+                        regions: ['Taiwan'],
+                        certifications: ['TESOL'],
+                        pricePolicies: []
+                    })
+                },
+                {
+                    id: 'admin_create_student',
+                    name: '建立學生',
+                    method: 'POST',
+                    endpoint: '/admin/students',
+                    requireAuth: true,
+                    expectedStatus: 201,
+                    expectedFields: ['id', 'email'],
+                    roles: ['admin'],
+                    data: () => ({
+                        name: '測試學生',
+                        email: `test-student-${Date.now()}@example.com`,
+                        password: 'student123',
+                        initialTimezone: 'Asia/Taipei'
+                    })
+                },
+                {
+                    id: 'admin_grant_cards',
+                    name: '授予學生卡片',
+                    method: 'POST',
+                    endpoint: '/admin/grant-cards',
+                    requireAuth: true,
+                    expectedStatus: 201,
+                    roles: ['admin'],
+                    data: () => ({
+                        studentId: '33333333-3333-3333-3333-333333333333',
+                        packageName: '測試卡片',
+                        quantity: 5,
+                        type: 'lesson_card',
+                        notes: '自動測試授予'
+                    })
+                },
+                {
+                    id: 'admin_update_user_profile',
+                    name: '管理員更新用戶資料',
+                    method: 'PATCH',
+                    endpoint: '/users/33333333-3333-3333-3333-333333333333',
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    expectedFields: ['id', 'name'],
+                    roles: ['admin'],
+                    data: () => ({
+                        name: '管理員更新的名稱',
+                        bio: '管理員更新的簡介'
+                    })
+                },
+                {
+                    id: 'non_admin_update_other_profile',
+                    name: '非管理員更新他人資料（應失敗）',
+                    method: 'PATCH',
+                    endpoint: '/users/33333333-3333-3333-3333-333333333333',
+                    requireAuth: true,
+                    expectedStatus: 403,
+                    roles: ['teacher', 'student'],
+                    shouldFail: true,
+                    data: () => ({
+                        name: '嘗試更新他人名稱'
+                    })
+                },
+                {
+                    id: 'admin_forbidden',
+                    name: '非管理員訪問（應失敗）',
+                    method: 'GET',
+                    endpoint: '/admin/reports',
+                    requireAuth: true,
+                    expectedStatus: 403,
+                    roles: ['teacher', 'student'],
+                    shouldFail: true
+                }
+            ]
+        }
+    ];
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeTestSuites();
+        updateRoleCredentials();
+
+        // 角色切換事件
+        document.getElementById('userRole').addEventListener('change', updateRoleCredentials);
+    });
+
+    // 更新角色對應的登入資訊
+    function updateRoleCredentials() {
+        const role = document.getElementById('userRole').value;
+        const emailInput = document.getElementById('loginEmail');
+
+        const credentials = {
+            admin: 'admin@example.com',
+            teacher: 'teacher1@example.com',
+            student: 'student1@example.com'
         };
-        let requestLogs = []; // 新增：儲存所有請求日誌
-        
-        const API_BASE = window.location.origin;
-        
-        // 測試配置
-        const testSuites = [
-            {
-                id: 'auth',
-                name: '🔐 認證系統',
-                description: '測試登入、登出、權杖管理',
-                tests: [
-                    {
-                        id: 'auth_login',
-                        name: '用戶登入',
-                        method: 'POST',
-                        endpoint: '/auth/login',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['accessToken', 'refreshToken', 'user'],
-                        data: () => ({
-                            username: document.getElementById('loginEmail').value,
-                            password: document.getElementById('loginPassword').value
-                        })
-                    },
-                    {
-                        id: 'auth_me',
-                        name: '取得個人資訊',
-                        method: 'GET',
-                        endpoint: '/auth/me',
-                        requireAuth: true,
-                        expectedStatus: 200,
-                        expectedFields: ['id', 'role', 'name']
-                    },
-                    {
-                        id: 'auth_me_unauthorized',
-                        name: '未授權訪問',
-                        method: 'GET',
-                        endpoint: '/auth/me',
-                        requireAuth: false,
-                        expectedStatus: 401,
-                        expectedFields: ['statusCode']
-                    },
-                    {
-                        id: 'auth_refresh',
-                        name: '刷新權杖',
-                        method: 'POST',
-                        endpoint: '/auth/refresh',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['accessToken', 'refreshToken'],
-                        data: () => ({
-                            refreshToken: 'invalid_token'
-                        }),
-                        shouldFail: true,
-                        expectedStatus: 401
-                    },
-                    {
-                        id: 'auth_logout',
-                        name: '用戶登出',
-                        method: 'POST',
-                        endpoint: '/auth/logout',
-                        requireAuth: true,
-                        expectedStatus: 204
-                    }
-                ]
-            },
-            {
-                id: 'users',
-                name: '👥 用戶管理',
-                description: '測試用戶資訊查詢和更新',
-                tests: [
-                    {
-                        id: 'users_get',
-                        name: '取得用戶資訊',
-                        method: 'GET',
-                        endpoint: '/users/11111111-1111-1111-1111-111111111111',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['id', 'role', 'name']
-                    },
-                    {
-                        id: 'users_update',
-                        name: '更新個人資料',
-                        method: 'PATCH',
-                        endpoint: () => `/users/${currentUser?.id}`,
-                        requireAuth: true,
-                        expectedStatus: 200,
-                        expectedFields: ['id', 'name'],
-                        data: () => ({
-                            name: '測試更新名稱'
-                        })
-                    }
-                ]
-            },
-            {
-                id: 'teachers',
-                name: '👨‍🏫 教師管理',
-                description: '測試教師清單和詳細資訊',
-                tests: [
-                    {
-                        id: 'teachers_list',
-                        name: '教師清單',
-                        method: 'GET',
-                        endpoint: '/teachers',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['items', 'total']
-                    },
-                    {
-                        id: 'teachers_detail',
-                        name: '教師詳細資訊',
-                        method: 'GET',
-                        endpoint: '/teachers/22222222-2222-2222-2222-222222222222',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['id', 'name', 'intro']
-                    },
-                    {
-                        id: 'teachers_search',
-                        name: '教師搜尋',
-                        method: 'GET',
-                        endpoint: '/teachers?q=English',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['items']
-                    }
-                ]
-            },
-            {
-                id: 'teacher-availability',
-                name: '🕒 教師可用時間',
-                description: '測試教師可用時間管理功能',
-                tests: [
-                    {
-                        id: 'search_teachers',
-                        name: '搜尋可用教師',
-                        method: 'GET',
-                        endpoint: '/teacher-availability/search-teachers?date=2025-10-01&fromTime=18:00&toTime=23:30',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['code', 'msg', 'data']
-                    },
-                    {
-                        id: 'teacher_timetable',
-                        name: '教師時間表',
-                        method: 'GET',
-                        endpoint: '/teacher-availability/teacher-timetable?teacherId=22222222-2222-2222-2222-222222222222&date=2025-10-01',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['code', 'msg', 'data']
-                    },
-                    {
-                        id: 'all_time_slots',
-                        name: '所有時間槽',
-                        method: 'GET',
-                        endpoint: '/teacher-availability/time-slots',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['code', 'msg', 'data']
-                    }
-                ]
-            },
-            {
-                id: 'bookings',
-                name: '📅 預約管理',
-                description: '測試預約相關功能',
-                tests: [
-                    {
-                        id: 'bookings_list',
-                        name: '預約清單',
-                        method: 'GET',
-                        endpoint: '/bookings',
-                        requireAuth: true,
-                        expectedStatus: 200,
-                        expectedFields: ['items']
-                    },
-                    {
-                        id: 'bookings_create',
-                        name: '建立預約',
-                        method: 'POST',
-                        endpoint: '/bookings',
-                        requireAuth: true,
-                        expectedStatus: 201,
-                        data: () => {
-                            // 建立一個對齊到30分鐘時間槽的時間
-                            const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
-                            tomorrow.setHours(10, 0, 0, 0); // 設定為明天上午10:00
-                            return {
-                                teacherId: '22222222-2222-2222-2222-222222222222',
-                                startsAt: tomorrow.toISOString(),
-                                durationMinutes: 30,
-                                courseTitle: '測試課程'
-                            };
-                        }
-                    }
-                ]
-            },
-            {
-                id: 'purchases',
-                name: '💳 購買項目',
-                description: '測試購買項目管理',
-                tests: [
-                    {
-                        id: 'purchases_list',
-                        name: '購買項目清單',
-                        method: 'GET',
-                        endpoint: '/purchases',
-                        requireAuth: true,
-                        expectedStatus: 200,
-                        expectedFields: ['items'],
-                        roles: ['student', 'admin']
-                    },
-                    {
-                        id: 'purchases_activate',
-                        name: '啟動購買項目',
-                        method: 'POST',
-                        endpoint: '/purchases/44444444-4444-4444-4444-444444444444/activate',
-                        requireAuth: true,
-                        expectedStatus: 200,
-                        roles: ['student', 'admin']
-                    }
-                ]
-            },
-            {
-                id: 'favorites',
-                name: '⭐ 收藏功能',
-                description: '測試收藏教師功能',
-                tests: [
-                    {
-                        id: 'favorites_list',
-                        name: '取得收藏列表',
-                        method: 'GET',
-                        endpoint: '/favorites',
-                        requireAuth: true,
-                        expectedStatus: 200,
-                        expectedFields: ['items']
-                    },
-                    {
-                        id: 'favorites_add',
-                        name: '新增收藏',
-                        method: 'POST',
-                        endpoint: '/favorites',
-                        requireAuth: true,
-                        expectedStatus: 201,
-                        expectedFields: ['teacherId', 'addedAt'],
-                        data: () => ({
-                            teacherId: '22222222-2222-2222-2222-222222222222'
-                        })
-                    },
-                    {
-                        id: 'favorites_remove',
-                        name: '移除收藏',
-                        method: 'DELETE',
-                        endpoint: '/favorites/22222222-2222-2222-2222-222222222222',
-                        requireAuth: true,
-                        expectedStatus: 204
-                    }
-                ]
-            },
-            {
-                id: 'library',
-                name: '📚 教材庫',
-                description: '測試教材庫功能',
-                tests: [
-                    {
-                        id: 'library_list',
-                        name: '取得教材庫',
-                        method: 'GET',
-                        endpoint: '/library',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['folders']
-                    },
-                    {
-                        id: 'library_flat',
-                        name: '取得扁平教材列表',
-                        method: 'GET',
-                        endpoint: '/library?include=flat',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['materials']
-                    },
-                    {
-                        id: 'library_material',
-                        name: '取得教材詳細',
-                        method: 'GET',
-                        endpoint: '/library/materials/material-001',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['id', 'title', 'content']
-                    }
-                ]
-            },
-            {
-                id: 'admin',
-                name: '⚙️ 管理員功能',
-                description: '測試管理員專用功能',
-                tests: [
-                    {
-                        id: 'admin_reports',
-                        name: '查看報表',
-                        method: 'GET',
-                        endpoint: '/admin/reports',
-                        requireAuth: true,
-                        expectedStatus: 200,
-                        expectedFields: ['totalBookings'],
-                        roles: ['admin']
-                    },
-                    {
-                        id: 'admin_create_teacher',
-                        name: '建立教師',
-                        method: 'POST',
-                        endpoint: '/admin/teachers',
-                        requireAuth: true,
-                        expectedStatus: 201,
-                        expectedFields: ['id', 'email'],
-                        roles: ['admin'],
-                        data: () => ({
-                            name: '測試教師',
-                            email: `test-teacher-${Date.now()}@example.com`,
-                            password: 'teacher123',
-                            intro: '這是一位測試教師',
-                            experienceYears: 3,
-                            domains: ['English'],
-                            regions: ['Taiwan'],
-                            certifications: ['TESOL'],
-                            pricePolicies: []
-                        })
-                    },
-                    {
-                        id: 'admin_create_student',
-                        name: '建立學生',
-                        method: 'POST',
-                        endpoint: '/admin/students',
-                        requireAuth: true,
-                        expectedStatus: 201,
-                        expectedFields: ['id', 'email'],
-                        roles: ['admin'],
-                        data: () => ({
-                            name: '測試學生',
-                            email: `test-student-${Date.now()}@example.com`,
-                            password: 'student123',
-                            initialTimezone: 'Asia/Taipei'
-                        })
-                    },
-                    {
-                        id: 'admin_grant_cards',
-                        name: '授予學生卡片',
-                        method: 'POST',
-                        endpoint: '/admin/grant-cards',
-                        requireAuth: true,
-                        expectedStatus: 201,
-                        roles: ['admin'],
-                        data: () => ({
-                            studentId: '33333333-3333-3333-3333-333333333333',
-                            packageName: '測試卡片',
-                            quantity: 5,
-                            type: 'lesson_card',
-                            notes: '自動測試授予'
-                        })
-                    },
-                    {
-                        id: 'admin_update_user_profile',
-                        name: '管理員更新用戶資料',
-                        method: 'PATCH',
-                        endpoint: '/users/33333333-3333-3333-3333-333333333333',
-                        requireAuth: true,
-                        expectedStatus: 200,
-                        expectedFields: ['id', 'name'],
-                        roles: ['admin'],
-                        data: () => ({
-                            name: '管理員更新的名稱',
-                            bio: '管理員更新的簡介'
-                        })
-                    },
-                    {
-                        id: 'non_admin_update_other_profile',
-                        name: '非管理員更新他人資料（應失敗）',
-                        method: 'PATCH',
-                        endpoint: '/users/33333333-3333-3333-3333-333333333333',
-                        requireAuth: true,
-                        expectedStatus: 403,
-                        roles: ['teacher', 'student'],
-                        shouldFail: true,
-                        data: () => ({
-                            name: '嘗試更新他人名稱'
-                        })
-                    },
-                    {
-                        id: 'admin_forbidden',
-                        name: '非管理員訪問（應失敗）',
-                        method: 'GET',
-                        endpoint: '/admin/reports',
-                        requireAuth: true,
-                        expectedStatus: 403,
-                        roles: ['teacher', 'student'],
-                        shouldFail: true
-                    }
-                ]
-            },
-            {
-                id: 'favorites',
-                name: '⭐ 收藏系統',
-                description: '測試教師收藏功能',
-                tests: [
-                    {
-                        id: 'favorites_list',
-                        name: '取得收藏列表',
-                        method: 'GET',
-                        endpoint: '/favorites',
-                        requireAuth: true,
-                        expectedStatus: 200,
-                        expectedFields: ['items'],
-                        roles: ['student', 'teacher']
-                    },
-                    {
-                        id: 'favorites_add',
-                        name: '新增收藏',
-                        method: 'POST',
-                        endpoint: '/favorites',
-                        requireAuth: true,
-                        expectedStatus: 201,
-                        expectedFields: ['teacherId'],
-                        roles: ['student'],
-                        data: () => ({
-                            teacherId: 'ae73d133-6d96-4640-a4d8-aefb8f43d4d2'
-                        })
-                    },
-                    {
-                        id: 'favorites_remove',
-                        name: '移除收藏',
-                        method: 'DELETE',
-                        endpoint: '/favorites/ae73d133-6d96-4640-a4d8-aefb8f43d4d2',
-                        requireAuth: true,
-                        expectedStatus: 204,
-                        roles: ['student']
-                    }
-                ]
-            },
-            {
-                id: 'purchases',
-                name: '💳 購買項目',
-                description: '測試購買項目管理',
-                tests: [
-                    {
-                        id: 'purchases_list',
-                        name: '取得購買項目列表',
-                        method: 'GET',
-                        endpoint: '/purchases',
-                        requireAuth: true,
-                        expectedStatus: 200,
-                        expectedFields: ['items'],
-                        roles: ['student']
-                    },
-                    {
-                        id: 'purchases_activate',
-                        name: '啟動卡片',
-                        method: 'POST',
-                        endpoint: '/purchases/test-purchase-id/activate',
-                        requireAuth: true,
-                        expectedStatus: 200,
-                        roles: ['student']
-                    }
-                ]
-            },
-            {
-                id: 'library',
-                name: '📚 教材庫',
-                description: '測試教材庫功能',
-                tests: [
-                    {
-                        id: 'library_get',
-                        name: '取得教材庫',
-                        method: 'GET',
-                        endpoint: '/library',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['folders']
-                    },
-                    {
-                        id: 'library_get_flat',
-                        name: '取得扁平教材列表',
-                        method: 'GET',
-                        endpoint: '/library?include=flat',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['materials']
-                    },
-                    {
-                        id: 'library_material',
-                        name: '取得教材詳情',
-                        method: 'GET',
-                        endpoint: '/library/materials/material-001',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['id', 'title', 'content']
-                    }
-                ]
-            },
-            {
-                id: 'materials',
-                name: '📄 教材管理',
-                description: '測試教材CRUD功能',
-                tests: [
-                    {
-                        id: 'materials_list',
-                        name: '取得教材列表',
-                        method: 'GET',
-                        endpoint: '/materials',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['items', 'total']
-                    },
-                    {
-                        id: 'materials_search',
-                        name: '搜尋教材',
-                        method: 'GET',
-                        endpoint: '/materials?q=English&type=page',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['items']
-                    },
-                    {
-                        id: 'materials_create',
-                        name: '建立教材',
-                        method: 'POST',
-                        endpoint: '/materials',
-                        requireAuth: true,
-                        expectedStatus: 201,
-                        expectedFields: ['id', 'title'],
-                        roles: ['admin', 'teacher'],
-                        data: () => ({
-                            type: 'page',
-                            title: '測試教材',
-                            content: '這是一個測試教材內容',
-                            folderId: null
-                        })
-                    }
-                ]
-            },
-            {
-                id: 'notifications',
-                name: '🔔 通知系統',
-                description: '測試通知功能',
-                tests: [
-                    {
-                        id: 'notifications_list',
-                        name: '取得通知列表',
-                        method: 'GET',
-                        endpoint: '/notifications',
-                        requireAuth: true,
-                        expectedStatus: 200,
-                        expectedFields: ['items'],
-                        roles: ['student', 'teacher', 'admin']
-                    },
-                    {
-                        id: 'notifications_unread',
-                        name: '取得未讀通知',
-                        method: 'GET',
-                        endpoint: '/notifications?unreadOnly=true',
-                        requireAuth: true,
-                        expectedStatus: 200,
-                        expectedFields: ['items'],
-                        roles: ['student', 'teacher', 'admin']
-                    }
-                ]
-            },
-            {
-                id: 'reviews',
-                name: '⭐ 評價系統',
-                description: '測試評價功能',
-                tests: [
-                    {
-                        id: 'reviews_list',
-                        name: '取得評價列表',
-                        method: 'GET',
-                        endpoint: '/reviews',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['items']
-                    },
-                    {
-                        id: 'reviews_by_teacher',
-                        name: '取得教師評價',
-                        method: 'GET',
-                        endpoint: '/reviews?teacherId=ae73d133-6d96-4640-a4d8-aefb8f43d4d2',
-                        requireAuth: false,
-                        expectedStatus: 200,
-                        expectedFields: ['items']
-                    }
-                ]
-            }
-        ];
 
-        // 初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeTestSuites();
-            updateRoleCredentials();
+        emailInput.value = credentials[role];
+    }
 
-            // 角色切換事件
-            document.getElementById('userRole').addEventListener('change', updateRoleCredentials);
+    // 初始化測試套件
+    function initializeTestSuites() {
+        const content = document.getElementById('testContent');
+        content.innerHTML = '';
+
+        testSuites.forEach(suite => {
+            const suiteElement = createTestSuiteElement(suite);
+            content.appendChild(suiteElement);
         });
 
-        // 更新角色對應的登入資訊
-        function updateRoleCredentials() {
-            const role = document.getElementById('userRole').value;
-            const emailInput = document.getElementById('loginEmail');
+        updateStats();
+    }
 
-            const credentials = {
-                admin: 'admin@example.com',
-                teacher: 'teacher1@example.com',
-                student: 'student1@example.com'
-            };
+    // 建立測試套件元素
+    function createTestSuiteElement(suite) {
+        const suiteDiv = document.createElement('div');
+        suiteDiv.className = 'test-suite';
+        suiteDiv.id = `suite-${suite.id}`;
 
-            emailInput.value = credentials[role];
-        }
-
-        // 初始化測試套件
-        function initializeTestSuites() {
-            const content = document.getElementById('testContent');
-            content.innerHTML = '';
-
-            testSuites.forEach(suite => {
-                const suiteElement = createTestSuiteElement(suite);
-                content.appendChild(suiteElement);
-            });
-
-            updateStats();
-        }
-
-        // 建立測試套件元素
-        function createTestSuiteElement(suite) {
-            const suiteDiv = document.createElement('div');
-            suiteDiv.className = 'test-suite';
-            suiteDiv.id = `suite-${suite.id}`;
-
-            suiteDiv.innerHTML = `
+        suiteDiv.innerHTML = `
                 <div class="test-suite-header collapsible" onclick="toggleSuite('${suite.id}')">
                     <div>
                         <h3>${suite.name}</h3>
@@ -1252,15 +1156,15 @@
                 </div>
             `;
 
-            return suiteDiv;
-        }
+        return suiteDiv;
+    }
 
-        // 建立測試項目 HTML
-        function createTestItemHTML(test, suiteId) {
-            const roleInfo = test.roles ? `<small>限制角色: ${test.roles.join(', ')}</small>` : '';
-            const shouldFailInfo = test.shouldFail ? '<small style="color: #dc3545;">預期失敗</small>' : '';
+    // 建立測試項目 HTML
+    function createTestItemHTML(test, suiteId) {
+        const roleInfo = test.roles ? `<small>限制角色: ${test.roles.join(', ')}</small>` : '';
+        const shouldFailInfo = test.shouldFail ? '<small style="color: #dc3545;">預期失敗</small>' : '';
 
-            return `
+        return `
                 <div class="test-item" id="test-${test.id}">
                     <div class="test-item-header">
                         <div>
@@ -1296,84 +1200,84 @@
                     </div>
                 </div>
             `;
+    }
+
+    // 生成 cURL 指令
+    function generateCurlCommand(test, endpoint, requestData) {
+        let curl = `curl -X ${test.method} '${API_BASE}${endpoint}'`;
+
+        if (test.requireAuth && accessToken) {
+            curl += ` \\\n  -H 'Authorization: Bearer ${accessToken}'`;
         }
 
-        // 生成 cURL 指令
-        function generateCurlCommand(test, endpoint, requestData) {
-            let curl = `curl -X ${test.method} '${API_BASE}${endpoint}'`;
-            
-            if (test.requireAuth && accessToken) {
-                curl += ` \\\n  -H 'Authorization: Bearer ${accessToken}'`;
-            }
-            
-            curl += ` \\\n  -H 'Content-Type: application/json'`;
-            
-            if (requestData && (test.method === 'POST' || test.method === 'PATCH' || test.method === 'PUT')) {
-                curl += ` \\\n  -d '${JSON.stringify(requestData)}'`;
-            }
-            
-            return curl;
+        curl += ` \\\n  -H 'Content-Type: application/json'`;
+
+        if (requestData && (test.method === 'POST' || test.method === 'PATCH' || test.method === 'PUT')) {
+            curl += ` \\\n  -d '${JSON.stringify(requestData)}'`;
         }
 
-        // 複製 cURL 指令
-        function copyCurlCommand(testId) {
-            const curlBody = document.getElementById(`curl-body-${testId}`);
-            const copyBtn = event.target;
-            
-            navigator.clipboard.writeText(curlBody.textContent).then(() => {
-                const originalText = copyBtn.textContent;
-                copyBtn.textContent = '已複製!';
-                copyBtn.classList.add('copied');
-                
-                setTimeout(() => {
-                    copyBtn.textContent = originalText;
-                    copyBtn.classList.remove('copied');
-                }, 2000);
-            }).catch(err => {
-                alert('複製失敗：' + err.message);
-            });
+        return curl;
+    }
+
+    // 複製 cURL 指令
+    function copyCurlCommand(testId) {
+        const curlBody = document.getElementById(`curl-body-${testId}`);
+        const copyBtn = event.target;
+
+        navigator.clipboard.writeText(curlBody.textContent).then(() => {
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = '已複製!';
+            copyBtn.classList.add('copied');
+
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+                copyBtn.classList.remove('copied');
+            }, 2000);
+        }).catch(err => {
+            alert('複製失敗：' + err.message);
+        });
+    }
+
+    // 新增：記錄請求日誌
+    function addLog(method, endpoint, status, responseData) {
+        const timestamp = new Date().toLocaleString('zh-TW', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+
+        const log = {
+            timestamp,
+            method,
+            endpoint,
+            status,
+            responseData,
+            isSuccess: status >= 200 && status < 300
+        };
+
+        requestLogs.push(log);
+        updateLogDisplay();
+    }
+
+    // 新增：更新日誌顯示
+    function updateLogDisplay() {
+        const logContainer = document.getElementById('logContainer');
+
+        if (requestLogs.length === 0) {
+            logContainer.innerHTML = '<div class="log-empty">尚無請求記錄</div>';
+            return;
         }
 
-        // 新增：記錄請求日誌
-        function addLog(method, endpoint, status, responseData) {
-            const timestamp = new Date().toLocaleString('zh-TW', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-            
-            const log = {
-                timestamp,
-                method,
-                endpoint,
-                status,
-                responseData,
-                isSuccess: status >= 200 && status < 300
-            };
-            
-            requestLogs.push(log);
-            updateLogDisplay();
-        }
+        logContainer.innerHTML = requestLogs.map(log => {
+            const statusClass = log.isSuccess ? 'success' : 'error';
+            const responsePreview = log.responseData
+                ? JSON.stringify(log.responseData, null, 2).substring(0, 200) + (JSON.stringify(log.responseData).length > 200 ? '...' : '')
+                : 'No response';
 
-        // 新增：更新日誌顯示
-        function updateLogDisplay() {
-            const logContainer = document.getElementById('logContainer');
-            
-            if (requestLogs.length === 0) {
-                logContainer.innerHTML = '<div class="log-empty">尚無請求記錄</div>';
-                return;
-            }
-            
-            logContainer.innerHTML = requestLogs.map(log => {
-                const statusClass = log.isSuccess ? 'success' : 'error';
-                const responsePreview = log.responseData 
-                    ? JSON.stringify(log.responseData, null, 2).substring(0, 200) + (JSON.stringify(log.responseData).length > 200 ? '...' : '')
-                    : 'No response';
-                
-                return `
+            return `
                     <div class="log-entry ${statusClass}">
                         <div class="log-time">${log.timestamp}</div>
                         <div class="log-request">${log.method} ${log.endpoint}</div>
@@ -1381,398 +1285,398 @@
                         <div class="log-response">Response: ${responsePreview}</div>
                     </div>
                 `;
-            }).reverse().join('');
-            
-            // 自動滾動到最新的日誌
-            logContainer.scrollTop = 0;
+        }).reverse().join('');
+
+        // 自動滾動到最新的日誌
+        logContainer.scrollTop = 0;
+    }
+
+    // 新增：複製所有日誌
+    function copyLogs() {
+        if (requestLogs.length === 0) {
+            alert('目前沒有日誌可複製');
+            return;
         }
 
-        // 新增：複製所有日誌
-        function copyLogs() {
-            if (requestLogs.length === 0) {
-                alert('目前沒有日誌可複製');
-                return;
-            }
-            
-            const logsText = requestLogs.map(log => {
-                return `[${log.timestamp}] ${log.method} ${log.endpoint}
+        const logsText = requestLogs.map(log => {
+            return `[${log.timestamp}] ${log.method} ${log.endpoint}
 Status: ${log.status}
 Response: ${JSON.stringify(log.responseData, null, 2)}
 ${'='.repeat(80)}`;
-            }).join('\n\n');
-            
-            navigator.clipboard.writeText(logsText).then(() => {
-                alert('日誌已複製到剪貼簿！');
-            }).catch(err => {
-                alert('複製失敗：' + err.message);
+        }).join('\n\n');
+
+        navigator.clipboard.writeText(logsText).then(() => {
+            alert('日誌已複製到剪貼簿！');
+        }).catch(err => {
+            alert('複製失敗：' + err.message);
+        });
+    }
+
+    // 新增：清除所有日誌
+    function clearLogs() {
+        if (requestLogs.length === 0) {
+            alert('目前沒有日誌');
+            return;
+        }
+
+        if (confirm('確定要清除所有日誌嗎？')) {
+            requestLogs = [];
+            updateLogDisplay();
+        }
+    }
+
+    // 切換測試套件顯示
+    function toggleSuite(suiteId) {
+        const body = document.getElementById(`body-${suiteId}`);
+        body.classList.toggle('active');
+    }
+
+    // HTTP 請求函數（修改以記錄日誌）
+    async function makeRequest(endpoint, options = {}) {
+        const url = `${API_BASE}${endpoint}`;
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers
+        };
+
+        if (options.requireAuth && accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+        }
+
+        try {
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            let data;
+            try {
+                data = await response.json();
+            } catch (e) {
+                data = null;
+            }
+
+            // 記錄日誌
+            addLog(options.method || 'GET', endpoint, response.status, data);
+
+            return {
+                status: response.status,
+                ok: response.ok,
+                data,
+                headers: response.headers
+            };
+        } catch (error) {
+            // 記錄錯誤日誌
+            addLog(options.method || 'GET', endpoint, 0, { error: error.message });
+
+            return {
+                status: 0,
+                ok: false,
+                data: { error: error.message },
+                headers: null
+            };
+        }
+    }
+
+    // 登入函數
+    async function login() {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+
+        const response = await makeRequest('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({
+                username: email,
+                password: password
+            })
+        });
+
+        if (response.ok && response.data.accessToken) {
+            accessToken = response.data.accessToken;
+            currentUser = response.data.user;
+
+            document.getElementById('tokenDisplay').innerHTML =
+                `<strong>已登入:</strong> ${currentUser.name} (${currentUser.role})<br>
+                     <strong>Token:</strong> ${accessToken.substring(0, 50)}...`;
+            document.getElementById('tokenDisplay').classList.remove('hidden');
+
+            alert(`登入成功！歡迎 ${currentUser.name}`);
+        } else {
+            alert('登入失敗：' + (response.data?.message || '未知錯誤'));
+        }
+    }
+
+    // 登出函數
+    async function logout() {
+        if (accessToken) {
+            await makeRequest('/auth/logout', {
+                method: 'POST',
+                requireAuth: true
             });
         }
 
-        // 新增：清除所有日誌
-        function clearLogs() {
-            if (requestLogs.length === 0) {
-                alert('目前沒有日誌');
-                return;
-            }
-            
-            if (confirm('確定要清除所有日誌嗎？')) {
-                requestLogs = [];
-                updateLogDisplay();
-            }
+        accessToken = '';
+        currentUser = null;
+        document.getElementById('tokenDisplay').classList.add('hidden');
+        alert('已登出');
+    }
+
+    // 清除測試資料
+    async function clearTestData() {
+        if (!accessToken) {
+            alert('請先登入（需要管理員權限）');
+            return;
         }
 
-        // 切換測試套件顯示
-        function toggleSuite(suiteId) {
-            const body = document.getElementById(`body-${suiteId}`);
-            body.classList.toggle('active');
+        if (!currentUser || currentUser.role !== 'admin') {
+            alert('此功能需要管理員權限');
+            return;
         }
 
-        // HTTP 請求函數（修改以記錄日誌）
-        async function makeRequest(endpoint, options = {}) {
-            const url = `${API_BASE}${endpoint}`;
-            const headers = {
-                'Content-Type': 'application/json',
-                ...options.headers
+        if (!confirm('確定要清除所有測試資料嗎？此操作將重置系統資料。')) {
+            return;
+        }
+
+        try {
+            const response = await makeRequest('/admin/reset-data', {
+                method: 'POST',
+                requireAuth: true
+            });
+
+            if (response.ok) {
+                alert('測試資料已清除成功！');
+            } else {
+                alert('清除測試資料失敗：' + (response.data?.message || `HTTP ${response.status}`));
+            }
+        } catch (error) {
+            alert('清除測試資料時發生錯誤：' + error.message);
+        }
+    }
+
+    // 執行單一測試
+    async function runSingleTest(testId, suiteId) {
+        const suite = testSuites.find(s => s.id === suiteId);
+        const test = suite.tests.find(t => t.id === testId);
+
+        if (!test) return;
+
+        // 檢查角色權限
+        if (test.roles && currentUser && !test.roles.includes(currentUser.role)) {
+            updateTestStatus(testId, 'error', '角色權限不符');
+            return;
+        }
+
+        updateTestStatus(testId, 'running', '執行中...');
+
+        try {
+            // 準備請求參數
+            const endpoint = typeof test.endpoint === 'function' ? test.endpoint() : test.endpoint;
+            const requestOptions = {
+                method: test.method,
+                requireAuth: test.requireAuth
             };
 
-            if (options.requireAuth && accessToken) {
-                headers['Authorization'] = `Bearer ${accessToken}`;
+            let requestData = null;
+            if (test.data && (test.method === 'POST' || test.method === 'PATCH' || test.method === 'PUT')) {
+                requestData = test.data();
+                requestOptions.body = JSON.stringify(requestData);
             }
 
-            try {
-                const response = await fetch(url, {
-                    ...options,
-                    headers
-                });
+            // 顯示傳送參數
+            displayRequestParams(testId, test, endpoint, requestData);
 
-                let data;
-                try {
-                    data = await response.json();
-                } catch (e) {
-                    data = null;
-                }
+            // 生成並顯示 cURL 指令
+            const curlCommand = generateCurlCommand(test, endpoint, requestData);
+            displayCurlCommand(testId, curlCommand);
 
-                // 記錄日誌
-                addLog(options.method || 'GET', endpoint, response.status, data);
+            // 發送請求
+            const response = await makeRequest(endpoint, requestOptions);
 
-                return {
-                    status: response.status,
-                    ok: response.ok,
-                    data,
-                    headers: response.headers
-                };
-            } catch (error) {
-                // 記錄錯誤日誌
-                addLog(options.method || 'GET', endpoint, 0, { error: error.message });
-                
-                return {
-                    status: 0,
-                    ok: false,
-                    data: { error: error.message },
-                    headers: null
-                };
-            }
-        }
+            // 顯示回應
+            displayResponse(testId, response);
 
-        // 登入函數
-        async function login() {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
+            // 驗證結果
+            const isValid = validateResponse(test, response);
 
-            const response = await makeRequest('/auth/login', {
-                method: 'POST',
-                body: JSON.stringify({
-                    username: email,
-                    password: password
-                })
-            });
-
-            if (response.ok && response.data.accessToken) {
-                accessToken = response.data.accessToken;
-                currentUser = response.data.user;
-
-                document.getElementById('tokenDisplay').innerHTML =
-                    `<strong>已登入:</strong> ${currentUser.name} (${currentUser.role})<br>
-                     <strong>Token:</strong> ${accessToken.substring(0, 50)}...`;
-                document.getElementById('tokenDisplay').classList.remove('hidden');
-
-                alert(`登入成功！歡迎 ${currentUser.name}`);
+            if (isValid) {
+                updateTestStatus(testId, 'success', '通過');
+                testResults.passed++;
             } else {
-                alert('登入失敗：' + (response.data?.message || '未知錯誤'));
-            }
-        }
-
-        // 登出函數
-        async function logout() {
-            if (accessToken) {
-                await makeRequest('/auth/logout', {
-                    method: 'POST',
-                    requireAuth: true
-                });
-            }
-
-            accessToken = '';
-            currentUser = null;
-            document.getElementById('tokenDisplay').classList.add('hidden');
-            alert('已登出');
-        }
-
-        // 清除測試資料
-        async function clearTestData() {
-            if (!accessToken) {
-                alert('請先登入（需要管理員權限）');
-                return;
-            }
-
-            if (!currentUser || currentUser.role !== 'admin') {
-                alert('此功能需要管理員權限');
-                return;
-            }
-
-            if (!confirm('確定要清除所有測試資料嗎？此操作將重置系統資料。')) {
-                return;
-            }
-
-            try {
-                const response = await makeRequest('/admin/reset-data', {
-                    method: 'POST',
-                    requireAuth: true
-                });
-
-                if (response.ok) {
-                    alert('測試資料已清除成功！');
-                } else {
-                    alert('清除測試資料失敗：' + (response.data?.message || `HTTP ${response.status}`));
-                }
-            } catch (error) {
-                alert('清除測試資料時發生錯誤：' + error.message);
-            }
-        }
-
-        // 執行單一測試
-        async function runSingleTest(testId, suiteId) {
-            const suite = testSuites.find(s => s.id === suiteId);
-            const test = suite.tests.find(t => t.id === testId);
-
-            if (!test) return;
-
-            // 檢查角色權限
-            if (test.roles && currentUser && !test.roles.includes(currentUser.role)) {
-                updateTestStatus(testId, 'error', '角色權限不符');
-                return;
-            }
-
-            updateTestStatus(testId, 'running', '執行中...');
-
-            try {
-                // 準備請求參數
-                const endpoint = typeof test.endpoint === 'function' ? test.endpoint() : test.endpoint;
-                const requestOptions = {
-                    method: test.method,
-                    requireAuth: test.requireAuth
-                };
-
-                let requestData = null;
-                if (test.data && (test.method === 'POST' || test.method === 'PATCH' || test.method === 'PUT')) {
-                    requestData = test.data();
-                    requestOptions.body = JSON.stringify(requestData);
-                }
-
-                // 顯示傳送參數
-                displayRequestParams(testId, test, endpoint, requestData);
-
-                // 生成並顯示 cURL 指令
-                const curlCommand = generateCurlCommand(test, endpoint, requestData);
-                displayCurlCommand(testId, curlCommand);
-
-                // 發送請求
-                const response = await makeRequest(endpoint, requestOptions);
-
-                // 顯示回應
-                displayResponse(testId, response);
-
-                // 驗證結果
-                const isValid = validateResponse(test, response);
-
-                if (isValid) {
-                    updateTestStatus(testId, 'success', '通過');
-                    testResults.passed++;
-                } else {
-                    updateTestStatus(testId, 'error', '失敗');
-                    testResults.failed++;
-                }
-
-            } catch (error) {
-                updateTestStatus(testId, 'error', '錯誤: ' + error.message);
+                updateTestStatus(testId, 'error', '失敗');
                 testResults.failed++;
             }
 
-            updateStats();
-            updateSuiteProgress(suiteId);
+        } catch (error) {
+            updateTestStatus(testId, 'error', '錯誤: ' + error.message);
+            testResults.failed++;
         }
 
-        // 顯示傳送參數
-        function displayRequestParams(testId, test, endpoint, requestData) {
-            const paramsContainer = document.getElementById(`params-${testId}`);
-            const paramsContent = document.getElementById(`params-content-${testId}`);
-            
-            let paramsHTML = `<strong>方法:</strong> ${test.method}<br>`;
-            paramsHTML += `<strong>端點:</strong> ${endpoint}<br>`;
-            
-            if (test.requireAuth) {
-                paramsHTML += `<strong>認證:</strong> Bearer Token<br>`;
-            }
-            
-            if (requestData) {
-                paramsHTML += `<strong>請求體:</strong><br><pre>${JSON.stringify(requestData, null, 2)}</pre>`;
-            }
-            
-            paramsContent.innerHTML = paramsHTML;
-            paramsContainer.style.display = 'block';
+        updateStats();
+        updateSuiteProgress(suiteId);
+    }
+
+    // 顯示傳送參數
+    function displayRequestParams(testId, test, endpoint, requestData) {
+        const paramsContainer = document.getElementById(`params-${testId}`);
+        const paramsContent = document.getElementById(`params-content-${testId}`);
+
+        let paramsHTML = `<strong>方法:</strong> ${test.method}<br>`;
+        paramsHTML += `<strong>端點:</strong> ${endpoint}<br>`;
+
+        if (test.requireAuth) {
+            paramsHTML += `<strong>認證:</strong> Bearer Token<br>`;
         }
 
-        // 顯示 cURL 指令
-        function displayCurlCommand(testId, curlCommand) {
-            const curlContainer = document.getElementById(`curl-${testId}`);
-            const curlBody = document.getElementById(`curl-body-${testId}`);
-            
-            curlBody.textContent = curlCommand;
-            curlContainer.style.display = 'block';
+        if (requestData) {
+            paramsHTML += `<strong>請求體:</strong><br><pre>${JSON.stringify(requestData, null, 2)}</pre>`;
         }
 
-        // 驗證回應
-        function validateResponse(test, response) {
-            // 檢查狀態碼
-            if (response.status !== test.expectedStatus) {
-                return false;
-            }
+        paramsContent.innerHTML = paramsHTML;
+        paramsContainer.style.display = 'block';
+    }
 
-            // 如果預期失敗且確實失敗，則通過
-            if (test.shouldFail && !response.ok) {
-                return true;
-            }
+    // 顯示 cURL 指令
+    function displayCurlCommand(testId, curlCommand) {
+        const curlContainer = document.getElementById(`curl-${testId}`);
+        const curlBody = document.getElementById(`curl-body-${testId}`);
 
-            // 檢查必要欄位
-            if (test.expectedFields && response.data) {
-                for (const field of test.expectedFields) {
-                    if (!(field in response.data)) {
-                        return false;
-                    }
-                }
-            }
+        curlBody.textContent = curlCommand;
+        curlContainer.style.display = 'block';
+    }
 
+    // 驗證回應
+    function validateResponse(test, response) {
+        // 檢查狀態碼
+        if (response.status !== test.expectedStatus) {
+            return false;
+        }
+
+        // 如果預期失敗且確實失敗，則通過
+        if (test.shouldFail && !response.ok) {
             return true;
         }
 
-        // 更新測試狀態
-        function updateTestStatus(testId, status, message) {
-            const statusElement = document.getElementById(`status-${testId}`);
-            statusElement.className = `status-badge status-${status}`;
-            statusElement.textContent = message;
-        }
-
-        // 顯示回應結果
-        function displayResponse(testId, response) {
-            const container = document.getElementById(`response-${testId}`);
-            const statusElement = document.getElementById(`response-status-${testId}`);
-            const bodyElement = document.getElementById(`response-body-${testId}`);
-
-            container.classList.remove('hidden');
-            statusElement.textContent = `HTTP ${response.status}`;
-            statusElement.className = response.ok ? 'status-badge status-success' : 'status-badge status-error';
-
-            bodyElement.textContent = JSON.stringify(response.data, null, 2);
-        }
-
-        // 執行套件測試
-        async function runSuiteTests(suiteId) {
-            const suite = testSuites.find(s => s.id === suiteId);
-            if (!suite) return;
-
-            updateSuiteStatus(suiteId, 'running');
-
-            for (const test of suite.tests) {
-                await runSingleTest(test.id, suiteId);
-                await new Promise(resolve => setTimeout(resolve, 500)); // 延遲避免過快請求
+        // 檢查必要欄位
+        if (test.expectedFields && response.data) {
+            for (const field of test.expectedFields) {
+                if (!(field in response.data)) {
+                    return false;
+                }
             }
-
-            updateSuiteStatus(suiteId, 'success');
         }
 
-        // 更新套件狀態
-        function updateSuiteStatus(suiteId, status) {
-            const statusElement = document.getElementById(`status-${suiteId}`);
-            const statusText = {
-                pending: '待測試',
-                running: '執行中',
-                success: '完成',
-                error: '有錯誤'
-            };
+        return true;
+    }
 
-            statusElement.className = `status-badge status-${status}`;
-            statusElement.textContent = statusText[status];
+    // 更新測試狀態
+    function updateTestStatus(testId, status, message) {
+        const statusElement = document.getElementById(`status-${testId}`);
+        statusElement.className = `status-badge status-${status}`;
+        statusElement.textContent = message;
+    }
+
+    // 顯示回應結果
+    function displayResponse(testId, response) {
+        const container = document.getElementById(`response-${testId}`);
+        const statusElement = document.getElementById(`response-status-${testId}`);
+        const bodyElement = document.getElementById(`response-body-${testId}`);
+
+        container.classList.remove('hidden');
+        statusElement.textContent = `HTTP ${response.status}`;
+        statusElement.className = response.ok ? 'status-badge status-success' : 'status-badge status-error';
+
+        bodyElement.textContent = JSON.stringify(response.data, null, 2);
+    }
+
+    // 執行套件測試
+    async function runSuiteTests(suiteId) {
+        const suite = testSuites.find(s => s.id === suiteId);
+        if (!suite) return;
+
+        updateSuiteStatus(suiteId, 'running');
+
+        for (const test of suite.tests) {
+            await runSingleTest(test.id, suiteId);
+            await new Promise(resolve => setTimeout(resolve, 500)); // 延遲避免過快請求
         }
 
-        // 更新套件進度（新增失敗個數統計）
-        function updateSuiteProgress(suiteId) {
-            const suite = testSuites.find(s => s.id === suiteId);
-            if (!suite) return;
+        updateSuiteStatus(suiteId, 'success');
+    }
 
-            let completed = 0;
-            let failed = 0;
-            
-            suite.tests.forEach(test => {
-                const statusElement = document.getElementById(`status-${test.id}`);
-                if (statusElement) {
-                    const statusText = statusElement.textContent;
-                    if (!statusText.includes('待測試') && !statusText.includes('執行中')) {
-                        completed++;
-                        if (statusText.includes('失敗') || statusText.includes('錯誤') || statusText.includes('權限不符')) {
-                            failed++;
-                        }
+    // 更新套件狀態
+    function updateSuiteStatus(suiteId, status) {
+        const statusElement = document.getElementById(`status-${suiteId}`);
+        const statusText = {
+            pending: '待測試',
+            running: '執行中',
+            success: '完成',
+            error: '有錯誤'
+        };
+
+        statusElement.className = `status-badge status-${status}`;
+        statusElement.textContent = statusText[status];
+    }
+
+    // 更新套件進度（新增失敗個數統計）
+    function updateSuiteProgress(suiteId) {
+        const suite = testSuites.find(s => s.id === suiteId);
+        if (!suite) return;
+
+        let completed = 0;
+        let failed = 0;
+
+        suite.tests.forEach(test => {
+            const statusElement = document.getElementById(`status-${test.id}`);
+            if (statusElement) {
+                const statusText = statusElement.textContent;
+                if (!statusText.includes('待測試') && !statusText.includes('執行中')) {
+                    completed++;
+                    if (statusText.includes('失敗') || statusText.includes('錯誤') || statusText.includes('權限不符')) {
+                        failed++;
                     }
                 }
-            });
-
-            const progressText = failed > 0 
-                ? `${completed}/${suite.tests.length} (失敗: ${failed})`
-                : `${completed}/${suite.tests.length}`;
-            
-            document.getElementById(`progress-${suiteId}`).textContent = progressText;
-        }
-
-        // 執行所有測試
-        async function runAllTests() {
-            if (testResults.running) return;
-
-            testResults.running = true;
-            testResults.total = testSuites.reduce((sum, suite) => sum + suite.tests.length, 0);
-            testResults.passed = 0;
-            testResults.failed = 0;
-
-            for (const suite of testSuites) {
-                await runSuiteTests(suite.id);
             }
+        });
 
-            testResults.running = false;
-            alert(`測試完成！通過: ${testResults.passed}, 失敗: ${testResults.failed}`);
+        const progressText = failed > 0
+            ? `${completed}/${suite.tests.length} (失敗: ${failed})`
+            : `${completed}/${suite.tests.length}`;
+
+        document.getElementById(`progress-${suiteId}`).textContent = progressText;
+    }
+
+    // 執行所有測試
+    async function runAllTests() {
+        if (testResults.running) return;
+
+        testResults.running = true;
+        testResults.total = testSuites.reduce((sum, suite) => sum + suite.tests.length, 0);
+        testResults.passed = 0;
+        testResults.failed = 0;
+
+        for (const suite of testSuites) {
+            await runSuiteTests(suite.id);
         }
 
-        // 重置測試
-        function resetTests() {
-            testResults = { total: 0, passed: 0, failed: 0, running: false };
-            initializeTestSuites();
-        }
+        testResults.running = false;
+        alert(`測試完成！通過: ${testResults.passed}, 失敗: ${testResults.failed}`);
+    }
 
-        // 更新統計
-        function updateStats() {
-            document.getElementById('totalTests').textContent = testResults.total;
-            document.getElementById('passedTests').textContent = testResults.passed;
-            document.getElementById('failedTests').textContent = testResults.failed;
+    // 重置測試
+    function resetTests() {
+        testResults = { total: 0, passed: 0, failed: 0, running: false };
+        initializeTestSuites();
+    }
 
-            const progress = testResults.total > 0 ? ((testResults.passed + testResults.failed) / testResults.total) * 100 : 0;
-            document.getElementById('progressFill').style.width = `${progress}%`;
-        }
-    </script>
+    // 更新統計
+    function updateStats() {
+        document.getElementById('totalTests').textContent = testResults.total;
+        document.getElementById('passedTests').textContent = testResults.passed;
+        document.getElementById('failedTests').textContent = testResults.failed;
+
+        const progress = testResults.total > 0 ? ((testResults.passed + testResults.failed) / testResults.total) * 100 : 0;
+        document.getElementById('progressFill').style.width = `${progress}%`;
+    }
+</script>
 </body>
 </html>
