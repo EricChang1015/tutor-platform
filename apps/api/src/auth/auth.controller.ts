@@ -60,19 +60,4 @@ export class AuthController {
   async getProfile(@Request() req) {
     return this.authService.getProfile(req.user.sub);
   }
-
-  @Post('demo-reset')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: '重置 Demo（限 admin）' })
-  @ApiResponse({ status: 200, description: 'Demo 重置成功' })
-  async demoReset(@Request() req) {
-    // 檢查是否為管理員
-    if (req.user.role !== 'admin') {
-      throw new Error('Only admin can reset demo');
-    }
-    
-    // 這裡可以實現重置 demo 資料的邏輯
-    return { ok: true };
-  }
 }

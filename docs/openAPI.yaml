@@ -397,17 +397,6 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Me' } } } }
         '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /auth/demo-reset:
-    post:
-      tags: [Auth]
-      summary: 重置 Demo（限 demo/admin）
-      security: [{ bearerAuth: [] }]
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { type: object, properties: { ok: { type: boolean } } }
 
   /users/{id}:
     get:
