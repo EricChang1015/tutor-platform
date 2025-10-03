@@ -866,7 +866,7 @@
                     endpoint: '/favorites',
                     requireAuth: true,
                     expectedStatus: 404,
-                    roles: ['student'],
+                    roles: ['student', 'teacher', 'admin'],
                     shouldFail: true,
                     data: () => ({
                         teacherId: '99999999-9999-9999-9999-999999999999'
@@ -888,7 +888,7 @@
                     endpoint: '/favorites/99999999-9999-9999-9999-999999999999',
                     requireAuth: true,
                     expectedStatus: 404,
-                    roles: ['student'],
+                    roles: ['student', 'teacher', 'admin'],
                     shouldFail: true
                 }
             ]
