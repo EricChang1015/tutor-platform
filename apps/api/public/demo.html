@@ -608,9 +608,187 @@
     }
 
     // 預約相關
-    function openSchedule(teacherId) {
-      toast('預約功能開發中...');
-      // TODO: 實現預約功能
+    async function openSchedule(teacherId) {
+      try {
+        const teacher = await apiRequest(`/teachers/${teacherId}`);
+        showScheduleModal(teacher);
+      } catch (error) {
+        toast('載入教師資訊失敗');
+      }
+    }
+
+    function showScheduleModal(teacher) {
+      const today = new Date();
+      const dates = [];
+
+      // 生成未來7天的日期
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+        dates.push(date);
+      }
+
+      const modal = el('div', {},
+        el('div', {class: 'row wrap'},
+          el('h3', {style: 'margin:0'}, `預約 ${teacher.name} 的課程`),
+          el('div', {class: 'spacer'}),
+          el('button', {class: 'btn small', onclick: closeModal}, '✕')
+        ),
+        el('div', {class: 'hr'}),
+        el('div', {class: 'muted'}, '選擇日期和時間'),
+        el('div', {class: 'date-strip', id: 'dateStrip'}),
+        el('div', {id: 'timeSlots', style: 'margin-top:16px'}),
+        el('div', {class: 'hr'}),
+        el('div', {class: 'form-grid'},
+          el('div', {},
+            el('label', {}, '課程標題'),
+            el('input', {id: 'courseTitle', value: DB.courseContext?.name || '自由對話'})
+          ),
+          el('div', {},
+            el('label', {}, '持續時間'),
+            el('select', {id: 'duration'},
+              el('option', {value: '30'}, '30分鐘'),
+              el('option', {value: '60'}, '60分鐘'),
+              el('option', {value: '90'}, '90分鐘')
+            )
+          )
+        ),
+        el('div', {},
+          el('label', {}, '給老師的留言'),
+          el('textarea', {id: 'bookingMessage', placeholder: '可以告訴老師您的學習目標或特殊需求...'})
+        ),
+        el('div', {class: 'row wrap', style: 'margin-top:16px'},
+          el('button', {class: 'btn primary', onclick: () => submitBooking(teacher.id)}, '確認預約'),
+          el('button', {class: 'btn', onclick: closeModal}, '取消')
+        )
+      );
+
+      openModal(modal);
+
+      // 渲染日期選擇
+      renderDateStrip(dates);
+
+      // 預設選擇今天
+      selectDate(dates[0], teacher.id);
+    }
+
+    function renderDateStrip(dates) {
+      const strip = $("#dateStrip");
+      strip.innerHTML = '';
+
+      dates.forEach((date, index) => {
+        const pill = el('div', {
+          class: `date-pill ${index === 0 ? 'active' : ''}`,
+          onclick: () => {
+            document.querySelectorAll('.date-pill').forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            selectDate(date, getCurrentTeacherId());
+          }
+        },
+          el('div', {style: 'font-weight:600'}, date.toLocaleDateString('zh-TW', {month:'2-digit', day:'2-digit'})),
+          el('div', {style: 'font-size:12px'}, date.toLocaleDateString('zh-TW', {weekday:'short'}))
+        );
+        strip.appendChild(pill);
+      });
+    }
+
+    function getCurrentTeacherId() {
+      // 從模態框中獲取當前教師ID，這裡簡化處理
+      return window.currentTeacherId;
+    }
+
+    async function selectDate(date, teacherId) {
+      window.currentTeacherId = teacherId;
+      window.selectedDate = date;
+
+      const dateStr = date.toISOString().split('T')[0];
+
+      try {
+        // 獲取教師時間表
+        const response = await fetch(`${API_BASE}/teacher-availability/teacher-timetable?teacherId=${teacherId}&date=${dateStr}`);
+        const result = await response.json();
+
+        if (result.code === 0) {
+          renderTimeSlots(result.data || []);
+        } else {
+          renderTimeSlots([]);
+        }
+      } catch (error) {
+        console.error('Failed to load timetable:', error);
+        renderTimeSlots([]);
+      }
+    }
+
+    function renderTimeSlots(timetable) {
+      const container = $("#timeSlots");
+      container.innerHTML = '';
+
+      if (timetable.length === 0) {
+        container.appendChild(el('div', {class: 'muted'}, '該日期暫無可用時段'));
+        return;
+      }
+
+      container.appendChild(el('div', {class: 'muted', style: 'margin-bottom:8px'}, '可用時段：'));
+
+      const slots = el('div', {class: 'slots'});
+
+      timetable.forEach(slot => {
+        if (slot.canReserve === 1) {
+          const slotEl = el('div', {
+            class: 'slot',
+            onclick: () => {
+              document.querySelectorAll('.slot').forEach(s => s.classList.remove('selected'));
+              slotEl.classList.add('selected');
+              window.selectedTimeSlot = slot;
+            }
+          }, slot.time);
+          slots.appendChild(slotEl);
+        }
+      });
+
+      container.appendChild(slots);
+    }
+
+    async function submitBooking(teacherId) {
+      if (!window.selectedDate || !window.selectedTimeSlot) {
+        toast('請選擇日期和時間');
+        return;
+      }
+
+      const courseTitle = $("#courseTitle").value;
+      const duration = parseInt($("#duration").value);
+      const message = $("#bookingMessage").value;
+
+      // 構建預約時間
+      const [hours, minutes] = window.selectedTimeSlot.time.split(':');
+      const startsAt = new Date(window.selectedDate);
+      startsAt.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+      const bookingData = {
+        teacherId,
+        startsAt: startsAt.toISOString(),
+        durationMinutes: duration,
+        courseTitle,
+        message,
+        materialId: DB.courseContext?.id
+      };
+
+      try {
+        await apiRequest('/bookings', {
+          method: 'POST',
+          body: JSON.stringify(bookingData)
+        });
+
+        closeModal();
+        toast('預約成功！');
+
+        // 如果在預約頁面，刷新列表
+        if (current() === 'bookings') {
+          renderBookings();
+        }
+      } catch (error) {
+        toast('預約失敗：' + error.message);
+      }
     }
 
     function toggleFav(teacherId) {
