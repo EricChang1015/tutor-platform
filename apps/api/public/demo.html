@@ -1,0 +1,814 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>家教系統 Demo</title>
+  <style>
+    /* Light theme */
+    :root{
+      --bg:#f7fafc; --surface:#ffffff; --muted:#6b7280; --text:#111827;
+      --brand:#2563eb; --brand-2:#16a34a; --danger:#ef4444; --warn:#f59e0b;
+      --ok:#10b981; --border:#e5e7eb; --chip:#f3f4f6; --chip-2:#eef2ff;
+      --shadow:0 8px 24px rgba(17,24,39,.08);
+      --radius:14px; --radius-sm:10px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+      Roboto, "Noto Sans TC", "Helvetica Neue", Arial, "Apple Color Emoji",
+      "Segoe UI Emoji"; background:var(--bg); color:var(--text);
+    }
+    a{color:var(--brand); text-decoration:none}
+    .container{max-width:1200px; margin:0 auto; padding:16px}
+    header{
+      position:sticky; top:0; background:rgba(255,255,255,.9);
+      backdrop-filter: blur(8px); border-bottom:1px solid var(--border); z-index:10;
+    }
+    .nav{display:flex; align-items:center; gap:12px; padding:10px 16px}
+    .logo{display:flex; align-items:center; gap:10px; font-weight:800; color:#0b1420}
+    .logo-badge{
+      width:34px; height:34px; border-radius:8px; display:grid; place-items:center;
+      color:#fff; background:linear-gradient(135deg,#22c55e,#16a34a); font-size:18px; font-weight:900;
+      box-shadow:0 6px 16px rgba(34,197,94,.35), inset 0 0 10px rgba(255,255,255,.3);
+    }
+    .spacer{flex:1}
+    .tabbar{display:flex; gap:6px; flex-wrap:wrap}
+    .tab{
+      padding:8px 12px; border-radius:10px; background:transparent; border:1px solid var(--border);
+      color:#374151; cursor:pointer; transition:.2s; font-size:14px;
+    }
+    .tab.active{background:#e8f5ff; border-color:#cde6ff; color:#0b4ea2}
+    .search{display:flex; align-items:center; gap:8px; background:#f9fafb; border:1px solid var(--border);
+      padding:6px 10px; border-radius:12px; min-width:220px}
+    .search input{flex:1; background:transparent; border:0; outline:none; color:#111827}
+    .btn{
+      padding:10px 14px; border-radius:12px; border:1px solid var(--border);
+      background:#ffffff; color:#111827; cursor:pointer; transition:.15s;
+      box-shadow:0 2px 0 rgba(0,0,0,0.02);
+    }
+    .btn:hover{filter:brightness(0.98)}
+    .btn.primary{background:linear-gradient(135deg,#3b82f6,#60a5fa); color:#fff; border-color:transparent; font-weight:700}
+    .btn.success{background:linear-gradient(135deg,#34d399,#10b981); color:#fff; border:0; font-weight:700}
+    .btn.warn{background:linear-gradient(135deg,#fde68a,#f59e0b); color:#3b2700; border:0; font-weight:700}
+    .btn.danger{background:linear-gradient(135deg,#fda4a4,#ef4444); color:#fff; border:0; font-weight:700}
+    .btn.ghost{background:#f3f4f6}
+    .btn.small{padding:6px 10px; border-radius:10px; font-size:13px}
+    .btn.icon{display:inline-grid; place-items:center; width:38px; height:38px; padding:0}
+    .badge{display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; background:#eef2ff; color:#1e40af; border:1px solid #e0e7ff}
+    .pill{padding:6px 10px; border-radius:999px; background:#f3f4f6; border:1px solid var(--border); font-size:12px}
+    .row{display:flex; gap:12px; align-items:center}
+    .wrap{flex-wrap:wrap}
+    .grid{display:grid; gap:14px}
+    .grid.cols-2{grid-template-columns:repeat(2,1fr)}
+    .grid.cols-3{grid-template-columns:repeat(3,1fr)}
+    .grid.cols-4{grid-template-columns:repeat(4,1fr)}
+    .card{
+      background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+      padding:14px; box-shadow:var(--shadow);
+    }
+    .subtle{
+      background:#f9fafb; border:1px dashed var(--border); border-radius:var(--radius);
+      padding:14px;
+    }
+    .title{font-size:18px; font-weight:800; margin:8px 0}
+    .muted{color:var(--muted)}
+    .hr{height:1px; background:linear-gradient(90deg,transparent,#e5e7eb,transparent); margin:12px 0}
+    /* Avatars */
+    .avatar{
+      width:54px; height:54px; border-radius:14px; background:linear-gradient(135deg,#e5f9f0,#d1fae5); border:1px solid var(--border);
+      display:grid; place-items:center; font-weight:900; color:#065f46
+    }
+    .avatar.sm{width:36px; height:36px; border-radius:10px; font-size:14px}
+    /* Layout */
+    main{padding:10px}
+    section[hidden]{display:none !important}
+    /* Teacher cards */
+    .teacher-card{display:flex; gap:12px}
+    .teacher-card .actions{display:flex; gap:8px; margin-top:8px; flex-wrap:wrap}
+    .tags{display:flex; gap:6px; flex-wrap:wrap}
+    /* Materials */
+    .materials{display:grid; grid-template-columns:280px 1fr; gap:14px}
+    .tree{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:10px; max-height:60vh; overflow:auto}
+    .tree ul{list-style:none; padding-left:12px; margin:0}
+    .tree li{margin:6px 0}
+    .tree .node{display:flex; gap:8px; align-items:center; padding:6px 8px; border-radius:8px; cursor:pointer}
+    .tree .node.active{background:#eef2ff; border:1px solid #e0e7ff}
+    .node .icon{width:22px; text-align:center}
+    .content-pane{min-height:320px}
+    .pdf{background:#f9fafb; border-radius:10px; padding:20px; border:1px solid var(--border)}
+    /* Schedule */
+    .date-strip{display:flex; gap:8px; overflow:auto; padding-bottom:6px}
+    .date-pill{min-width:110px; text-align:center; padding:8px; border-radius:12px; background:#f3f4f6; border:1px solid var(--border); cursor:pointer}
+    .date-pill.active{background:#e0f2fe; border-color:#bae6fd}
+    .slots{display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:8px}
+    .slot{padding:10px; border-radius:10px; border:1px solid var(--border); background:#ffffff; text-align:center; cursor:pointer}
+    .slot.busy{opacity:.45; text-decoration:line-through; cursor:not-allowed}
+    .slot.selected{outline:2px solid var(--brand)}
+    /* Calendar */
+    .calendar{display:grid; grid-template-columns:repeat(7,1fr); gap:6px}
+    .cal-cell{border:1px solid var(--border); background:#ffffff; min-height:80px; border-radius:10px; padding:6px; position:relative}
+    .cal-cell .dot{position:absolute; right:8px; bottom:6px; width:8px; height:8px; border-radius:50%}
+    .cal-head{display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:6px; color:#6b7280; text-align:center}
+    .dot-blue{background:#3b82f6} .dot-orange{background:#f59e0b} .dot-gray{background:#6b7280}
+    /* Modal & Toast */
+    .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.35); display:grid; place-items:center; z-index:20}
+    .modal{background:var(--surface); border:1px solid var(--border); border-radius:16px; width:min(560px,92vw); padding:18px; box-shadow:var(--shadow)}
+    .toast{position:fixed; right:14px; bottom:14px; background:var(--surface); border:1px solid var(--border); padding:12px 14px; border-radius:12px; z-index:30; box-shadow:var(--shadow)}
+    /* Forms */
+    label{font-size:13px; color:#6b7280}
+    input,select,textarea{
+      width:100%; background:#ffffff; color:#111827;
+      border:1px solid var(--border); border-radius:10px; padding:10px; outline:none
+    }
+    textarea{min-height:80px; resize:vertical}
+    .form-grid{display:grid; gap:10px; grid-template-columns:repeat(2,1fr)}
+    .form-grid > div{display:flex; flex-direction:column; gap:6px}
+    /* Lists & tables */
+    .list{display:flex; flex-direction:column; gap:10px}
+    .item{display:flex; gap:10px; align-items:center; justify-content:space-between; padding:10px; border:1px solid var(--border); border-radius:10px; background:#ffffff}
+    .chips{display:flex; gap:6px; flex-wrap:wrap}
+    table{width:100%; border-collapse:separate; border-spacing:0}
+    th{font-size:12px; text-transform:uppercase; color:#6b7280; background:#f9fafb; border-bottom:1px solid var(--border)}
+    th, td{padding:12px; text-align:left}
+    tr{border-bottom:1px solid var(--border)}
+    tr:hover td{background:#fafafa}
+    .hidden{display:none !important}
+    /* Responsive */
+    @media (max-width: 900px){
+      .grid.cols-3{grid-template-columns:repeat(2,1fr)}
+      .grid.cols-4{grid-template-columns:repeat(2,1fr)}
+      .materials{grid-template-columns:1fr}
+    }
+    @media (max-width: 560px){
+      .grid.cols-3,.grid.cols-4{grid-template-columns:1fr}
+      .slots{grid-template-columns:1fr}
+      .search{min-width:unset; width:100%}
+      .tabbar{width:100%; overflow:auto}
+      th:nth-child(3), td:nth-child(3){white-space:nowrap}
+    }
+    .hint{font-size:12px; color:#6b7280}
+    .welcome{
+      background:linear-gradient(90deg,#16a34a,#15803d); color:#fff; border-radius:16px; padding:18px; box-shadow:var(--shadow)
+    }
+    .status-chip{display:inline-flex; align-items:center; padding:4px 8px; border-radius:999px; font-size:12px; font-weight:600}
+    .status-upcoming{background:#dbeafe; color:#1d4ed8}
+    .status-completed{background:#e5e7eb; color:#374151}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="nav">
+      <div class="logo"><div class="logo-badge">TG</div>家教系統 Demo</div>
+      <div class="spacer"></div>
+      <div id="searchBar" class="search hidden">
+        <span>🔎</span>
+        <input id="globalSearch" placeholder="搜尋老師、擅長領域、地區…" />
+      </div>
+      <div id="tabbar" class="tabbar"></div>
+      <div class="spacer"></div>
+      <button id="notifBtn" class="btn icon hidden" title="通知">🔔<span id="notifDot" class="badge hidden">0</span></button>
+      <div id="userMenu" class="row">
+        <button id="resetBtn" class="btn small ghost hidden">重置 Demo</button>
+        <button id="loginBtn" class="btn primary">登入</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Login -->
+    <section id="view-login">
+      <div class="grid cols-2">
+        <div class="card">
+          <div class="title">登入</div>
+          <div class="muted">使用下方帳密體驗不同角色（admin / student / teacher）。</div>
+          <div class="hr"></div>
+          <div class="form-grid">
+            <div><label>帳號</label><input id="login-username" placeholder="admin@example.com" /></div>
+            <div><label>密碼</label><input id="login-password" type="password" placeholder="password" /></div>
+          </div>
+          <div class="row wrap" style="margin-top:10px">
+            <button id="login-submit" class="btn success">登入</button>
+            <span class="hint">初次開啟會自動建立示範資料。</span>
+          </div>
+          <div class="hr"></div>
+          <div class="chips">
+            <button class="btn small" data-demo-fill="admin">填入 admin</button>
+            <button class="btn small" data-demo-fill="student">填入 student</button>
+            <button class="btn small" data-demo-fill="teacher">填入 teacher</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="title">本 Demo 特色</div>
+          <ul>
+            <li>推薦教師：卡片清單、收藏、查看 Profile、預約。</li>
+            <li>教材：資料夾樹、教材頁/模擬 PDF、從教材帶入預約。</li>
+            <li>預約課表：半小時切片、留言、行事曆 .ics。</li>
+            <li>我的預約：先列表、後日曆；取消/改期、評價。</li>
+            <li>老師端：可用時段設定、預約列表、相簿上傳。</li>
+            <li>管理端：教材管理、教師上架、評價審核。</li>
+            <li>通知中心：預約/審核等事件推播。</li>
+          </ul>
+          <div class="subtle">
+            <b>提示：</b>所有資料透過真實API提供，點「重置 Demo」可回到出廠狀態。
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Teachers -->
+    <section id="view-teachers" hidden>
+      <div class="row wrap">
+        <div class="title">推薦教師</div>
+        <span class="pill" id="courseContext">預約課程：自由對話</span>
+        <div class="spacer"></div>
+        <div class="row wrap">
+          <select id="filter-tag" class="pill">
+            <option value="">全部領域</option>
+            <option>English</option>
+            <option>Conversation</option>
+            <option>Pronunciation</option>
+            <option>IELTS</option>
+          </select>
+          <select id="filter-region" class="pill">
+            <option value="">全部地區</option>
+            <option>Taiwan</option>
+          </select>
+          <select id="filter-sort" class="pill">
+            <option value="rating">排序：評分</option>
+            <option value="exp">排序：年資</option>
+            <option value="soonest">排序：最近可約</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid cols-3" id="teachersGrid"></div>
+    </section>
+
+    <!-- Teacher Profile -->
+    <section id="view-teacher-profile" hidden></section>
+
+    <!-- Materials -->
+    <section id="view-materials" hidden>
+      <div class="row wrap">
+        <div class="title">教材</div>
+        <div class="spacer"></div>
+        <div id="materials-actions" class="row wrap hidden">
+          <button class="btn small" data-mt-action="add-folder">＋ 新增資料夾</button>
+          <button class="btn small" data-mt-action="add-page">＋ 新增教材頁</button>
+          <button class="btn small" data-mt-action="add-pdf">＋ 新增 PDF</button>
+        </div>
+      </div>
+      <div class="materials">
+        <div class="tree" id="materialsTree"></div>
+        <div class="card content-pane" id="materialsContent"></div>
+      </div>
+    </section>
+
+    <!-- Schedule -->
+    <section id="view-schedule" hidden></section>
+
+    <!-- Bookings -->
+    <section id="view-bookings" hidden></section>
+
+    <!-- Student Profile -->
+    <section id="view-student" hidden></section>
+
+    <!-- Teacher Dashboard -->
+    <section id="view-teacher-dashboard" hidden></section>
+
+    <!-- Admin -->
+    <section id="view-admin" hidden></section>
+  </main>
+
+  <!-- Modal + Toast -->
+  <div id="modalHost" class="modal-backdrop hidden"><div class="modal" id="modalBox"></div></div>
+  <div id="toastHost" class="toast hidden"></div>
+
+  <script>
+    // API 基礎設定
+    const API_BASE = window.location.origin;
+    let accessToken = '';
+    let currentUser = null;
+    let DB = {
+      courseContext: null,
+      favorites: {},
+      notifications: []
+    };
+
+    // 工具函數
+    const $ = sel => document.querySelector(sel);
+    const el = (tag, attrs={}, ...children) => {
+      const node = document.createElement(tag);
+      Object.entries(attrs||{}).forEach(([k,v])=>{
+        if(k==='class') node.className=v;
+        else if(k==='html') node.innerHTML=v;
+        else if(k.startsWith('on') && typeof v==='function') node.addEventListener(k.substring(2), v);
+        else if(v!==undefined) node.setAttribute(k,v);
+      });
+      children.forEach(c=>{
+        if(c==null) return;
+        if(typeof c==='string') node.appendChild(document.createTextNode(c));
+        else node.appendChild(c);
+      });
+      return node;
+    };
+
+    const fmtDate = d => new Date(d).toLocaleDateString('zh-TW', {month:'2-digit', day:'2-digit', weekday:'short'});
+    const fmtDateFull = d => new Date(d).toLocaleString('zh-TW', {year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
+    const toast = (msg)=>{ const t=$("#toastHost"); t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'), 2200); };
+    const openModal = (node)=>{ $("#modalBox").innerHTML=''; $("#modalBox").appendChild(node); $("#modalHost").classList.remove('hidden'); };
+    const closeModal = ()=> $("#modalHost").classList.add('hidden');
+    $("#modalHost").addEventListener('click', e=>{ if(e.target.id==='modalHost') closeModal(); });
+
+    // API 請求函數
+    async function apiRequest(endpoint, options = {}) {
+      const url = `${API_BASE}${endpoint}`;
+      const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+      };
+
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+      }
+
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          return await response.json();
+        }
+        return null;
+      } catch (error) {
+        console.error('API Request failed:', error);
+        toast('API 請求失敗: ' + error.message);
+        throw error;
+      }
+    }
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeApp();
+    });
+
+    function initializeApp() {
+      setupEventListeners();
+      headerUI();
+      goto('login');
+    }
+
+    function setupEventListeners() {
+      // 登入相關
+      $("#login-submit").addEventListener('click', doLogin);
+      $("#loginBtn").addEventListener('click', () => goto('login'));
+      
+      // Demo 填入按鈕
+      document.querySelectorAll('[data-demo-fill]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const role = e.target.dataset.demoFill;
+          fillDemoCredentials(role);
+        });
+      });
+
+      // Tab 導航
+      $("#tabbar").addEventListener('click', (e) => {
+        if (e.target.dataset.go) {
+          goto(e.target.dataset.go);
+        }
+      });
+
+      // 重置按鈕
+      $("#resetBtn").addEventListener('click', resetDemo);
+    }
+
+    function fillDemoCredentials(role) {
+      const credentials = {
+        admin: { username: 'admin@example.com', password: 'password' },
+        student: { username: 'student1@example.com', password: 'password' },
+        teacher: { username: 'teacher1@example.com', password: 'password' }
+      };
+
+      if (credentials[role]) {
+        $("#login-username").value = credentials[role].username;
+        $("#login-password").value = credentials[role].password;
+      }
+    }
+
+    // 路由系統
+    const ROUTES = ['login','teachers','teacher-profile','materials','schedule','bookings','student','teacher-dashboard','admin'];
+    const goto = (hash)=>{ location.hash = '#/'+hash; };
+    const current = ()=> (location.hash.replace('#/','')||'login');
+
+    window.addEventListener('hashchange', render);
+
+    function render() {
+      const route = current();
+      showOnly('view-' + route.split('/')[0]);
+      
+      if (route.startsWith('teachers') && route !== 'teachers') {
+        renderTeachers();
+      } else if (route === 'teachers') {
+        renderTeachers();
+      } else if (route === 'materials') {
+        renderMaterials();
+      } else if (route === 'bookings') {
+        renderBookings();
+      }
+    }
+
+    function showOnly(id) {
+      ['view-login','view-teachers','view-teacher-profile','view-materials','view-schedule','view-bookings','view-student','view-teacher-dashboard','view-admin']
+      .forEach(v => $( '#'+v ).hidden = (v!==id));
+    }
+
+    // 認證相關函數
+    async function doLogin() {
+      const username = $("#login-username").value;
+      const password = $("#login-password").value;
+
+      if (!username || !password) {
+        toast('請輸入帳號和密碼');
+        return;
+      }
+
+      try {
+        const response = await apiRequest('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ username, password })
+        });
+
+        if (response.accessToken) {
+          accessToken = response.accessToken;
+          currentUser = response.user;
+          headerUI();
+          goto('teachers');
+          toast(`歡迎，${currentUser.name || currentUser.username}`);
+        }
+      } catch (error) {
+        toast('登入失敗：' + error.message);
+      }
+    }
+
+    async function doLogout() {
+      try {
+        if (accessToken) {
+          await apiRequest('/auth/logout', { method: 'POST' });
+        }
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+
+      accessToken = '';
+      currentUser = null;
+      headerUI();
+      goto('login');
+      toast('已登出');
+    }
+
+    // 頭部UI更新
+    function headerUI() {
+      const logged = !!currentUser;
+      $("#loginBtn").classList.toggle('hidden', logged);
+      $("#searchBar").classList.toggle('hidden', !logged);
+      $("#notifBtn").classList.toggle('hidden', !logged);
+      $("#resetBtn").classList.toggle('hidden', !logged);
+
+      if (logged) {
+        const menu = $("#userMenu");
+        let logoutBtn = menu.querySelector('#logoutBtn');
+        if (!logoutBtn) {
+          logoutBtn = el('button', {id:'logoutBtn', class:'btn'}, `登出（${currentUser.name || currentUser.username}）`);
+          logoutBtn.addEventListener('click', doLogout);
+          menu.appendChild(logoutBtn);
+        }
+      } else {
+        const logoutBtn = $("#userMenu").querySelector('#logoutBtn');
+        if (logoutBtn) logoutBtn.remove();
+      }
+
+      navTabs();
+    }
+
+    function navTabs() {
+      const role = currentUser?.role;
+      const bar = $("#tabbar");
+      bar.innerHTML = '';
+
+      const addTab = (key, label, opts = {}) => {
+        const b = el('button', {class:'tab', 'data-go':key}, label);
+        if (current().startsWith(key)) b.classList.add('active');
+        if (opts.hide) b.classList.add('hidden');
+        bar.appendChild(b);
+      };
+
+      addTab('teachers', '推薦教師', {hide: !role});
+      addTab('materials', '教材', {hide: !role});
+      addTab('bookings', '我的預約', {hide: !role});
+      if (role === 'student') addTab('student', '我的資料');
+      if (role === 'teacher') addTab('teacher-dashboard', '老師後台');
+      if (role === 'admin') addTab('admin', '管理後台');
+    }
+
+    // 教師列表渲染
+    async function renderTeachers() {
+      showOnly('view-teachers');
+      $("#courseContext").textContent = '預約課程：' + (DB.courseContext?.name || '自由對話');
+
+      try {
+        const response = await apiRequest('/teachers');
+        const teachers = response.items || [];
+
+        const grid = $("#teachersGrid");
+        grid.innerHTML = '';
+
+        teachers.forEach(teacher => {
+          const card = createTeacherCard(teacher);
+          grid.appendChild(card);
+        });
+
+      } catch (error) {
+        console.error('Failed to load teachers:', error);
+        toast('載入教師列表失敗');
+      }
+    }
+
+    function createTeacherCard(teacher) {
+      const initials = teacher.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+      return el('div', {class: 'card teacher-card'},
+        el('div', {class: 'avatar', title: teacher.name}, initials),
+        el('div', {},
+          el('div', {class: 'row wrap'},
+            el('div', {class: 'title'}, teacher.name),
+            el('span', {class: 'badge'}, `地區：${teacher.region}`),
+            el('span', {class: 'badge'}, `經驗：${teacher.experienceYears} 年`),
+            el('span', {class: 'badge'}, `評分：${teacher.rating}`)
+          ),
+          el('div', {class: 'tags'}, ...teacher.domains.map(domain => el('span', {class: 'pill'}, domain))),
+          el('div', {class: 'muted'}, teacher.introSnippet || '專業教師'),
+          el('div', {class: 'actions'},
+            el('button', {class: 'btn small', onclick: () => openTeacherProfile(teacher.id)}, '查看 Profile'),
+            el('button', {class: 'btn small primary', onclick: () => openSchedule(teacher.id)}, '預約'),
+            currentUser?.role === 'student'
+              ? el('button', {class: 'btn small', onclick: () => toggleFav(teacher.id)}, '☆ 收藏')
+              : null
+          )
+        )
+      );
+    }
+
+    // 教師詳情
+    async function openTeacherProfile(teacherId) {
+      try {
+        const teacher = await apiRequest(`/teachers/${teacherId}`);
+        renderTeacherProfile(teacher);
+        goto(`teacher-profile/${teacherId}`);
+      } catch (error) {
+        toast('載入教師詳情失敗');
+      }
+    }
+
+    function renderTeacherProfile(teacher) {
+      showOnly('view-teacher-profile');
+      const wrap = $("#view-teacher-profile");
+      wrap.innerHTML = '';
+
+      const initials = teacher.name[0];
+
+      wrap.appendChild(el('div', {class: 'card'},
+        el('div', {class: 'row wrap'},
+          el('div', {class: 'avatar'}, initials),
+          el('div', {},
+            el('div', {class: 'title'}, teacher.name),
+            el('div', {class: 'chips'},
+              el('span', {class: 'badge'}, `地區：${teacher.region}`),
+              el('span', {class: 'badge'}, `年資：${teacher.experienceYears} 年`),
+              el('span', {class: 'badge'}, `評分：${teacher.rating}`)
+            )
+          ),
+          el('div', {class: 'spacer'}),
+          el('div', {class: 'row wrap'},
+            el('button', {class: 'btn primary small', onclick: () => openSchedule(teacher.id)}, '一鍵預約'),
+            el('button', {class: 'btn small', onclick: () => goto('teachers')}, '返回列表')
+          )
+        ),
+        el('div', {class: 'tags', style: 'margin-top:6px'}, ...teacher.domains.map(x => el('span', {class: 'pill'}, x))),
+        el('div', {class: 'hr'}),
+        el('div', {}, el('b', {}, '自我介紹'), el('div', {class: 'muted'}, teacher.intro || '專業教師，歡迎預約課程'))
+      ));
+    }
+
+    // 預約相關
+    function openSchedule(teacherId) {
+      toast('預約功能開發中...');
+      // TODO: 實現預約功能
+    }
+
+    function toggleFav(teacherId) {
+      toast('收藏功能開發中...');
+      // TODO: 實現收藏功能
+    }
+
+    // 教材相關
+    async function renderMaterials() {
+      showOnly('view-materials');
+      $("#materials-actions").classList.toggle('hidden', currentUser?.role !== 'admin');
+
+      try {
+        const response = await apiRequest('/materials?include=all');
+        renderMaterialsTree(response.folders || []);
+        renderMaterialsContent();
+      } catch (error) {
+        console.error('Failed to load materials:', error);
+        toast('載入教材失敗');
+      }
+    }
+
+    function renderMaterialsTree(folders) {
+      const tree = $("#materialsTree");
+      tree.innerHTML = '';
+
+      if (folders.length === 0) {
+        tree.appendChild(el('div', {class: 'muted'}, '暫無教材'));
+        return;
+      }
+
+      const ul = el('ul');
+      folders.forEach(folder => {
+        ul.appendChild(createFolderNode(folder));
+      });
+      tree.appendChild(ul);
+    }
+
+    function createFolderNode(folder) {
+      const li = el('li');
+      const icon = folder.type === 'folder' ? '📁' : '📄';
+      const nodeEl = el('div', {
+        class: 'node',
+        onclick: () => selectMaterial(folder)
+      },
+        el('span', {class: 'icon'}, icon),
+        el('span', {}, folder.name)
+      );
+
+      li.appendChild(nodeEl);
+
+      if (folder.children?.length) {
+        const subUl = el('ul');
+        folder.children.forEach(child => {
+          subUl.appendChild(createFolderNode(child));
+        });
+        li.appendChild(subUl);
+      }
+
+      return li;
+    }
+
+    function selectMaterial(material) {
+      // 移除之前的選中狀態
+      document.querySelectorAll('.tree .node.active').forEach(node => {
+        node.classList.remove('active');
+      });
+
+      // 添加當前選中狀態
+      event.currentTarget.classList.add('active');
+
+      renderMaterialsContent(material);
+    }
+
+    function renderMaterialsContent(material) {
+      const pane = $("#materialsContent");
+      pane.innerHTML = '';
+
+      if (!material) {
+        pane.appendChild(el('div', {class: 'title'}, '選擇教材'));
+        pane.appendChild(el('div', {class: 'muted'}, '請從左側選擇教材查看內容'));
+        return;
+      }
+
+      pane.appendChild(el('div', {class: 'title'}, material.name));
+
+      if (material.type === 'folder') {
+        pane.appendChild(el('div', {class: 'muted'}, '這是一個資料夾，包含多個教材項目'));
+        pane.appendChild(el('div', {class: 'row wrap'},
+          el('button', {class: 'btn', onclick: () => selectCourseContext(material)}, '選擇此課程')
+        ));
+      } else {
+        pane.appendChild(el('div', {class: 'card'}, '教材內容預覽區域'));
+        pane.appendChild(el('div', {class: 'row wrap'},
+          el('button', {class: 'btn primary', onclick: () => selectCourseContext(material)}, '預約老師'),
+          el('span', {class: 'hint'}, '將帶入推薦教師頁，並於預約時自動填入教材')
+        ));
+      }
+    }
+
+    function selectCourseContext(material) {
+      DB.courseContext = {id: material.id, name: material.name};
+      goto('teachers');
+      toast('已帶入教材至預約流程');
+    }
+
+    // 預約列表
+    async function renderBookings() {
+      showOnly('view-bookings');
+      const wrap = $("#view-bookings");
+      wrap.innerHTML = '';
+
+      // 歡迎橫幅
+      wrap.appendChild(el('div', {class: 'welcome'},
+        el('h1', {style: 'margin:0; font-size:20px; font-weight:800'}, `歡迎回來，${currentUser?.name || '用戶'}！`),
+        el('p', {style: 'margin:6px 0 0; color:#e7ffe7'}, '準備好開始今天的學習之旅了嗎？')
+      ));
+
+      try {
+        const response = await apiRequest('/bookings');
+        const bookings = response.items || [];
+
+        // 當前預約
+        const listCard = el('div', {class: 'card', style: 'margin-top:16px'},
+          el('div', {class: 'row wrap'},
+            el('h2', {class: 'title', style: 'margin:0'}, '當前預約'),
+            el('div', {class: 'spacer'}),
+            el('button', {class: 'btn small ghost', onclick: () => goto('teachers')}, '去預約更多')
+          )
+        );
+
+        if (bookings.length === 0) {
+          listCard.appendChild(el('div', {class: 'muted', style: 'padding:12px'}, '目前沒有預約課程'));
+        } else {
+          const table = createBookingsTable(bookings);
+          listCard.appendChild(table);
+        }
+
+        wrap.appendChild(listCard);
+
+      } catch (error) {
+        console.error('Failed to load bookings:', error);
+        wrap.appendChild(el('div', {class: 'card'},
+          el('div', {class: 'muted'}, '載入預約列表失敗')
+        ));
+      }
+    }
+
+    function createBookingsTable(bookings) {
+      const table = el('table');
+      const thead = el('thead', {}, el('tr', {},
+        el('th', {}, '課程'),
+        el('th', {}, '老師'),
+        el('th', {}, '時間'),
+        el('th', {}, '狀態'),
+        el('th', {}, '操作')
+      ));
+
+      const tbody = el('tbody');
+      bookings.forEach(booking => {
+        const tr = el('tr', {},
+          el('td', {}, booking.courseTitle || '自由對話'),
+          el('td', {}, booking.teacher?.name || '未知老師'),
+          el('td', {}, fmtDateFull(booking.startsAt)),
+          el('td', {}, el('span', {class: 'status-chip status-upcoming'}, '即將開始')),
+          el('td', {},
+            el('div', {class: 'row wrap'},
+              el('button', {class: 'btn small'}, '詳情'),
+              el('button', {class: 'btn small danger'}, '取消')
+            )
+          )
+        );
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(thead);
+      table.appendChild(tbody);
+      return table;
+    }
+
+    // 重置Demo
+    async function resetDemo() {
+      if (!currentUser || currentUser.role !== 'admin') {
+        toast('此功能需要管理員權限');
+        return;
+      }
+
+      if (!confirm('確定要重置所有Demo資料嗎？')) {
+        return;
+      }
+
+      try {
+        await apiRequest('/admin/reset-data', { method: 'POST' });
+        toast('Demo資料已重置');
+      } catch (error) {
+        toast('重置失敗：' + error.message);
+      }
+    }
+  </script>
+</body>
+</html>
