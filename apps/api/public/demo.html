@@ -637,7 +637,7 @@
       const tree = $("#materialsTree");
       tree.innerHTML = '';
 
-      if (folders.length === 0) {
+      if (!folders || folders.length === 0) {
         tree.appendChild(el('div', {class: 'muted'}, '暫無教材'));
         return;
       }
@@ -651,7 +651,7 @@
 
     function createFolderNode(folder) {
       const li = el('li');
-      const icon = folder.type === 'folder' ? '📁' : '📄';
+      const icon = '📁';
       const nodeEl = el('div', {
         class: 'node',
         onclick: () => selectMaterial(folder)
@@ -662,12 +662,32 @@
 
       li.appendChild(nodeEl);
 
+      // 添加子資料夾
       if (folder.children?.length) {
         const subUl = el('ul');
         folder.children.forEach(child => {
           subUl.appendChild(createFolderNode(child));
         });
         li.appendChild(subUl);
+      }
+
+      // 添加教材項目
+      if (folder.materials?.length) {
+        const materialsUl = el('ul');
+        folder.materials.forEach(material => {
+          const materialLi = el('li');
+          const materialIcon = material.type === 'pdf' ? '📄' : '📝';
+          const materialNode = el('div', {
+            class: 'node',
+            onclick: () => selectMaterial(material)
+          },
+            el('span', {class: 'icon'}, materialIcon),
+            el('span', {}, material.title)
+          );
+          materialLi.appendChild(materialNode);
+          materialsUl.appendChild(materialLi);
+        });
+        li.appendChild(materialsUl);
       }
 
       return li;
@@ -695,15 +715,26 @@
         return;
       }
 
-      pane.appendChild(el('div', {class: 'title'}, material.name));
+      const title = material.name || material.title || '未命名';
+      pane.appendChild(el('div', {class: 'title'}, title));
 
-      if (material.type === 'folder') {
+      if (material.name && !material.type) {
+        // 這是一個資料夾
         pane.appendChild(el('div', {class: 'muted'}, '這是一個資料夾，包含多個教材項目'));
+        const childCount = (material.children?.length || 0) + (material.materials?.length || 0);
+        pane.appendChild(el('div', {class: 'muted'}, `包含 ${childCount} 個項目`));
         pane.appendChild(el('div', {class: 'row wrap'},
           el('button', {class: 'btn', onclick: () => selectCourseContext(material)}, '選擇此課程')
         ));
       } else {
-        pane.appendChild(el('div', {class: 'card'}, '教材內容預覽區域'));
+        // 這是一個教材
+        const content = material.content || '暫無內容描述';
+        pane.appendChild(el('div', {class: 'muted'}, `類型：${material.type === 'pdf' ? 'PDF文件' : '教材頁面'}`));
+        pane.appendChild(el('div', {class: 'hr'}));
+        pane.appendChild(el('div', {class: 'card'},
+          el('h4', {}, '教材內容'),
+          el('p', {}, content)
+        ));
         pane.appendChild(el('div', {class: 'row wrap'},
           el('button', {class: 'btn primary', onclick: () => selectCourseContext(material)}, '預約老師'),
           el('span', {class: 'hint'}, '將帶入推薦教師頁，並於預約時自動填入教材')
@@ -712,7 +743,8 @@
     }
 
     function selectCourseContext(material) {
-      DB.courseContext = {id: material.id, name: material.name};
+      const name = material.name || material.title || '未命名教材';
+      DB.courseContext = {id: material.id, name: name};
       goto('teachers');
       toast('已帶入教材至預約流程');
     }
