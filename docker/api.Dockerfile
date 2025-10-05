@@ -1,6 +1,9 @@
 # NestJS API Dockerfile
 FROM node:18-alpine
 
+# 安裝編譯工具（bcrypt 需要）
+RUN apk add --no-cache python3 make g++
+
 # 設定工作目錄
 WORKDIR /app
 

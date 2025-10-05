@@ -8,7 +8,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 
 import { BookingsService } from './bookings.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -22,13 +22,19 @@ export class BookingsController {
 
   @Get()
   @ApiOperation({ summary: '我的預約清單' })
+  @ApiQuery({ name: 'timezone', description: 'IANA 時區名稱', example: 'Asia/Taipei', required: false })
+  @ApiQuery({ name: 'roleView', description: '角色視圖 (student/teacher)', required: false })
+  @ApiQuery({ name: 'status', description: '狀態過濾 (upcoming/past/canceled/pending)', required: false })
   @ApiResponse({ status: 200, description: '預約清單' })
   async getBookings(@Query() query: any, @Request() req) {
     return this.bookingsService.findUserBookings(req.user.sub, query);
   }
 
   @Post()
-  @ApiOperation({ summary: '建立預約' })
+  @ApiOperation({
+    summary: '建立預約',
+    description: 'startsAt 應為 ISO 8601 格式（含時區），例如: 2025-10-05T14:00:00+08:00'
+  })
   @ApiResponse({ status: 201, description: '預約建立成功' })
   @ApiResponse({ status: 409, description: '時間衝突' })
   @ApiResponse({ status: 422, description: '政策違反' })

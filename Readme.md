@@ -2,6 +2,27 @@
 ## 📋 項目概述
 Tutor Platform 是一個完整的線上家教平台後端系統，提供從用戶管理到課程結算的全套功能。
 
+## 🌍 時區支援 (2025-10-05 新增)
+系統現已支援完整的時區功能，確保全球用戶都能正確預約和查看課程時間：
+
+### 核心特性
+- **多時區支援**: 支援全球主要時區，包括 Asia/Taipei、America/New_York、Europe/London 等
+- **自動時區轉換**: 所有時間在資料庫中以 UTC 儲存，前端顯示時自動轉換為用戶本地時間
+- **教師時區設定**: 每位教師可設定自己的時區，系統會自動處理跨時區預約
+- **智能衝突檢查**: 預約衝突檢查考慮時區差異，確保預約準確性
+
+### API 時區參數
+所有時間相關的 API 端點都支援 `timezone` 參數：
+- `GET /teacher-availability/search-teachers?timezone=America/New_York`
+- `GET /teacher-availability/teacher-timetable?timezone=Europe/London`
+- `GET /bookings?timezone=Asia/Tokyo`
+- `POST /bookings` (startsAt 使用 ISO 8601 格式含時區資訊)
+
+### 時間格式
+- **輸入**: ISO 8601 格式，例如 `2025-10-06T14:00:00+08:00`
+- **輸出**: 同時提供 UTC 時間和本地時間
+- **資料庫**: 統一使用 TIMESTAMPTZ 類型儲存 UTC 時間
+
 ## Agent 系統提示（System Prompt）
 請嚴格按照以下區塊輸出，方便複製執行：
 1) .todo 計劃草案

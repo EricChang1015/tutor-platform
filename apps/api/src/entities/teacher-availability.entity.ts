@@ -48,6 +48,12 @@ export class TeacherAvailability {
   @Column({ nullable: true })
   reason?: string; // 不可用的原因
 
+  @Column({ name: 'start_time_utc', type: 'timestamptz', nullable: true })
+  startTimeUtc?: Date; // UTC 開始時間
+
+  @Column({ name: 'end_time_utc', type: 'timestamptz', nullable: true })
+  endTimeUtc?: Date; // UTC 結束時間
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

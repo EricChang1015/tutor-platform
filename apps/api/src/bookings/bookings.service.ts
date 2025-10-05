@@ -6,6 +6,8 @@ import { User, UserRole } from '../entities/user.entity';
 import { Purchase, PurchaseType } from '../entities/purchase.entity';
 import { TeacherAvailabilityService } from '../teacher-availability/teacher-availability.service';
 import { TimeSlotUtil } from '../common/time-slots.util';
+import { TimezoneUtil } from '../utils/timezone';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class BookingsService {
@@ -20,7 +22,7 @@ export class BookingsService {
   ) {}
 
   async findUserBookings(userId: string, query: any = {}) {
-    const { page = 1, pageSize = 20, roleView, from, to, status, sort } = query;
+    const { page = 1, pageSize = 20, roleView, from, to, status, sort, timezone = 'Asia/Taipei' } = query;
     
     const queryBuilder = this.bookingRepository
       .createQueryBuilder('booking')
@@ -86,45 +88,41 @@ export class BookingsService {
     const [items, total] = await queryBuilder.getManyAndCount();
 
     return {
-      items: items.map(booking => this.formatBookingSummary(booking)),
+      items: items.map(booking => this.formatBookingSummary(booking, timezone)),
       page,
       pageSize,
       total,
+      timezone,
     };
   }
 
   async createBooking(createBookingDto: any, userId: string) {
-    const { teacherId, startsAt, durationMinutes = 30 } = createBookingDto;
+    const { teacherId, startsAt, durationMinutes = 30, timezone = 'Asia/Taipei' } = createBookingDto;
+
+    // 驗證時區
+    if (!TimezoneUtil.isValidTimezone(timezone)) {
+      throw new BadRequestException(`Invalid timezone: ${timezone}`);
+    }
 
     // 驗證必要參數
     if (!teacherId || !startsAt) {
       throw new BadRequestException('Missing required parameters: teacherId, startsAt');
     }
 
-    // 驗證持續時間必須是30分鐘的倍數
-    if (durationMinutes % 30 !== 0) {
-      throw new BadRequestException('Duration must be a multiple of 30 minutes');
+    // 使用時區工具驗證預約時間
+    const validation = TimezoneUtil.validateBookingTime(startsAt, durationMinutes);
+    if (!validation.valid) {
+      throw new BadRequestException(validation.error);
     }
 
-    const startDate = new Date(startsAt);
+    // 將 ISO 8601 時間字串轉換為 UTC Date
+    const startDate = TimezoneUtil.isoToUtcDate(startsAt);
     const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
 
     // 驗證時間槽對齊 - 必須從整點或半點開始
-    const startMinutes = startDate.getMinutes();
+    const startMinutes = startDate.getUTCMinutes();
     if (startMinutes !== 0 && startMinutes !== 30) {
       throw new BadRequestException('Booking must start at :00 or :30 minutes');
-    }
-
-    // 計算需要的時間槽
-    const dateStr = startDate.toISOString().split('T')[0];
-    const startSlot = TimeSlotUtil.dateToSlot(startDate);
-    const slotsNeeded = TimeSlotUtil.getDurationSlots(durationMinutes);
-    const timeSlots = Array.from({ length: slotsNeeded }, (_, i) => startSlot + i);
-
-    // 驗證時間槽有效性
-    const invalidSlots = timeSlots.filter(slot => !TimeSlotUtil.isValidSlot(slot));
-    if (invalidSlots.length > 0) {
-      throw new BadRequestException('Invalid time slots');
     }
 
     // 檢查教師是否存在且為教師角色
@@ -133,6 +131,27 @@ export class BookingsService {
     });
     if (!teacher) {
       throw new NotFoundException('Teacher not found');
+    }
+
+    // 獲取教師的時區
+    const teacherTimezone = teacher.timezone || 'Asia/Taipei';
+
+    // 將用戶時間轉換為教師時區，然後計算時間槽
+    const utcDateTime = DateTime.fromISO(startsAt);
+    const teacherLocalDateTime = utcDateTime.setZone(teacherTimezone);
+    const { date: dateStr, timeSlot: startSlot } = TimezoneUtil.utcToSlot(utcDateTime, teacherTimezone);
+
+    // 計算需要的時間槽
+    const slotsNeeded = Math.ceil(durationMinutes / 30);
+    const timeSlots: number[] = [];
+    for (let i = 0; i < slotsNeeded; i++) {
+      timeSlots.push(startSlot + i);
+    }
+
+    // 驗證時間槽有效性
+    const invalidSlots = timeSlots.filter(slot => !TimeSlotUtil.isValidSlot(slot));
+    if (invalidSlots.length > 0) {
+      throw new BadRequestException('Invalid time slots');
     }
 
     // 檢查教師在該時間段是否可用
@@ -213,25 +232,36 @@ export class BookingsService {
     return this.formatBookingDetail(booking);
   }
 
-  private formatBookingSummary(booking: Booking) {
+  private formatBookingSummary(booking: Booking, userTimezone: string = 'Asia/Taipei') {
+    // 獲取教師時區
+    const teacherTimezone = booking.teacher?.timezone || 'Asia/Taipei';
+
     return {
       id: booking.id,
       teacher: {
         id: booking.teacher.id,
         name: booking.teacher.name,
         avatarUrl: booking.teacher.avatarUrl,
+        timezone: teacherTimezone,
       },
       student: {
         id: booking.student.id,
         name: booking.student.name,
       },
-      startsAt: booking.startsAt,
-      endsAt: booking.endsAt,
+      startsAt: booking.startsAt, // UTC 時間
+      endsAt: booking.endsAt, // UTC 時間
+      startsAtLocal: TimezoneUtil.formatTime(booking.startsAt, userTimezone, 'yyyy-MM-dd HH:mm:ss'),
+      endsAtLocal: TimezoneUtil.formatTime(booking.endsAt, userTimezone, 'yyyy-MM-dd HH:mm:ss'),
+      teacherLocalTime: TimezoneUtil.formatTime(booking.startsAt, teacherTimezone, 'yyyy-MM-dd HH:mm:ss'),
       status: booking.status,
       materialId: booking.materialId,
       lastMessageAt: booking.lastMessageAt,
       meetingUrl: booking.meetingUrl,
       source: booking.source,
+      timezones: {
+        teacher: teacherTimezone,
+        user: userTimezone,
+      },
     };
   }
 

@@ -42,10 +42,10 @@ export class Booking {
   @Column({ name: 'teacher_id' })
   teacherId: string;
 
-  @Column({ name: 'starts_at' })
+  @Column({ name: 'starts_at', type: 'timestamptz' })
   startsAt: Date;
 
-  @Column({ name: 'ends_at' })
+  @Column({ name: 'ends_at', type: 'timestamptz' })
   endsAt: Date;
 
   @Column({

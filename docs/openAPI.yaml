@@ -1,9 +1,10 @@
 openapi: 3.0.0
 info:
   title: 家教系統 API
-  version: 1.1.0
+  version: 1.2.0
   description: >
-    MVP 對齊需求 + 可擴展。時間 ISO 8601（UTC）；查詢可帶 tz 僅影響呈現。
+    MVP 對齊需求 + 可擴展。完整時區支援，時間 ISO 8601（含時區）；查詢可帶 timezone 參數。
+    - 時區：支援全球時區，資料庫存 UTC，API 自動轉換本地時間
     - 分頁：page=1、pageSize=20（<=100）
     - 排序：sort=field:asc|desc，多欄逗號分隔
     - 衝突 409，政策違反 422，權限 403
