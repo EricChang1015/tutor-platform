@@ -58,6 +58,18 @@
     .btn.icon{display:inline-grid; place-items:center; width:38px; height:38px; padding:0}
     .badge{display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; background:#eef2ff; color:#1e40af; border:1px solid #e0e7ff}
     .pill{padding:6px 10px; border-radius:999px; background:#f3f4f6; border:1px solid var(--border); font-size:12px}
+    /* 時區選擇器樣式 */
+    .timezone-selector{
+      display:flex; align-items:center; gap:8px; background:#f0f9ff; border:1px solid #bae6fd;
+      padding:8px 12px; border-radius:12px; margin:8px 0;
+    }
+    .timezone-selector select{
+      background:white; border:1px solid #cbd5e1; border-radius:8px; padding:4px 8px;
+      font-size:13px; color:#374151;
+    }
+    .timezone-info{
+      font-size:12px; color:#0369a1; margin-left:8px;
+    }
     .row{display:flex; gap:12px; align-items:center}
     .wrap{flex-wrap:wrap}
     .grid{display:grid; gap:14px}
@@ -168,6 +180,19 @@
       </div>
       <div id="tabbar" class="tabbar"></div>
       <div class="spacer"></div>
+      <div id="timezone-container" class="timezone-selector hidden">
+        <span>🌍</span>
+        <select id="timezone-select" onchange="updateTimezone()">
+          <option value="Asia/Taipei">台北</option>
+          <option value="America/New_York">紐約</option>
+          <option value="America/Los_Angeles">洛杉磯</option>
+          <option value="Europe/London">倫敦</option>
+          <option value="Europe/Paris">巴黎</option>
+          <option value="Asia/Tokyo">東京</option>
+          <option value="UTC">UTC</option>
+        </select>
+        <span id="current-time" class="timezone-info"></span>
+      </div>
       <button id="notifBtn" class="btn icon hidden" title="通知">🔔<span id="notifDot" class="badge hidden">0</span></button>
       <div id="userMenu" class="row">
         <button id="resetBtn" class="btn small ghost hidden">重置 Demo</button>
@@ -290,6 +315,7 @@
     const API_BASE = window.location.origin;
     let accessToken = '';
     let currentUser = null;
+    let currentTimezone = 'Asia/Taipei';
     let DB = {
       courseContext: null,
       favorites: {},
@@ -316,7 +342,66 @@
 
     const fmtDate = d => new Date(d).toLocaleDateString('zh-TW', {month:'2-digit', day:'2-digit', weekday:'short'});
     const fmtDateFull = d => new Date(d).toLocaleString('zh-TW', {year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
+    const fmtDateWithTimezone = (d, timezone) => {
+      const options = {
+        timeZone: timezone || currentTimezone,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false
+      };
+      return new Date(d).toLocaleString('zh-TW', options);
+    };
     const toast = (msg)=>{ const t=$("#toastHost"); t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'), 2200); };
+
+    // 時區相關函數
+    function getCurrentTimezone() {
+      return currentTimezone;
+    }
+
+    function updateTimezone() {
+      const select = $("#timezone-select");
+      currentTimezone = select.value;
+      updateCurrentTimeDisplay();
+      console.log('時區已更新為:', currentTimezone);
+
+      // 如果在預約頁面，重新載入資料
+      if (current() === 'bookings') {
+        renderBookings();
+      }
+    }
+
+    function updateCurrentTimeDisplay() {
+      const timeSpan = $("#current-time");
+      if (timeSpan) {
+        const now = new Date();
+        const options = {
+          timeZone: currentTimezone,
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        };
+        const localTime = now.toLocaleString('zh-TW', options);
+        timeSpan.textContent = localTime;
+      }
+    }
+
+    function initializeTimezone() {
+      // 嘗試檢測用戶的時區
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const select = $("#timezone-select");
+
+      // 如果用戶時區在選項中，則設為預設值
+      const options = Array.from(select.options);
+      const userOption = options.find(option => option.value === userTimezone);
+      if (userOption) {
+        select.value = userTimezone;
+        currentTimezone = userTimezone;
+      }
+
+      updateCurrentTimeDisplay();
+
+      // 每分鐘更新時間顯示
+      setInterval(updateCurrentTimeDisplay, 60000);
+    }
     const openModal = (node)=>{ $("#modalBox").innerHTML=''; $("#modalBox").appendChild(node); $("#modalHost").classList.remove('hidden'); };
     const closeModal = ()=> $("#modalHost").classList.add('hidden');
     $("#modalHost").addEventListener('click', e=>{ if(e.target.id==='modalHost') closeModal(); });
@@ -362,6 +447,7 @@
 
     function initializeApp() {
       setupEventListeners();
+      initializeTimezone(); // 初始化時區功能
       headerUI();
       goto('login');
     }
@@ -481,6 +567,7 @@
       $("#searchBar").classList.toggle('hidden', !logged);
       $("#notifBtn").classList.toggle('hidden', !logged);
       $("#resetBtn").classList.toggle('hidden', !logged);
+      $("#timezone-container").classList.toggle('hidden', !logged);
 
       if (logged) {
         const menu = $("#userMenu");
@@ -704,8 +791,8 @@
       const dateStr = date.toISOString().split('T')[0];
 
       try {
-        // 獲取教師時間表
-        const response = await fetch(`${API_BASE}/teacher-availability/teacher-timetable?teacherId=${teacherId}&date=${dateStr}`);
+        // 獲取教師時間表（支援時區）
+        const response = await fetch(`${API_BASE}/teacher-availability/teacher-timetable?teacherId=${teacherId}&date=${dateStr}&timezone=${currentTimezone}`);
         const result = await response.json();
 
         if (result.code === 0) {
@@ -759,7 +846,7 @@
       const duration = parseInt($("#duration").value);
       const message = $("#bookingMessage").value;
 
-      // 構建預約時間
+      // 構建預約時間（支援時區）
       const [hours, minutes] = window.selectedTimeSlot.time.split(':');
       const startsAt = new Date(window.selectedDate);
       startsAt.setHours(parseInt(hours), parseInt(minutes), 0, 0);
@@ -768,6 +855,7 @@
         teacherId,
         startsAt: startsAt.toISOString(),
         durationMinutes: duration,
+        timezone: currentTimezone,
         courseTitle,
         message,
         materialId: DB.courseContext?.id
@@ -940,7 +1028,7 @@
       ));
 
       try {
-        const response = await apiRequest('/bookings');
+        const response = await apiRequest(`/bookings?timezone=${currentTimezone}`);
         const bookings = response.items || [];
 
         // 當前預約
@@ -981,10 +1069,19 @@
 
       const tbody = el('tbody');
       bookings.forEach(booking => {
+        // 顯示本地時間和教師時區時間
+        const localTime = booking.startsAtLocal || fmtDateWithTimezone(booking.startsAt, currentTimezone);
+        const teacherTime = booking.teacherLocalTime ?
+          `教師時間: ${booking.teacherLocalTime}` :
+          fmtDateWithTimezone(booking.startsAt, booking.teacher?.timezone || 'Asia/Taipei');
+
         const tr = el('tr', {},
           el('td', {}, booking.courseTitle || '自由對話'),
           el('td', {}, booking.teacher?.name || '未知老師'),
-          el('td', {}, fmtDateFull(booking.startsAt)),
+          el('td', {},
+            el('div', {}, localTime),
+            el('div', {class: 'muted', style: 'font-size:11px'}, teacherTime)
+          ),
           el('td', {}, el('span', {class: 'status-chip status-upcoming'}, '即將開始')),
           el('td', {},
             el('div', {class: 'row wrap'},
