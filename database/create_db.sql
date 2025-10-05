@@ -222,20 +222,6 @@ CREATE TRIGGER trigger_materials_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_materials_updated_at();
 
--- 為現有教師建立範例可用時間（可選）
--- 這裡為每個教師建立未來7天的基本可用時間槽
-INSERT INTO teacher_availability (teacher_id, date, time_slot, status)
-SELECT
-    u.id as teacher_id,
-    (CURRENT_DATE + i)::date as date,
-    slot as time_slot,
-    'available' as status
-FROM users u
-CROSS JOIN generate_series(1, 7) as i  -- 未來7天
-CROSS JOIN generate_series(18, 47) as slot  -- 09:00 到 23:30 的時間槽
-WHERE u.role = 'teacher' AND u.active = true
-ON CONFLICT (teacher_id, date, time_slot) DO NOTHING;
-
 -- 建立函數來檢查時間槽衝突
 CREATE OR REPLACE FUNCTION check_booking_time_slot_conflict()
 RETURNS TRIGGER AS $$
@@ -320,4 +306,16 @@ INSERT INTO purchases (id, student_id, package_name, quantity, remaining, type, 
 ('55555555-5555-5555-5555-555555555555', '33333333-3333-3333-3333-333333333333', '約課次卡', 10, 10, 'lesson_card', NOW(), NOW(), NOW() + INTERVAL '90 days', 'active'),
 ('66666666-6666-6666-6666-666666666666', '55555555-5555-5555-5555-555555555555', '體驗卡', 2, 2, 'trial_card', NOW(), NOW(), NOW() + INTERVAL '14 days', 'active');
 
+-- 這裡為每個教師建立未來7天的基本可用時間槽
+INSERT INTO teacher_availability (teacher_id, date, time_slot, status)
+SELECT
+    u.id as teacher_id,
+    (CURRENT_DATE + i)::date as date,
+    slot as time_slot,
+    'available' as status
+FROM users u
+    CROSS JOIN generate_series(1, 7) as i  -- 未來7天
+    CROSS JOIN generate_series(18, 47) as slot  -- 09:00 到 23:30 的時間槽
+WHERE u.role = 'teacher' AND u.active = true
+ON CONFLICT (teacher_id, date, time_slot) DO NOTHING;
 COMMIT;
