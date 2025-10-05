@@ -8,10 +8,6 @@ import { Purchase, PurchaseType, PurchaseStatus } from '../entities/purchase.ent
 import { Booking } from '../entities/booking.entity';
 import { TeacherAvailability } from '../entities/teacher-availability.entity';
 import { Material, MaterialType } from '../entities/material.entity';
-import { BookingMessage } from '../entities/booking-message.entity';
-import { PostClassReport } from '../entities/post-class-report.entity';
-import { Settlement } from '../entities/settlement.entity';
-import { ConsumptionRecord } from '../entities/consumption-record.entity';
 import { Review } from '../entities/review.entity';
 
 @Injectable()
@@ -29,21 +25,13 @@ export class AdminService {
     private teacherAvailabilityRepository: Repository<TeacherAvailability>,
     @InjectRepository(Material)
     private materialRepository: Repository<Material>,
-    @InjectRepository(BookingMessage)
-    private bookingMessageRepository: Repository<BookingMessage>,
-    @InjectRepository(PostClassReport)
-    private postClassReportRepository: Repository<PostClassReport>,
-    @InjectRepository(Settlement)
-    private settlementRepository: Repository<Settlement>,
-    @InjectRepository(ConsumptionRecord)
-    private consumptionRecordRepository: Repository<ConsumptionRecord>,
     @InjectRepository(Review)
     private reviewRepository: Repository<Review>,
   ) {}
 
   async createTeacher(createTeacherDto: any) {
     // 建立用戶帳號
-    const password = createTeacherDto.password || 'teacher123';
+    const password = createTeacherDto.password || 'password';
     const hashedPassword = await bcrypt.hash(password, 10);
     
     const user = this.userRepository.create({
@@ -80,7 +68,7 @@ export class AdminService {
   }
 
   async createStudent(createStudentDto: any) {
-    const password = createStudentDto.password || 'student123';
+    const password = createStudentDto.password || 'password';
     const hashedPassword = await bcrypt.hash(password, 10);
     
     const user = this.userRepository.create({
@@ -175,8 +163,8 @@ export class AdminService {
   async resetSystemData(): Promise<void> {
     // 清除所有動態資料，保留基本設定
     await this.clearDynamicData();
-    // 重新建立預設資料
-    await this.createDefaultData();
+    // 重新建立預設資料（僅在資料庫為空時）
+    await this.createDefaultDataIfNeeded();
     console.log('System data has been reset to initial state');
   }
 
@@ -192,10 +180,6 @@ export class AdminService {
 
     // 按照外鍵依賴順序清除資料
     await clearTable(this.reviewRepository, 'reviews');
-    await clearTable(this.consumptionRecordRepository, 'consumption_records');
-    await clearTable(this.settlementRepository, 'settlements');
-    await clearTable(this.postClassReportRepository, 'post_class_reports');
-    await clearTable(this.bookingMessageRepository, 'booking_messages');
     await clearTable(this.teacherAvailabilityRepository, 'teacher_availability');
     await clearTable(this.bookingRepository, 'bookings');
     await clearTable(this.purchaseRepository, 'purchases');
@@ -211,7 +195,22 @@ export class AdminService {
     }
   }
 
-  private async createDefaultData(): Promise<void> {
+  private async createDefaultDataIfNeeded(): Promise<void> {
+    // 檢查是否已有預設資料（除了admin用戶）
+    const existingUsers = await this.userRepository.count({
+      where: [
+        { role: UserRole.TEACHER },
+        { role: UserRole.STUDENT }
+      ]
+    });
+
+    if (existingUsers > 0) {
+      console.log('Default data already exists, skipping creation');
+      return;
+    }
+
+    console.log('Creating default data...');
+
     // 建立預設教師
     const teacherUser = await this.createTeacher({
       email: 'teacher1@example.com',

@@ -8,10 +8,6 @@ import { Purchase } from '../entities/purchase.entity';
 import { Booking } from '../entities/booking.entity';
 import { TeacherAvailability } from '../entities/teacher-availability.entity';
 import { Material } from '../entities/material.entity';
-import { BookingMessage } from '../entities/booking-message.entity';
-import { PostClassReport } from '../entities/post-class-report.entity';
-import { Settlement } from '../entities/settlement.entity';
-import { ConsumptionRecord } from '../entities/consumption-record.entity';
 import { Review } from '../entities/review.entity';
 
 @Module({
@@ -22,10 +18,6 @@ import { Review } from '../entities/review.entity';
     Booking,
     TeacherAvailability,
     Material,
-    BookingMessage,
-    PostClassReport,
-    Settlement,
-    ConsumptionRecord,
     Review
   ])],
   controllers: [AdminController],
