@@ -854,6 +854,51 @@
                     expectedFields: ['code', 'msg', 'data']
                 },
                 {
+                    id: 'teacher_timetable_timezone_validation',
+                    name: '時區修復驗證 (上海vs台北)',
+                    method: 'GET',
+                    endpoint: '/teacher-availability/teacher-timetable?teacherId=3ac75e02-e751-440d-a21a-ffe8f6f1b79b&date=2025-10-06&timezone=Asia/Shanghai',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['code', 'msg', 'data'],
+                    customValidation: (response) => {
+                        if (response.data && response.data.length > 0) {
+                            const firstSlot = response.data[0];
+                            // 驗證返回的是用戶時區的日期和時間
+                            if (firstSlot.userTimezone !== 'Asia/Shanghai') {
+                                return { valid: false, message: '用戶時區不正確' };
+                            }
+                            if (firstSlot.date !== '2025-10-06') {
+                                return { valid: false, message: '日期應該是用戶時區的2025-10-06' };
+                            }
+                            return { valid: true, message: '時區修復驗證通過' };
+                        }
+                        return { valid: false, message: '沒有返回數據' };
+                    }
+                },
+                {
+                    id: 'teacher_timetable_newyork_validation',
+                    name: '時區修復驗證 (紐約時區)',
+                    method: 'GET',
+                    endpoint: '/teacher-availability/teacher-timetable?teacherId=3ac75e02-e751-440d-a21a-ffe8f6f1b79b&date=2025-10-06&timezone=America/New_York',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['code', 'msg', 'data'],
+                    customValidation: (response) => {
+                        if (response.data && response.data.length > 0) {
+                            const firstSlot = response.data[0];
+                            // 驗證返回的是用戶時區的日期和時間
+                            if (firstSlot.userTimezone !== 'America/New_York') {
+                                return { valid: false, message: '用戶時區不正確' };
+                            }
+                            // 紐約時間的2025-10-06可能對應不同的UTC時間
+                            console.log('紐約時區第一個時段:', firstSlot);
+                            return { valid: true, message: '紐約時區驗證通過' };
+                        }
+                        return { valid: false, message: '沒有返回數據' };
+                    }
+                },
+                {
                     id: 'all_time_slots',
                     name: '所有時間槽',
                     method: 'GET',

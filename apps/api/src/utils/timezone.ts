@@ -280,5 +280,28 @@ export class TimezoneUtil {
     const dateTime = DateTime.fromJSDate(utcDate).setZone(timezone);
     return dateTime.toFormat('yyyy-MM-dd HH:mm:ss');
   }
+
+  /**
+   * 將 UTC Date 轉換為指定時區的 DateTime 物件
+   * @param utcDate UTC Date 物件
+   * @param timezone IANA 時區名稱
+   * @returns Luxon DateTime 物件
+   */
+  static utcToDateTime(utcDate: Date, timezone: string): DateTime {
+    return DateTime.fromJSDate(utcDate).setZone(timezone);
+  }
+
+  /**
+   * 將本地日期時間字串轉換為 UTC Date
+   * @param localDateTimeString 本地日期時間字串 (YYYY-MM-DD HH:MM:SS)
+   * @param timezone IANA 時區名稱
+   * @returns UTC Date 物件
+   */
+  static dateToUtc(localDateTimeString: string, timezone: string): Date {
+    const dateTime = DateTime.fromFormat(localDateTimeString, 'yyyy-MM-dd HH:mm:ss', {
+      zone: timezone
+    });
+    return dateTime.toUTC().toJSDate();
+  }
 }
 

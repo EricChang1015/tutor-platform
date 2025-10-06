@@ -154,37 +154,33 @@ export class BookingsService {
       throw new BadRequestException('Invalid time slots');
     }
 
-    // 檢查教師在該時間段是否可用
-    const isAvailable = await this.teacherAvailabilityService.checkAvailability(
+    // 檢查教師在該時間段是否可用（使用UTC時間）
+    const isAvailable = await this.teacherAvailabilityService.checkAvailabilityByUtc(
       teacherId,
-      dateStr,
-      timeSlots
+      startDate,
+      endDate
     );
     if (!isAvailable) {
       throw new ConflictException('Teacher is not available at the requested time');
     }
 
     // 檢查時間衝突 - 學生和教師都不能有重疊的預約
-    const conflictingBookings = await this.bookingRepository.find({
-      where: [
+    // 使用正確的時間重疊邏輯：start_time_utc < end_time AND end_time_utc > start_time
+    const conflictingBookings = await this.bookingRepository
+      .createQueryBuilder('booking')
+      .where(
+        '(booking.studentId = :userId OR booking.teacherId = :teacherId) AND ' +
+        'booking.startsAt < :endDate AND booking.endsAt > :startDate AND ' +
+        'booking.status = :status',
         {
-          studentId: userId,
-          startsAt: Between(
-            new Date(startDate.getTime() - durationMinutes * 60000),
-            new Date(endDate.getTime())
-          ),
-          status: BookingStatus.SCHEDULED
-        },
-        {
+          userId,
           teacherId,
-          startsAt: Between(
-            new Date(startDate.getTime() - durationMinutes * 60000),
-            new Date(endDate.getTime())
-          ),
+          startDate,
+          endDate,
           status: BookingStatus.SCHEDULED
         }
-      ]
-    });
+      )
+      .getMany();
 
     if (conflictingBookings.length > 0) {
       throw new ConflictException('Time slot conflicts with existing booking');
@@ -205,11 +201,11 @@ export class BookingsService {
 
     const savedBooking = await this.bookingRepository.save(booking);
 
-    // 標記教師時間槽為已預約
-    await this.teacherAvailabilityService.markAsBooked(
+    // 標記教師時間槽為已預約（使用UTC時間）
+    await this.teacherAvailabilityService.markAsBookedByUtc(
       teacherId,
-      dateStr,
-      timeSlots,
+      startDate,
+      endDate,
       savedBooking.id
     );
 

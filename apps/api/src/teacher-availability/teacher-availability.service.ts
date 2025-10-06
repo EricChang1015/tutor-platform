@@ -31,6 +31,7 @@ export class TeacherAvailabilityService {
   /**
    * 搜尋指定時間段內可用的教師 IDs
    * 支援時區參數，預設為 Asia/Taipei
+   * 修改為基於UTC時間查詢，而非timeslot
    */
   async searchAvailableTeachers(searchQuery: SearchTeachersQuery): Promise<string[]> {
     const { date, fromTime, toTime, timezone = 'Asia/Taipei' } = searchQuery;
@@ -40,18 +41,12 @@ export class TeacherAvailabilityService {
       throw new ConflictException(`Invalid timezone: ${timezone}`);
     }
 
-    // 轉換時間為時間槽
-    const timeSlots = TimeSlotUtil.getSlotRange(fromTime, toTime);
-
-    if (timeSlots.length === 0) {
-      return [];
-    }
-
-    // 計算 UTC 時間範圍用於跨時區查詢
-    const startDateTime = TimezoneUtil.slotToUtc(date, timeSlots[0], timezone);
-    const endDateTime = TimezoneUtil.slotToUtc(date, timeSlots[timeSlots.length - 1], timezone).plus({ minutes: 30 });
+    // 計算用戶時區的開始和結束時間的UTC時間
+    const startDateTime = TimezoneUtil.dateToUtc(`${date} ${fromTime}:00`, timezone);
+    const endDateTime = TimezoneUtil.dateToUtc(`${date} ${toTime}:00`, timezone);
 
     // 使用 UTC 時間範圍查詢可用教師
+    // 查詢條件：教師的可用時間槽完全包含在請求的時間範圍內
     const query = `
       SELECT DISTINCT ta.teacher_id
       FROM teacher_availability ta
@@ -61,15 +56,15 @@ export class TeacherAvailabilityService {
         AND NOT EXISTS (
           SELECT 1 FROM teacher_availability ta2
           WHERE ta2.teacher_id = ta.teacher_id
-            AND ta2.start_time_utc >= $1
-            AND ta2.end_time_utc <= $2
+            AND ta2.start_time_utc < $2
+            AND ta2.end_time_utc > $1
             AND ta2.status != $3
         )
     `;
 
     const result = await this.availabilityRepository.manager.query(query, [
-      startDateTime.toJSDate(),
-      endDateTime.toJSDate(),
+      startDateTime,
+      endDateTime,
       AvailabilityStatus.AVAILABLE
     ]);
 
@@ -79,6 +74,7 @@ export class TeacherAvailabilityService {
   /**
    * 取得教師在指定日期的時間表
    * 支援時區參數，返回本地時間和 UTC 時間
+   * 修改為基於UTC時間查詢，而非timeslot
    */
   async getTeacherTimetable(query: TeacherTimetableQuery) {
     const { teacherId, date, timezone = 'Asia/Taipei' } = query;
@@ -99,29 +95,41 @@ export class TeacherAvailabilityService {
 
     const teacherTimezone = teacher.timezone || 'Asia/Taipei';
 
-    // 取得該日期的所有時間槽
+    // 計算用戶時區指定日期的UTC時間範圍
+    const userDateStart = TimezoneUtil.dateToUtc(`${date} 00:00:00`, timezone);
+    const userDateEnd = TimezoneUtil.dateToUtc(`${date} 23:59:59`, timezone);
+
+    // 基於UTC時間範圍查詢可用時間槽
     const availability = await this.availabilityRepository.find({
-      where: { teacherId, date },
-      order: { timeSlot: 'ASC' }
+      where: {
+        teacherId,
+        startTimeUtc: Between(userDateStart, userDateEnd)
+      },
+      order: { startTimeUtc: 'ASC' }
     });
 
     // 轉換為 API 回應格式，包含 UTC 時間和用戶時區時間
     return availability.map(slot => {
       let localTime = null;
       let localTimeFormatted = null;
+      let userDate = slot.date;
+      let userTimeSlot = slot.timeSlot;
 
-      if (slot.startTimeUtc && timezone !== 'UTC') {
-        const localDateTime = TimezoneUtil.formatTime(slot.startTimeUtc, timezone, 'HH:mm');
-        localTime = localDateTime;
-        localTimeFormatted = TimezoneUtil.formatTime(slot.startTimeUtc, timezone, 'yyyy-MM-dd HH:mm');
+      if (slot.startTimeUtc) {
+        // 計算用戶時區的時間
+        const userDateTime = TimezoneUtil.utcToDateTime(slot.startTimeUtc, timezone);
+        localTime = userDateTime.toFormat('HH:mm');
+        localTimeFormatted = userDateTime.toFormat('yyyy-MM-dd HH:mm');
+        userDate = userDateTime.toFormat('yyyy-MM-dd');
+        userTimeSlot = userDateTime.hour * 2 + (userDateTime.minute >= 30 ? 1 : 0);
       }
 
       return {
         id: slot.id,
         uid: slot.bookingId ? 1 : 0, // 模擬原 API 的 uid 欄位
-        date: slot.date,
-        time: slot.timeString, // 教師本地時間
-        timeSlot: slot.timeSlot,
+        date: userDate, // 用戶時區的日期
+        time: localTime || slot.timeString, // 用戶時區的時間
+        timeSlot: userTimeSlot, // 用戶時區的時間槽
         localTime: localTime, // 用戶時區時間
         localTimeFormatted: localTimeFormatted,
         startTimeUtc: slot.startTimeUtc ? slot.startTimeUtc.toISOString() : null,
@@ -188,7 +196,42 @@ export class TeacherAvailabilityService {
   }
 
   /**
-   * 檢查教師在指定時間槽是否可用
+   * 檢查教師在指定UTC時間範圍是否可用
+   * 檢查完全包含在時間範圍內的時間槽
+   */
+  async checkAvailabilityByUtc(
+    teacherId: string,
+    startTimeUtc: Date,
+    endTimeUtc: Date
+  ): Promise<boolean> {
+    // 使用SQL查詢檢查完全包含在時間範圍內的可用時間槽
+    const query = `
+      SELECT COUNT(*) as count
+      FROM teacher_availability
+      WHERE teacher_id = $1
+        AND start_time_utc >= $2
+        AND end_time_utc <= $3
+        AND status = $4
+    `;
+
+    const result = await this.availabilityRepository.manager.query(query, [
+      teacherId,
+      startTimeUtc,
+      endTimeUtc,
+      AvailabilityStatus.AVAILABLE
+    ]);
+
+    const availableSlots = parseInt(result[0].count);
+
+    // 計算需要的時間槽數量（每30分鐘一個槽）
+    const durationMinutes = (endTimeUtc.getTime() - startTimeUtc.getTime()) / (1000 * 60);
+    const requiredSlots = Math.ceil(durationMinutes / 30);
+
+    return availableSlots >= requiredSlots;
+  }
+
+  /**
+   * 檢查教師在指定時間槽是否可用（保留向後兼容性）
    */
   async checkAvailability(
     teacherId: string,
@@ -208,7 +251,38 @@ export class TeacherAvailabilityService {
   }
 
   /**
-   * 標記時間槽為已預約
+   * 根據UTC時間範圍標記時間槽為已預約
+   * 只標記完全包含在預約時間範圍內的時間槽
+   */
+  async markAsBookedByUtc(
+    teacherId: string,
+    startTimeUtc: Date,
+    endTimeUtc: Date,
+    bookingId: string
+  ): Promise<void> {
+    // 使用正確的時間重疊邏輯：只標記完全包含在預約時間範圍內的時間槽
+    // start_time_utc >= startTimeUtc AND end_time_utc <= endTimeUtc
+    const query = `
+      UPDATE teacher_availability
+      SET status = $1, booking_id = $2
+      WHERE teacher_id = $3
+        AND start_time_utc >= $4
+        AND end_time_utc <= $5
+        AND status = $6
+    `;
+
+    await this.availabilityRepository.manager.query(query, [
+      AvailabilityStatus.BOOKED,
+      bookingId,
+      teacherId,
+      startTimeUtc,
+      endTimeUtc,
+      AvailabilityStatus.AVAILABLE
+    ]);
+  }
+
+  /**
+   * 標記時間槽為已預約（保留向後兼容性）
    */
   async markAsBooked(
     teacherId: string,

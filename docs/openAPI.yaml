@@ -533,7 +533,10 @@ paths:
   /teacher-availability/teacher-timetable:
     get:
       tags: [Availability]
-      summary: 查看教師時間表
+      summary: 查看教師時間表（支援時區轉換）
+      description: >
+        查看教師在指定日期的可用時間表。支援時區參數，返回用戶時區的時間。
+        修改後的API會根據用戶時區返回對應日期的可用時間，而非教師時區的日期。
       parameters:
         - name: teacherId
           in: query
@@ -543,6 +546,12 @@ paths:
           in: query
           required: true
           schema: { type: string, format: date, example: "2025-10-01" }
+          description: 用戶時區的日期
+        - name: timezone
+          in: query
+          required: false
+          schema: { type: string, example: "Asia/Shanghai" }
+          description: 用戶時區（IANA格式），預設為Asia/Taipei
       responses:
         '200':
           description: OK
@@ -554,18 +563,25 @@ paths:
                   code: { type: integer, example: 0 }
                   msg: { type: string, example: "ok" }
                   data:
-                    type: object
-                    properties:
-                      date: { type: string, format: date }
-                      teacherId: { type: string }
-                      timeSlots:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            timeSlot: { type: integer, minimum: 0, maximum: 47 }
-                            time: { type: string, example: "09:00" }
-                            status: { type: string, enum: [available, booked, unavailable] }
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        uid: { type: integer }
+                        date: { type: string, format: date, description: "用戶時區的日期" }
+                        time: { type: string, example: "09:00", description: "用戶時區的時間" }
+                        timeSlot: { type: integer, minimum: 0, maximum: 47, description: "用戶時區的時間槽" }
+                        localTime: { type: string, example: "09:00", description: "用戶時區的時間" }
+                        localTimeFormatted: { type: string, example: "2025-10-06 09:00", description: "用戶時區的完整時間" }
+                        startTimeUtc: { type: string, format: date-time, description: "UTC開始時間" }
+                        endTimeUtc: { type: string, format: date-time, description: "UTC結束時間" }
+                        teacherTimezone: { type: string, example: "Asia/Taipei", description: "教師時區" }
+                        userTimezone: { type: string, example: "Asia/Shanghai", description: "用戶時區" }
+                        isOnline: { type: integer, enum: [0, 1, 2], description: "0=不可用, 1=可用, 2=已預約" }
+                        isReserve: { type: integer, enum: [0, 1], description: "是否已預約" }
+                        canReserve: { type: integer, enum: [0, 1], description: "是否可預約" }
+                        reason: { type: string, nullable: true, description: "不可用原因" }
   /teacher-availability/set-availability:
     post:
       tags: [Availability]
