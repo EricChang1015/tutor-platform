@@ -848,12 +848,22 @@
 
       // 構建預約時間（支援時區）
       const [hours, minutes] = window.selectedTimeSlot.time.split(':');
-      const startsAt = new Date(window.selectedDate);
-      startsAt.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      const dateStr = window.selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      const timeStr = `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:00`;
+
+      // 創建時區感知的時間字串
+      const timezoneOffsetStr = currentTimezone === 'Asia/Shanghai' ? '+08:00' :
+                               currentTimezone === 'Asia/Taipei' ? '+08:00' :
+                               currentTimezone === 'America/New_York' ? '-05:00' :
+                               currentTimezone === 'America/Los_Angeles' ? '-08:00' :
+                               currentTimezone === 'Europe/London' ? '+00:00' :
+                               '+08:00'; // 默認
+
+      const startsAtISO = `${dateStr}T${timeStr}${timezoneOffsetStr}`;
 
       const bookingData = {
         teacherId,
-        startsAt: startsAt.toISOString(),
+        startsAt: startsAtISO,
         durationMinutes: duration,
         timezone: currentTimezone,
         courseTitle,

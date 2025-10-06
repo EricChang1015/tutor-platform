@@ -509,7 +509,7 @@ paths:
         - name: date
           in: query
           required: true
-          schema: { type: string, format: date, example: "2025-10-01" }
+          schema: { type: string, format: date, example: "2025-10-06" }
         - name: fromTime
           in: query
           required: true
@@ -545,7 +545,7 @@ paths:
         - name: date
           in: query
           required: true
-          schema: { type: string, format: date, example: "2025-10-01" }
+          schema: { type: string, format: date, example: "2025-10-06" }
           description: 用戶時區的日期
         - name: timezone
           in: query
@@ -596,7 +596,7 @@ paths:
               required: [teacherId, date, timeSlots]
               properties:
                 teacherId: { type: string }
-                date: { type: string, format: date, example: "2025-10-01" }
+                date: { type: string, format: date, example: "2025-10-06" }
                 timeSlots: { type: array, items: { type: integer, minimum: 0, maximum: 47 } }
       responses:
         '200':
@@ -1045,32 +1045,27 @@ paths:
                     properties: { items: { type: array, items: { $ref: '#/components/schemas/BookingSummary' } } }
     post:
       tags: [Bookings]
-      summary: 建立預約（建立即自動審批，除非衝突/超容量）
+      summary: 建立預約
+      description: >
+        建立新的預約。startsAt 應為 ISO 8601 格式（含時區），例如: 2025-10-06T14:00:00+08:00
+        系統會自動驗證教師可用性和時間衝突。
       security: [{ bearerAuth: [] }]
-      parameters:
-        - in: header
-          name: Idempotency-Key
-          required: false
-          schema: { type: string }
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [mode, startsAt, durationMinutes]
+              required: [teacherId, startsAt]
               properties:
-                mode: { type: string, enum: [assign, specific] }
-                teacherId: { type: string, nullable: true }
-                startsAt: { type: string, format: date-time }
-                durationMinutes: { type: integer, enum: [30] }
-                materialId: { type: string, nullable: true }
-                courseTitle: { type: string, nullable: true }
-                message: { type: string, nullable: true }
-                holdId: { type: string, nullable: true }
-                source: { $ref: '#/components/schemas/BookingSource' }
-                studentId: { type: string, nullable: true, description: 管理員代客預約可帶 }
-                dryRun: { type: boolean, default: false, description: 僅檢查扣卡可行性與政策，返回不建立 booking }
+                teacherId: { type: string, description: "教師ID" }
+                startsAt: { type: string, format: date-time, description: "預約開始時間 (ISO 8601格式)", example: "2025-10-06T14:00:00+08:00" }
+                durationMinutes: { type: integer, default: 30, description: "預約時長（分鐘）" }
+                timezone: { type: string, default: "Asia/Taipei", description: "時區", example: "Asia/Shanghai" }
+                courseTitle: { type: string, nullable: true, description: "課程標題" }
+                message: { type: string, nullable: true, description: "預約留言" }
+                materialId: { type: string, nullable: true, description: "教材ID" }
+                source: { type: string, default: "student", enum: [student, admin, teacher, system], description: "預約來源" }
       responses:
         '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/BookingDetail' } } } }
         '409': { description: 時間衝突, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }

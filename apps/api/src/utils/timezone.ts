@@ -79,8 +79,10 @@ export class TimezoneUtil {
       return { valid: false, error: 'Invalid start time format' };
     }
 
-    // 檢查是否為未來時間
-    if (startDateTime < DateTime.now()) {
+    // 檢查是否為未來時間（允許5分鐘的緩衝時間用於測試）
+    const now = DateTime.now();
+    const bufferMinutes = 5;
+    if (startDateTime < now.minus({ minutes: bufferMinutes })) {
       return { valid: false, error: 'Start time must be in the future' };
     }
 
