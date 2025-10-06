@@ -1,13 +1,15 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { Booking, BookingStatus } from '../entities/booking.entity';
+import { Booking, BookingStatus, BookingSource } from '../entities/booking.entity';
 import { User, UserRole } from '../entities/user.entity';
 import { Purchase, PurchaseType } from '../entities/purchase.entity';
 import { TeacherAvailabilityService } from '../teacher-availability/teacher-availability.service';
 import { TimeSlotUtil } from '../common/time-slots.util';
 import { TimezoneUtil } from '../utils/timezone';
 import { DateTime } from 'luxon';
+import { CreateBookingDto } from './dto/create-booking.dto';
+import { CancelBookingDto, CancelCause } from './dto/cancel-booking.dto';
 
 @Injectable()
 export class BookingsService {
@@ -96,7 +98,7 @@ export class BookingsService {
     };
   }
 
-  async createBooking(createBookingDto: any, userId: string) {
+  async createBooking(createBookingDto: CreateBookingDto, userId: string) {
     const { teacherId, startsAt, durationMinutes = 30, timezone = 'Asia/Taipei' } = createBookingDto;
 
     // 驗證時區
@@ -193,7 +195,7 @@ export class BookingsService {
       startsAt: startDate,
       endsAt: endDate,
       status: BookingStatus.SCHEDULED,
-      source: createBookingDto.source || 'student',
+      source: createBookingDto.source || BookingSource.STUDENT,
       materialId: createBookingDto.materialId,
       courseTitle: createBookingDto.courseTitle,
       message: createBookingDto.message,
@@ -292,6 +294,166 @@ export class BookingsService {
         { minHours: 12, maxHours: 24, cancelCardCost: 1 },
         { minHours: 2, maxHours: 12, cancelCardCost: 2 },
       ],
+    };
+  }
+
+  async cancelBooking(bookingId: string, cancelBookingDto: CancelBookingDto, user: any) {
+    // 查找預約
+    const booking = await this.bookingRepository.findOne({
+      where: { id: bookingId },
+      relations: ['student', 'teacher'],
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    // 檢查權限
+    const isStudent = user.sub === booking.studentId;
+    const isTeacher = user.sub === booking.teacherId;
+    const isAdmin = user.role === 'admin';
+
+    if (!isStudent && !isTeacher && !isAdmin) {
+      throw new ForbiddenException('No permission to cancel this booking');
+    }
+
+    // 檢查預約狀態
+    if (booking.status !== BookingStatus.SCHEDULED) {
+      throw new BadRequestException('Only scheduled bookings can be canceled');
+    }
+
+    // 檢查是否已過期
+    if (booking.startsAt <= new Date()) {
+      throw new BadRequestException('Cannot cancel past bookings');
+    }
+
+    // 計算距離上課時間
+    const hoursUntilClass = (booking.startsAt.getTime() - new Date().getTime()) / (1000 * 60 * 60);
+
+    // 確定取消原因
+    let cause = cancelBookingDto.cause;
+    if (!cause) {
+      if (isStudent) cause = CancelCause.STUDENT_REQUEST;
+      else if (isTeacher) cause = CancelCause.TEACHER_REQUEST;
+      else if (isAdmin) cause = CancelCause.ADMIN_FORCE;
+    }
+
+    // 應用取消政策
+    const refundInfo = this.calculateCancelRefund(hoursUntilClass, cause, cancelBookingDto.waivePolicy && isAdmin);
+
+    // 檢查是否允許取消
+    if (!refundInfo.allowed && !isAdmin) {
+      throw new BadRequestException('Cancellation not allowed within 2 hours of class time');
+    }
+
+    // 更新預約狀態
+    booking.status = BookingStatus.CANCELED;
+    await this.bookingRepository.save(booking);
+
+    // 釋放教師時間槽
+    await this.teacherAvailabilityService.releaseBookedSlot(
+      booking.teacherId,
+      booking.startsAt,
+      booking.endsAt
+    );
+
+    // TODO: 實現課卡退還和取消卡扣除邏輯
+    // TODO: 發送通知
+
+    return {
+      id: booking.id,
+      status: booking.status,
+      refund: {
+        lessonCardsReturned: refundInfo.lessonCardsReturned,
+        cancelCardsConsumed: refundInfo.cancelCardsConsumed,
+        compensationGranted: refundInfo.compensationGranted,
+        notes: refundInfo.notes,
+      },
+    };
+  }
+
+  private calculateCancelRefund(hoursUntilClass: number, cause: CancelCause, waivePolicy: boolean = false) {
+    // 管理員免除政策
+    if (waivePolicy) {
+      return {
+        allowed: true,
+        lessonCardsReturned: 1,
+        cancelCardsConsumed: 0,
+        compensationGranted: 0,
+        notes: 'Admin waived cancellation policy',
+      };
+    }
+
+    // 教師取消 - 退還學生課卡
+    if (cause === CancelCause.TEACHER_REQUEST) {
+      return {
+        allowed: true,
+        lessonCardsReturned: 1,
+        cancelCardsConsumed: 0,
+        compensationGranted: 0,
+        notes: 'Teacher cancellation - lesson card refunded',
+      };
+    }
+
+    // 技術問題 - 補償
+    if (cause === CancelCause.TECHNICAL_ISSUE) {
+      return {
+        allowed: true,
+        lessonCardsReturned: 1,
+        cancelCardsConsumed: 0,
+        compensationGranted: 1,
+        notes: 'Technical issue - lesson card refunded and compensation granted',
+      };
+    }
+
+    // 學生取消 - 應用分層政策
+    if (cause === CancelCause.STUDENT_REQUEST) {
+      if (hoursUntilClass >= 24) {
+        // 24小時前免費取消
+        return {
+          allowed: true,
+          lessonCardsReturned: 1,
+          cancelCardsConsumed: 0,
+          compensationGranted: 0,
+          notes: 'Free cancellation (24+ hours before class)',
+        };
+      } else if (hoursUntilClass >= 12) {
+        // 12-24小時：扣1張取消卡
+        return {
+          allowed: true,
+          lessonCardsReturned: 1,
+          cancelCardsConsumed: 1,
+          compensationGranted: 0,
+          notes: 'Cancellation 12-24 hours before class',
+        };
+      } else if (hoursUntilClass >= 2) {
+        // 2-12小時：扣2張取消卡
+        return {
+          allowed: true,
+          lessonCardsReturned: 1,
+          cancelCardsConsumed: 2,
+          compensationGranted: 0,
+          notes: 'Cancellation 2-12 hours before class',
+        };
+      } else {
+        // 2小時內不允許取消
+        return {
+          allowed: false,
+          lessonCardsReturned: 0,
+          cancelCardsConsumed: 0,
+          compensationGranted: 0,
+          notes: 'Cancellation not allowed within 2 hours',
+        };
+      }
+    }
+
+    // 管理員強制取消
+    return {
+      allowed: true,
+      lessonCardsReturned: 1,
+      cancelCardsConsumed: 0,
+      compensationGranted: 0,
+      notes: 'Admin force cancellation',
     };
   }
 }

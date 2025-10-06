@@ -969,6 +969,41 @@
                             message: '測試跨時區預約功能'
                         };
                     }
+                },
+                {
+                    id: 'bookings_cancel_student',
+                    name: '學生取消預約 (24小時前)',
+                    method: 'POST',
+                    endpoint: () => {
+                        // 使用最近創建的預約ID，或使用測試ID
+                        const bookingId = window.lastCreatedBookingId || 'test-booking-id';
+                        return `/bookings/${bookingId}/cancel`;
+                    },
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    data: () => ({
+                        reason: '臨時有事無法上課',
+                        cause: 'student_request'
+                    }),
+                    expectedFields: ['id', 'status', 'refund']
+                },
+                {
+                    id: 'bookings_cancel_admin',
+                    name: '管理員取消預約 (免除政策)',
+                    method: 'POST',
+                    endpoint: () => {
+                        const bookingId = window.lastCreatedBookingId || 'test-booking-id';
+                        return `/bookings/${bookingId}/cancel`;
+                    },
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    data: () => ({
+                        reason: '系統維護',
+                        cause: 'admin_force',
+                        waivePolicy: true
+                    }),
+                    expectedFields: ['id', 'status', 'refund'],
+                    roles: ['admin']
                 }
             ]
         },
@@ -1824,6 +1859,12 @@ ${'='.repeat(80)}`;
             if (isValid) {
                 updateTestStatus(testId, 'success', '通過');
                 testResults.passed++;
+
+                // 保存創建的預約ID供後續測試使用
+                if (testId.includes('bookings_create') && response.data && response.data.id) {
+                    window.lastCreatedBookingId = response.data.id;
+                    console.log('Saved booking ID for cancel tests:', response.data.id);
+                }
             } else {
                 updateTestStatus(testId, 'error', '失敗');
                 testResults.failed++;

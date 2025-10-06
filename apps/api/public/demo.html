@@ -894,6 +894,101 @@
       // TODO: 實現收藏功能
     }
 
+    // 取消預約
+    async function cancelBooking(bookingId) {
+      if (!confirm('確定要取消這個預約嗎？\n\n根據取消政策，可能會扣除取消卡或課卡。')) {
+        return;
+      }
+
+      try {
+        const response = await apiRequest(`/bookings/${bookingId}/cancel`, {
+          method: 'POST',
+          body: JSON.stringify({
+            reason: '學生主動取消',
+            cause: 'student_request'
+          })
+        });
+
+        toast('預約已取消');
+
+        // 顯示退款信息
+        if (response.refund) {
+          const refundInfo = response.refund;
+          let message = '取消結果：\n';
+          if (refundInfo.lessonCardsReturned > 0) {
+            message += `• 退還課卡：${refundInfo.lessonCardsReturned} 張\n`;
+          }
+          if (refundInfo.cancelCardsConsumed > 0) {
+            message += `• 扣除取消卡：${refundInfo.cancelCardsConsumed} 張\n`;
+          }
+          if (refundInfo.compensationGranted > 0) {
+            message += `• 補償課卡：${refundInfo.compensationGranted} 張\n`;
+          }
+          if (refundInfo.notes) {
+            message += `• 備註：${refundInfo.notes}`;
+          }
+
+          alert(message);
+        }
+
+        // 刷新預約列表
+        if (current() === 'bookings') {
+          renderBookings();
+        }
+      } catch (error) {
+        toast('取消失敗：' + error.message);
+      }
+    }
+
+    // 顯示預約詳情
+    function showBookingDetails(booking) {
+      const localTime = booking.startsAtLocal || fmtDateWithTimezone(booking.startsAt, currentTimezone);
+      const teacherTime = booking.teacherLocalTime || fmtDateWithTimezone(booking.startsAt, booking.teacher?.timezone || 'Asia/Taipei');
+
+      const modal = el('div', {},
+        el('div', {class: 'row wrap'},
+          el('h3', {style: 'margin:0'}, '預約詳情'),
+          el('div', {class: 'spacer'}),
+          el('button', {class: 'btn small', onclick: closeModal}, '✕')
+        ),
+        el('div', {class: 'hr'}),
+        el('div', {class: 'form-grid'},
+          el('div', {},
+            el('label', {}, '課程標題'),
+            el('div', {}, booking.courseTitle || '自由對話')
+          ),
+          el('div', {},
+            el('label', {}, '教師'),
+            el('div', {}, booking.teacher?.name || '未知老師')
+          ),
+          el('div', {},
+            el('label', {}, '您的時間'),
+            el('div', {}, localTime)
+          ),
+          el('div', {},
+            el('label', {}, '教師時間'),
+            el('div', {}, teacherTime)
+          ),
+          el('div', {},
+            el('label', {}, '狀態'),
+            el('div', {}, booking.status === 'scheduled' ? '已確認' : booking.status)
+          )
+        ),
+        booking.message ? el('div', {},
+          el('label', {}, '留言'),
+          el('div', {class: 'muted'}, booking.message)
+        ) : null,
+        el('div', {class: 'row wrap', style: 'margin-top:16px'},
+          booking.canCancel !== false ?
+            el('button', {class: 'btn danger', onclick: () => { closeModal(); cancelBooking(booking.id); }}, '取消預約') :
+            null,
+          el('button', {class: 'btn', onclick: closeModal}, '關閉')
+        )
+      );
+
+      openModal(modal);
+    }
+
     // 教材相關
     async function renderMaterials() {
       showOnly('view-materials');
@@ -1095,8 +1190,10 @@
           el('td', {}, el('span', {class: 'status-chip status-upcoming'}, '即將開始')),
           el('td', {},
             el('div', {class: 'row wrap'},
-              el('button', {class: 'btn small'}, '詳情'),
-              el('button', {class: 'btn small danger'}, '取消')
+              el('button', {class: 'btn small', onclick: () => showBookingDetails(booking)}, '詳情'),
+              booking.canCancel !== false ?
+                el('button', {class: 'btn small danger', onclick: () => cancelBooking(booking.id)}, '取消') :
+                null
             )
           )
         );

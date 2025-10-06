@@ -327,6 +327,32 @@ export class TeacherAvailabilityService {
   }
 
   /**
+   * 根據UTC時間範圍釋放已預約的時間槽
+   */
+  async releaseBookedSlot(
+    teacherId: string,
+    startTimeUtc: Date,
+    endTimeUtc: Date
+  ): Promise<void> {
+    const query = `
+      UPDATE teacher_availability
+      SET status = $1, booking_id = NULL, reason = NULL
+      WHERE teacher_id = $2
+        AND start_time_utc >= $3
+        AND end_time_utc <= $4
+        AND status = $5
+    `;
+
+    await this.availabilityRepository.manager.query(query, [
+      AvailabilityStatus.AVAILABLE,
+      teacherId,
+      startTimeUtc,
+      endTimeUtc,
+      AvailabilityStatus.BOOKED
+    ]);
+  }
+
+  /**
    * 取得教師指定時間槽的詳細資訊
    */
   async getTimeSlotInfo(id: string) {
