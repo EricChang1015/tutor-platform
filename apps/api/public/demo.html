@@ -165,8 +165,11 @@
       background:linear-gradient(90deg,#16a34a,#15803d); color:#fff; border-radius:16px; padding:18px; box-shadow:var(--shadow)
     }
     .status-chip{display:inline-flex; align-items:center; padding:4px 8px; border-radius:999px; font-size:12px; font-weight:600}
-    .status-upcoming{background:#dbeafe; color:#1d4ed8}
-    .status-completed{background:#e5e7eb; color:#374151}
+    .status-scheduled{background:#dbeafe; color:#1d4ed8}
+    .status-canceled{background:#fee2e2; color:#dc2626}
+    .status-completed{background:#dcfce7; color:#16a34a}
+    .status-noshow{background:#fef3c7; color:#d97706}
+    .status-pending{background:#f3f4f6; color:#6b7280}
   </style>
 </head>
 <body>
@@ -940,6 +943,35 @@
       }
     }
 
+    // 獲取狀態顯示組件
+    function getStatusChip(status) {
+      const statusMap = {
+        'scheduled': { text: '即將開始', class: 'status-scheduled' },
+        'canceled': { text: '已取消', class: 'status-canceled' },
+        'completed': { text: '已完成', class: 'status-completed' },
+        'noshow': { text: '未出席', class: 'status-noshow' },
+        'pending': { text: '待確認', class: 'status-pending' },
+        'pending_teacher': { text: '待教師確認', class: 'status-pending' }
+      };
+
+      const statusInfo = statusMap[status] || { text: status, class: 'status-pending' };
+      return el('span', {class: `status-chip ${statusInfo.class}`}, statusInfo.text);
+    }
+
+    // 獲取狀態文本
+    function getStatusText(status) {
+      const statusMap = {
+        'scheduled': '已確認',
+        'canceled': '已取消',
+        'completed': '已完成',
+        'noshow': '未出席',
+        'pending': '待確認',
+        'pending_teacher': '待教師確認'
+      };
+
+      return statusMap[status] || status;
+    }
+
     // 顯示預約詳情
     function showBookingDetails(booking) {
       const localTime = booking.startsAtLocal || fmtDateWithTimezone(booking.startsAt, currentTimezone);
@@ -971,7 +1003,7 @@
           ),
           el('div', {},
             el('label', {}, '狀態'),
-            el('div', {}, booking.status === 'scheduled' ? '已確認' : booking.status)
+            el('div', {}, getStatusText(booking.status))
           )
         ),
         booking.message ? el('div', {},
@@ -1187,7 +1219,7 @@
             el('div', {}, localTime),
             el('div', {class: 'muted', style: 'font-size:11px'}, teacherTime)
           ),
-          el('td', {}, el('span', {class: 'status-chip status-upcoming'}, '即將開始')),
+          el('td', {}, getStatusChip(booking.status)),
           el('td', {},
             el('div', {class: 'row wrap'},
               el('button', {class: 'btn small', onclick: () => showBookingDetails(booking)}, '詳情'),

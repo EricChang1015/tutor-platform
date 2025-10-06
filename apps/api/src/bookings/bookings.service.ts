@@ -260,6 +260,7 @@ export class BookingsService {
         teacher: teacherTimezone,
         user: userTimezone,
       },
+      canCancel: this.canCancel(booking),
     };
   }
 
