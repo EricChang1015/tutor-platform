@@ -115,9 +115,10 @@
     .date-pill{min-width:110px; text-align:center; padding:8px; border-radius:12px; background:#f3f4f6; border:1px solid var(--border); cursor:pointer}
     .date-pill.active{background:#e0f2fe; border-color:#bae6fd}
     .slots{display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:8px}
-    .slot{padding:10px; border-radius:10px; border:1px solid var(--border); background:#ffffff; text-align:center; cursor:pointer}
-    .slot.busy{opacity:.45; text-decoration:line-through; cursor:not-allowed}
-    .slot.selected{outline:2px solid var(--brand)}
+    .slot{padding:10px; border-radius:10px; border:1px solid var(--border); background:#ffffff; text-align:center; cursor:pointer; transition:all 0.2s; font-size:14px}
+    .slot:hover:not(.busy){background:#f0f9ff; border-color:#0ea5e9}
+    .slot.busy{opacity:.45; text-decoration:line-through; cursor:not-allowed; background:#fef2f2}
+    .slot.selected{outline:2px solid var(--brand); background:#e0f2fe}
     /* Calendar */
     .calendar{display:grid; grid-template-columns:repeat(7,1fr); gap:6px}
     .cal-cell{border:1px solid var(--border); background:#ffffff; min-height:80px; border-radius:10px; padding:6px; position:relative}
@@ -125,9 +126,12 @@
     .cal-head{display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:6px; color:#6b7280; text-align:center}
     .dot-blue{background:#3b82f6} .dot-orange{background:#f59e0b} .dot-gray{background:#6b7280}
     /* Modal & Toast */
-    .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.35); display:grid; place-items:center; z-index:20}
-    .modal{background:var(--surface); border:1px solid var(--border); border-radius:16px; width:min(560px,92vw); padding:18px; box-shadow:var(--shadow)}
-    .toast{position:fixed; right:14px; bottom:14px; background:var(--surface); border:1px solid var(--border); padding:12px 14px; border-radius:12px; z-index:30; box-shadow:var(--shadow)}
+    .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center; z-index:20; padding:20px; overflow-y:auto}
+    .modal{background:var(--surface); border:1px solid var(--border); border-radius:16px; width:min(560px,92vw); max-height:90vh; padding:18px; box-shadow:var(--shadow); overflow-y:auto; margin:auto}
+    .toast{position:fixed; right:14px; bottom:14px; background:var(--surface); border:1px solid var(--border); padding:12px 14px; border-radius:12px; z-index:30; box-shadow:var(--shadow); max-width:400px; word-wrap:break-word}
+    .toast.error{background:#fef2f2; border-color:#fecaca; color:#dc2626}
+    .toast.success{background:#f0fdf4; border-color:#bbf7d0; color:#16a34a}
+    .toast.warning{background:#fffbeb; border-color:#fed7aa; color:#d97706}
     /* Forms */
     label{font-size:13px; color:#6b7280}
     input,select,textarea{
@@ -152,13 +156,25 @@
       .grid.cols-3{grid-template-columns:repeat(2,1fr)}
       .grid.cols-4{grid-template-columns:repeat(2,1fr)}
       .materials{grid-template-columns:1fr}
+      .form-grid{grid-template-columns:1fr}
+      .cards-grid{grid-template-columns:repeat(auto-fill, minmax(280px, 1fr))}
     }
     @media (max-width: 560px){
       .grid.cols-3,.grid.cols-4{grid-template-columns:1fr}
-      .slots{grid-template-columns:1fr}
+      .slots{grid-template-columns:1fr; max-height:300px; overflow-y:auto}
       .search{min-width:unset; width:100%}
       .tabbar{width:100%; overflow:auto}
       th:nth-child(3), td:nth-child(3){white-space:nowrap}
+      .modal{width:95vw; max-height:85vh; padding:16px}
+      .date-strip{flex-wrap:wrap}
+      .date-pill{min-width:80px; font-size:12px}
+      .cards-grid{grid-template-columns:1fr}
+      .teacher-card{flex-direction:column; text-align:center}
+      .teacher-card .actions{justify-content:center}
+      /* 改善手機端表格顯示 */
+      table{font-size:14px}
+      th, td{padding:8px 4px}
+      .btn.small{padding:4px 8px; font-size:12px}
     }
     .hint{font-size:12px; color:#6b7280}
     .welcome{
@@ -190,14 +206,6 @@
     .card-actions{padding:0 16px 16px; display:flex; gap:8px; justify-content:flex-end}
     .section{margin-bottom:32px}
     .section h2{margin:0 0 16px; font-size:18px; font-weight:700; color:#111827}
-
-    /* Purchase Cards */
-    .cards-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:16px; margin-top:16px}
-    .purchase-card{background:white; border-radius:8px; border:1px solid #e5e7eb; overflow:hidden; transition:all 0.2s}
-    .purchase-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.1); transform:translateY(-2px)}
-    .purchase-card.draft{border-left:4px solid #f59e0b}
-    .purchase-card.active{border-left:4px solid #10b981}
-    .purchase-card.expired{border-left:4px solid #ef4444}
     .purchase-card.consumed{border-left:4px solid #6b7280}
     .card-header{padding:16px 16px 0; display:flex; justify-content:space-between; align-items:flex-start}
     .card-header h3{margin:0; font-size:16px; font-weight:600; color:#111827}
@@ -396,7 +404,13 @@
       };
       return new Date(d).toLocaleString('zh-TW', options);
     };
-    const toast = (msg)=>{ const t=$("#toastHost"); t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'), 2200); };
+    const toast = (msg, type = 'info')=>{
+      const t=$("#toastHost");
+      t.textContent=msg;
+      t.className = `toast ${type}`;
+      t.classList.remove('hidden');
+      setTimeout(()=>t.classList.add('hidden'), type === 'error' ? 4000 : 2200);
+    };
 
     // 時區相關函數
     function getCurrentTimezone() {
@@ -452,6 +466,33 @@
     const closeModal = ()=> $("#modalHost").classList.add('hidden');
     $("#modalHost").addEventListener('click', e=>{ if(e.target.id==='modalHost') closeModal(); });
 
+    function showErrorModal(title, message, actions = []) {
+      const modal = el('div', {},
+        el('div', {class: 'row wrap'},
+          el('h3', {style: 'margin:0; color:#dc2626'}, title),
+          el('div', {class: 'spacer'}),
+          el('button', {class: 'btn small', onclick: closeModal}, '✕')
+        ),
+        el('div', {class: 'hr'}),
+        el('div', {style: 'margin:16px 0; line-height:1.5'}, message),
+        actions.length > 0 ? el('div', {class: 'row wrap', style: 'margin-top:16px; gap:8px'},
+          ...actions.map(action =>
+            el('button', {
+              class: action.primary ? 'btn primary' : 'btn',
+              onclick: () => {
+                closeModal();
+                if (action.action) action.action();
+              }
+            }, action.text)
+          )
+        ) : el('div', {class: 'row wrap', style: 'margin-top:16px'},
+          el('button', {class: 'btn primary', onclick: closeModal}, '確定')
+        )
+      );
+
+      openModal(modal);
+    }
+
     // API 請求函數
     async function apiRequest(endpoint, options = {}) {
       const url = `${API_BASE}${endpoint}`;
@@ -481,7 +522,7 @@
         return null;
       } catch (error) {
         console.error('API Request failed:', error);
-        toast('API 請求失敗: ' + error.message);
+        toast('API 請求失敗: ' + error.message, 'error');
         throw error;
       }
     }
@@ -588,7 +629,7 @@
           toast(`歡迎，${currentUser.name || currentUser.username}`);
         }
       } catch (error) {
-        toast('登入失敗：' + error.message);
+        toast('登入失敗：' + error.message, 'error');
       }
     }
 
@@ -673,7 +714,7 @@
 
       } catch (error) {
         console.error('Failed to load teachers:', error);
-        toast('載入教師列表失敗');
+        toast('載入教師列表失敗', 'error');
       }
     }
 
@@ -764,7 +805,7 @@
         dates.push(date);
       }
 
-      const modal = el('div', {},
+      const modal = el('div', {style: 'max-height:90vh; overflow-y:auto'},
         el('div', {class: 'row wrap'},
           el('h3', {style: 'margin:0'}, `預約 ${teacher.name} 的課程`),
           el('div', {class: 'spacer'}),
@@ -773,7 +814,7 @@
         el('div', {class: 'hr'}),
         el('div', {class: 'muted'}, '選擇日期和時間'),
         el('div', {class: 'date-strip', id: 'dateStrip'}),
-        el('div', {id: 'timeSlots', style: 'margin-top:16px'}),
+        el('div', {id: 'timeSlots', style: 'margin-top:16px; max-height:250px; overflow-y:auto; border:1px solid #e5e7eb; border-radius:8px; padding:8px'}),
         el('div', {class: 'hr'}),
         el('div', {class: 'form-grid'},
           el('div', {},
@@ -791,9 +832,9 @@
         ),
         el('div', {},
           el('label', {}, '給老師的留言'),
-          el('textarea', {id: 'bookingMessage', placeholder: '可以告訴老師您的學習目標或特殊需求...'})
+          el('textarea', {id: 'bookingMessage', placeholder: '可以告訴老師您的學習目標或特殊需求...', rows: 3})
         ),
-        el('div', {class: 'row wrap', style: 'margin-top:16px'},
+        el('div', {class: 'row wrap', style: 'margin-top:16px; position:sticky; bottom:0; background:white; padding-top:16px; border-top:1px solid #e5e7eb; margin-left:-18px; margin-right:-18px; padding-left:18px; padding-right:18px'},
           el('button', {class: 'btn primary', onclick: () => submitBooking(teacher.id)}, '確認預約'),
           el('button', {class: 'btn', onclick: closeModal}, '取消')
         )
@@ -927,14 +968,37 @@
         });
 
         closeModal();
-        toast('預約成功！');
+        toast('預約成功！', 'success');
 
         // 如果在預約頁面，刷新列表
         if (current() === 'bookings') {
           renderBookings();
         }
       } catch (error) {
-        toast('預約失敗：' + error.message);
+        console.error('Booking failed:', error);
+
+        // 提供更詳細的錯誤信息
+        let errorMessage = '預約失敗';
+        if (error.message) {
+          if (error.message.includes('Insufficient cards')) {
+            errorMessage = '預約失敗：課卡不足，請先購買或激活課卡';
+          } else if (error.message.includes('Time slot conflicts')) {
+            errorMessage = '預約失敗：時間衝突，請選擇其他時間';
+          } else if (error.message.includes('Teacher not found')) {
+            errorMessage = '預約失敗：教師不存在';
+          } else if (error.message.includes('Invalid time')) {
+            errorMessage = '預約失敗：時間格式錯誤，請重新選擇';
+          } else {
+            errorMessage = `預約失敗：${error.message}`;
+          }
+        }
+
+        // 顯示錯誤提示
+        showErrorModal('預約失敗', errorMessage, [
+          {text: '重新選擇時間', action: () => {}},
+          {text: '查看我的卡片', action: () => {closeModal(); goto('purchases');}},
+          {text: '關閉', action: () => {}}
+        ]);
       }
     }
 
@@ -985,7 +1049,7 @@
           renderBookings();
         }
       } catch (error) {
-        toast('取消失敗：' + error.message);
+        toast('取消失敗：' + error.message, 'error');
       }
     }
 
@@ -1453,10 +1517,10 @@
           body: JSON.stringify({})
         });
 
-        toast('卡片激活成功');
+        toast('卡片激活成功', 'success');
         renderPurchases(); // 重新載入
       } catch (error) {
-        toast('激活失敗：' + error.message);
+        toast('激活失敗：' + error.message, 'error');
       }
     }
 
