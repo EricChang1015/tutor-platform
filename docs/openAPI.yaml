@@ -453,6 +453,60 @@ paths:
         '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '403': { description: 'Forbidden - 非管理員只能更新自己的資料', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
+  /users/{id}/avatar:
+    post:
+      tags: [Users]
+      summary: 上傳使用者頭像
+      description: 上傳頭像圖片，支援 JPG、PNG、WebP 格式，最大 1MB
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+          description: 使用者 ID
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+                  description: 頭像圖片文件
+      responses:
+        '201':
+          description: 頭像上傳成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserPublic' }
+        '400': { description: Bad Request, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: Forbidden, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    get:
+      tags: [Users]
+      summary: 獲取使用者頭像 URL
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+          description: 使用者 ID
+      responses:
+        '200':
+          description: 頭像 URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  avatarUrl:
+                    type: string
+                    nullable: true
+                    description: 頭像 URL，如果沒有頭像則為 null
+
   /teachers:
     get:
       tags: [Teachers]

@@ -3,12 +3,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole } from '../entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UploadsService } from '../uploads/uploads.service';
+import { FileCategory } from '../uploads/upload.config';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private uploadsService: UploadsService,
   ) {}
 
   async findById(id: string): Promise<User> {
@@ -41,5 +44,34 @@ export class UsersService {
 
     // 返回更新後的公開資料
     return this.findById(id);
+  }
+
+  async uploadAvatar(userId: string, file: any): Promise<User> {
+    // 上傳頭像文件
+    const upload = await this.uploadsService.uploadFile(
+      userId,
+      file,
+      FileCategory.AVATAR
+    );
+
+    // 更新用戶的頭像 URL
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    user.avatarUrl = upload.publicUrl || upload.cdnUrl;
+    await this.userRepository.save(user);
+
+    return this.findById(userId);
+  }
+
+  async getAvatarUrl(userId: string): Promise<string | null> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['avatarUrl']
+    });
+
+    return user?.avatarUrl || null;
   }
 }

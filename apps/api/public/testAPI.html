@@ -775,6 +775,28 @@
                     data: () => ({
                         name: '測試更新名稱'
                     })
+                },
+                {
+                    id: 'users_avatar_upload',
+                    name: '上傳頭像',
+                    method: 'POST',
+                    endpoint: () => `/users/${currentUser?.id}/avatar`,
+                    requireAuth: true,
+                    expectedStatus: 201,
+                    expectedFields: ['id', 'avatarUrl'],
+                    isFileUpload: true,
+                    fileField: 'avatar',
+                    testFile: 'avatar.jpg',
+                    description: '測試頭像上傳功能'
+                },
+                {
+                    id: 'users_avatar_get',
+                    name: '獲取頭像 URL',
+                    method: 'GET',
+                    endpoint: () => `/users/${currentUser?.id}/avatar`,
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['avatarUrl']
                 }
             ]
         },

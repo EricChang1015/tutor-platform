@@ -466,6 +466,24 @@
     const closeModal = ()=> $("#modalHost").classList.add('hidden');
     $("#modalHost").addEventListener('click', e=>{ if(e.target.id==='modalHost') closeModal(); });
 
+    // 頭像組件
+    function createAvatar(user, size = 54) {
+      const initials = user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+      if (user.avatarUrl) {
+        return el('div', {
+          class: 'avatar',
+          style: `width:${size}px; height:${size}px; background-image:url(${user.avatarUrl}); background-size:cover; background-position:center; color:transparent`
+        }, initials);
+      } else {
+        return el('div', {
+          class: 'avatar',
+          style: `width:${size}px; height:${size}px`,
+          title: user.name
+        }, initials);
+      }
+    }
+
     function showErrorModal(title, message, actions = []) {
       const modal = el('div', {},
         el('div', {class: 'row wrap'},
@@ -597,6 +615,8 @@
         renderBookings();
       } else if (route === 'purchases') {
         renderPurchases();
+      } else if (route === 'student') {
+        renderStudentProfile();
       }
     }
 
@@ -719,10 +739,8 @@
     }
 
     function createTeacherCard(teacher) {
-      const initials = teacher.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-
       return el('div', {class: 'card teacher-card'},
-        el('div', {class: 'avatar', title: teacher.name}, initials),
+        createAvatar(teacher),
         el('div', {},
           el('div', {class: 'row wrap'},
             el('div', {class: 'title'}, teacher.name),
@@ -759,11 +777,9 @@
       const wrap = $("#view-teacher-profile");
       wrap.innerHTML = '';
 
-      const initials = teacher.name[0];
-
       wrap.appendChild(el('div', {class: 'card'},
         el('div', {class: 'row wrap'},
-          el('div', {class: 'avatar'}, initials),
+          createAvatar(teacher),
           el('div', {},
             el('div', {class: 'title'}, teacher.name),
             el('div', {class: 'chips'},
@@ -1571,6 +1587,165 @@
       );
 
       openModal(modal);
+    }
+
+    // 學生資料頁面
+    async function renderStudentProfile() {
+      showOnly('view-student');
+      const wrap = $("#view-student");
+      wrap.innerHTML = '';
+
+      // 歡迎橫幅
+      wrap.appendChild(el('div', {class: 'welcome'},
+        el('h1', {style: 'margin:0; font-size:20px; font-weight:800'}, '我的資料'),
+        el('p', {style: 'margin:6px 0 0; color:#e7ffe7'}, '管理您的個人資料和設定')
+      ));
+
+      try {
+        // 獲取用戶資料
+        const user = await apiRequest(`/users/${currentUser.sub}`);
+
+        wrap.appendChild(el('div', {class: 'card'},
+          el('div', {class: 'row wrap'},
+            el('h2', {style: 'margin:0'}, '個人資料'),
+            el('div', {class: 'spacer'}),
+            el('button', {class: 'btn small', onclick: () => editProfile(user)}, '編輯')
+          ),
+          el('div', {class: 'hr'}),
+          el('div', {class: 'row wrap', style: 'align-items:center; gap:16px'},
+            el('div', {style: 'position:relative'},
+              createAvatar(user, 80),
+              el('button', {
+                class: 'btn small',
+                style: 'position:absolute; bottom:-8px; right:-8px; border-radius:50%; width:32px; height:32px; padding:0; font-size:12px',
+                onclick: () => uploadAvatar(user.id),
+                title: '更換頭像'
+              }, '📷')
+            ),
+            el('div', {},
+              el('div', {class: 'title'}, user.name),
+              el('div', {class: 'muted'}, user.email),
+              user.bio ? el('div', {style: 'margin-top:8px'}, user.bio) : null
+            )
+          ),
+          el('div', {class: 'form-grid', style: 'margin-top:16px'},
+            el('div', {},
+              el('label', {}, '電話'),
+              el('div', {}, user.phone || '未設定')
+            ),
+            el('div', {},
+              el('label', {}, '時區'),
+              el('div', {}, user.timezone || 'Asia/Taipei')
+            )
+          )
+        ));
+
+      } catch (error) {
+        wrap.appendChild(el('div', {class: 'error'},
+          el('h3', {}, '載入失敗'),
+          el('p', {}, error.message)
+        ));
+      }
+    }
+
+    async function uploadAvatar(userId) {
+      const input = el('input', {
+        type: 'file',
+        accept: 'image/*',
+        style: 'display:none',
+        onchange: async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          // 檢查文件大小 (1MB)
+          if (file.size > 1024 * 1024) {
+            toast('頭像文件不能超過 1MB', 'error');
+            return;
+          }
+
+          try {
+            const formData = new FormData();
+            formData.append('avatar', file);
+
+            await apiRequest(`/users/${userId}/avatar`, {
+              method: 'POST',
+              body: formData,
+              headers: {} // 讓瀏覽器自動設定 Content-Type
+            });
+
+            toast('頭像上傳成功', 'success');
+            renderStudentProfile(); // 重新載入頁面
+          } catch (error) {
+            toast('頭像上傳失敗：' + error.message, 'error');
+          }
+        }
+      });
+
+      document.body.appendChild(input);
+      input.click();
+      document.body.removeChild(input);
+    }
+
+    function editProfile(user) {
+      const modal = el('div', {},
+        el('div', {class: 'row wrap'},
+          el('h3', {style: 'margin:0'}, '編輯個人資料'),
+          el('div', {class: 'spacer'}),
+          el('button', {class: 'btn small', onclick: closeModal}, '✕')
+        ),
+        el('div', {class: 'hr'}),
+        el('div', {class: 'form-grid'},
+          el('div', {},
+            el('label', {}, '姓名'),
+            el('input', {id: 'editName', value: user.name})
+          ),
+          el('div', {},
+            el('label', {}, '個人簡介'),
+            el('textarea', {id: 'editBio', value: user.bio || '', rows: 3})
+          ),
+          el('div', {},
+            el('label', {}, '電話'),
+            el('input', {id: 'editPhone', value: user.phone || ''})
+          ),
+          el('div', {},
+            el('label', {}, '時區'),
+            el('select', {id: 'editTimezone'},
+              el('option', {value: 'Asia/Taipei', selected: user.timezone === 'Asia/Taipei'}, '台北 (UTC+8)'),
+              el('option', {value: 'Asia/Tokyo', selected: user.timezone === 'Asia/Tokyo'}, '東京 (UTC+9)'),
+              el('option', {value: 'America/New_York', selected: user.timezone === 'America/New_York'}, '紐約 (UTC-5)'),
+              el('option', {value: 'Europe/London', selected: user.timezone === 'Europe/London'}, '倫敦 (UTC+0)')
+            )
+          )
+        ),
+        el('div', {class: 'row wrap', style: 'margin-top:16px'},
+          el('button', {class: 'btn primary', onclick: () => saveProfile(user.id)}, '儲存'),
+          el('button', {class: 'btn', onclick: closeModal}, '取消')
+        )
+      );
+
+      openModal(modal);
+    }
+
+    async function saveProfile(userId) {
+      try {
+        const updateData = {
+          name: $("#editName").value,
+          bio: $("#editBio").value,
+          phone: $("#editPhone").value,
+          timezone: $("#editTimezone").value
+        };
+
+        await apiRequest(`/users/${userId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(updateData)
+        });
+
+        closeModal();
+        toast('資料更新成功', 'success');
+        renderStudentProfile(); // 重新載入頁面
+      } catch (error) {
+        toast('更新失敗：' + error.message, 'error');
+      }
     }
   </script>
 </body>
