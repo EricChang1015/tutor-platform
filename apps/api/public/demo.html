@@ -170,6 +170,46 @@
     .status-completed{background:#dcfce7; color:#16a34a}
     .status-noshow{background:#fef3c7; color:#d97706}
     .status-pending{background:#f3f4f6; color:#6b7280}
+
+    /* Purchase Cards */
+    .cards-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:16px; margin-top:16px}
+    .purchase-card{background:white; border-radius:8px; border:1px solid #e5e7eb; overflow:hidden; transition:all 0.2s}
+    .purchase-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.1); transform:translateY(-2px)}
+    .purchase-card.draft{border-left:4px solid #f59e0b}
+    .purchase-card.active{border-left:4px solid #10b981}
+    .purchase-card.expired{border-left:4px solid #ef4444}
+    .purchase-card.consumed{border-left:4px solid #6b7280}
+    .card-header{padding:16px 16px 0; display:flex; justify-content:space-between; align-items:flex-start}
+    .card-header h3{margin:0; font-size:16px; font-weight:600; color:#111827}
+    .card-body{padding:16px}
+    .card-info{display:grid; gap:8px}
+    .info-item{display:flex; justify-content:space-between; align-items:center}
+    .info-item label{font-size:14px; color:#6b7280; font-weight:500}
+    .info-item span{font-size:14px; color:#111827; font-weight:600}
+    .card-notes{margin-top:12px; padding:8px; background:#f9fafb; border-radius:4px; font-size:12px; color:#6b7280}
+    .card-actions{padding:0 16px 16px; display:flex; gap:8px; justify-content:flex-end}
+    .section{margin-bottom:32px}
+    .section h2{margin:0 0 16px; font-size:18px; font-weight:700; color:#111827}
+
+    /* Purchase Cards */
+    .cards-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:16px; margin-top:16px}
+    .purchase-card{background:white; border-radius:8px; border:1px solid #e5e7eb; overflow:hidden; transition:all 0.2s}
+    .purchase-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.1); transform:translateY(-2px)}
+    .purchase-card.draft{border-left:4px solid #f59e0b}
+    .purchase-card.active{border-left:4px solid #10b981}
+    .purchase-card.expired{border-left:4px solid #ef4444}
+    .purchase-card.consumed{border-left:4px solid #6b7280}
+    .card-header{padding:16px 16px 0; display:flex; justify-content:space-between; align-items:flex-start}
+    .card-header h3{margin:0; font-size:16px; font-weight:600; color:#111827}
+    .card-body{padding:16px}
+    .card-info{display:grid; gap:8px}
+    .info-item{display:flex; justify-content:space-between; align-items:center}
+    .info-item label{font-size:14px; color:#6b7280; font-weight:500}
+    .info-item span{font-size:14px; color:#111827; font-weight:600}
+    .card-notes{margin-top:12px; padding:8px; background:#f9fafb; border-radius:4px; font-size:12px; color:#6b7280}
+    .card-actions{padding:0 16px 16px; display:flex; gap:8px; justify-content:flex-end}
+    .section{margin-bottom:32px}
+    .section h2{margin:0 0 16px; font-size:18px; font-weight:700; color:#111827}
   </style>
 </head>
 <body>
@@ -298,6 +338,9 @@
 
     <!-- Bookings -->
     <section id="view-bookings" hidden></section>
+
+    <!-- Purchases -->
+    <section id="view-purchases" hidden></section>
 
     <!-- Student Profile -->
     <section id="view-student" hidden></section>
@@ -511,11 +554,13 @@
         renderMaterials();
       } else if (route === 'bookings') {
         renderBookings();
+      } else if (route === 'purchases') {
+        renderPurchases();
       }
     }
 
     function showOnly(id) {
-      ['view-login','view-teachers','view-teacher-profile','view-materials','view-schedule','view-bookings','view-student','view-teacher-dashboard','view-admin']
+      ['view-login','view-teachers','view-teacher-profile','view-materials','view-schedule','view-bookings','view-purchases','view-student','view-teacher-dashboard','view-admin']
       .forEach(v => $( '#'+v ).hidden = (v!==id));
     }
 
@@ -603,6 +648,7 @@
       addTab('teachers', '推薦教師', {hide: !role});
       addTab('materials', '教材', {hide: !role});
       addTab('bookings', '我的預約', {hide: !role});
+      addTab('purchases', '我的卡片', {hide: !role});
       if (role === 'student') addTab('student', '我的資料');
       if (role === 'teacher') addTab('teacher-dashboard', '老師後台');
       if (role === 'admin') addTab('admin', '管理後台');
@@ -1254,6 +1300,213 @@
       } catch (error) {
         toast('重置失敗：' + error.message);
       }
+    }
+
+    // 卡片管理
+    async function renderPurchases() {
+      showOnly('view-purchases');
+      const wrap = $("#view-purchases");
+      wrap.innerHTML = '';
+
+      // 歡迎橫幅
+      wrap.appendChild(el('div', {class: 'welcome'},
+        el('h1', {style: 'margin:0; font-size:20px; font-weight:800'}, '我的卡片'),
+        el('p', {style: 'margin:6px 0 0; color:#e7ffe7'}, '管理您的課程卡片和激活狀態')
+      ));
+
+      try {
+        const response = await apiRequest('/purchases');
+        const purchases = response.items || [];
+
+        if (purchases.length === 0) {
+          wrap.appendChild(el('div', {class: 'empty-state'},
+            el('div', {class: 'empty-icon'}, '💳'),
+            el('h3', {}, '暫無卡片'),
+            el('p', {}, '您目前沒有任何課程卡片')
+          ));
+          return;
+        }
+
+        // 按狀態分組顯示
+        const activeCards = purchases.filter(p => p.status === 'active' && !p.isExpired);
+        const draftCards = purchases.filter(p => p.status === 'draft');
+        const expiredCards = purchases.filter(p => p.status === 'expired' || p.isExpired);
+        const consumedCards = purchases.filter(p => p.status === 'consumed');
+
+        // 可用卡片
+        if (activeCards.length > 0) {
+          wrap.appendChild(el('div', {class: 'section'},
+            el('h2', {}, '可用卡片'),
+            el('div', {class: 'cards-grid'},
+              ...activeCards.map(card => createPurchaseCard(card))
+            )
+          ));
+        }
+
+        // 待激活卡片
+        if (draftCards.length > 0) {
+          wrap.appendChild(el('div', {class: 'section'},
+            el('h2', {}, '待激活卡片'),
+            el('div', {class: 'cards-grid'},
+              ...draftCards.map(card => createPurchaseCard(card))
+            )
+          ));
+        }
+
+        // 已過期卡片
+        if (expiredCards.length > 0) {
+          wrap.appendChild(el('div', {class: 'section'},
+            el('h2', {}, '已過期卡片'),
+            el('div', {class: 'cards-grid'},
+              ...expiredCards.map(card => createPurchaseCard(card))
+            )
+          ));
+        }
+
+        // 已用完卡片
+        if (consumedCards.length > 0) {
+          wrap.appendChild(el('div', {class: 'section'},
+            el('h2', {}, '已用完卡片'),
+            el('div', {class: 'cards-grid'},
+              ...consumedCards.map(card => createPurchaseCard(card))
+            )
+          ));
+        }
+
+      } catch (error) {
+        wrap.appendChild(el('div', {class: 'error'},
+          el('h3', {}, '載入失敗'),
+          el('p', {}, error.message)
+        ));
+      }
+    }
+
+    function createPurchaseCard(purchase) {
+      const isActive = purchase.status === 'active' && !purchase.isExpired;
+      const canActivate = purchase.canActivate;
+
+      return el('div', {class: `purchase-card ${purchase.status}`},
+        el('div', {class: 'card-header'},
+          el('h3', {}, purchase.packageName),
+          getPurchaseStatusChip(purchase)
+        ),
+        el('div', {class: 'card-body'},
+          el('div', {class: 'card-info'},
+            el('div', {class: 'info-item'},
+              el('label', {}, '類型'),
+              el('span', {}, getPurchaseTypeText(purchase.type))
+            ),
+            el('div', {class: 'info-item'},
+              el('label', {}, '數量'),
+              el('span', {}, `${purchase.remaining}/${purchase.quantity}`)
+            ),
+            purchase.activatedAt ? el('div', {class: 'info-item'},
+              el('label', {}, '激活時間'),
+              el('span', {}, fmtDate(purchase.activatedAt))
+            ) : null,
+            purchase.expiresAt ? el('div', {class: 'info-item'},
+              el('label', {}, '過期時間'),
+              el('span', {}, fmtDate(purchase.expiresAt))
+            ) : null
+          ),
+          purchase.notes ? el('div', {class: 'card-notes'}, purchase.notes) : null
+        ),
+        el('div', {class: 'card-actions'},
+          canActivate ?
+            el('button', {class: 'btn primary', onclick: () => activatePurchase(purchase.id)}, '激活') :
+            null,
+          el('button', {class: 'btn small', onclick: () => showPurchaseDetails(purchase)}, '詳情')
+        )
+      );
+    }
+
+    function getPurchaseStatusChip(purchase) {
+      const statusMap = {
+        'draft': { text: '待激活', class: 'status-pending' },
+        'active': { text: purchase.isExpired ? '已過期' : '可用', class: purchase.isExpired ? 'status-canceled' : 'status-scheduled' },
+        'expired': { text: '已過期', class: 'status-canceled' },
+        'consumed': { text: '已用完', class: 'status-completed' }
+      };
+
+      const statusInfo = statusMap[purchase.status] || { text: purchase.status, class: 'status-pending' };
+      return el('span', {class: `status-chip ${statusInfo.class}`}, statusInfo.text);
+    }
+
+    function getPurchaseTypeText(type) {
+      const typeMap = {
+        'lesson_card': '約課次卡',
+        'trial_card': '體驗次卡',
+        'compensation_card': '補償次卡',
+        'cancel_card': '取消約課次卡'
+      };
+      return typeMap[type] || type;
+    }
+
+    async function activatePurchase(purchaseId) {
+      if (!confirm('確定要激活這張卡片嗎？\n\n激活後將開始計算過期時間。')) {
+        return;
+      }
+
+      try {
+        await apiRequest(`/purchases/${purchaseId}/activate`, {
+          method: 'POST',
+          body: JSON.stringify({})
+        });
+
+        toast('卡片激活成功');
+        renderPurchases(); // 重新載入
+      } catch (error) {
+        toast('激活失敗：' + error.message);
+      }
+    }
+
+    function showPurchaseDetails(purchase) {
+      const modal = el('div', {},
+        el('div', {class: 'row wrap'},
+          el('h3', {style: 'margin:0'}, '卡片詳情'),
+          el('div', {class: 'spacer'}),
+          el('button', {class: 'btn small', onclick: closeModal}, '✕')
+        ),
+        el('div', {class: 'hr'}),
+        el('div', {class: 'form-grid'},
+          el('div', {},
+            el('label', {}, '套餐名稱'),
+            el('div', {}, purchase.packageName)
+          ),
+          el('div', {},
+            el('label', {}, '類型'),
+            el('div', {}, getPurchaseTypeText(purchase.type))
+          ),
+          el('div', {},
+            el('label', {}, '數量'),
+            el('div', {}, `剩餘 ${purchase.remaining} / 總共 ${purchase.quantity}`)
+          ),
+          el('div', {},
+            el('label', {}, '狀態'),
+            el('div', {}, getPurchaseStatusChip(purchase))
+          ),
+          purchase.activatedAt ? el('div', {},
+            el('label', {}, '激活時間'),
+            el('div', {}, fmtDate(purchase.activatedAt))
+          ) : null,
+          purchase.expiresAt ? el('div', {},
+            el('label', {}, '過期時間'),
+            el('div', {}, fmtDate(purchase.expiresAt))
+          ) : null
+        ),
+        purchase.notes ? el('div', {},
+          el('label', {}, '備註'),
+          el('div', {class: 'muted'}, purchase.notes)
+        ) : null,
+        el('div', {class: 'row wrap', style: 'margin-top:16px'},
+          purchase.canActivate ?
+            el('button', {class: 'btn primary', onclick: () => { closeModal(); activatePurchase(purchase.id); }}, '激活') :
+            null,
+          el('button', {class: 'btn', onclick: closeModal}, '關閉')
+        )
+      );
+
+      openModal(modal);
     }
   </script>
 </body>

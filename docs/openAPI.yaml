@@ -309,6 +309,13 @@ components:
       properties:
         id: { type: string }
         studentId: { type: string }
+        student:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            name: { type: string }
+            email: { type: string }
         packageName: { type: string }
         quantity: { type: integer, description: 張數總量 }
         remaining: { type: integer, description: 剩餘張數 }
@@ -316,13 +323,12 @@ components:
         suggestedLabel: { type: string, nullable: true }
         purchasedAt: { type: string, format: date-time }
         activatedAt: { type: string, format: date-time, nullable: true }
-        expiresAt:
-          oneOf:
-            - { type: string, format: date-time }
-            - { type: string, example: '14天', description: 僅用於尚未啟動時顯示相對期限 }
+        expiresAt: { type: string, format: date-time, nullable: true }
         status: { type: string, enum: [draft, active, expired, consumed], default: active }
         notes: { type: string, nullable: true }
         meta: { type: object, additionalProperties: true, nullable: true }
+        canActivate: { type: boolean, description: 是否可以激活 }
+        isExpired: { type: boolean, description: 是否已過期 }
     ConsumptionRecord:
       type: object
       properties:
@@ -1252,12 +1258,13 @@ paths:
   /purchases:
     get:
       tags: [Purchases]
-      summary: 學生購買項目列表（Dashboard）
+      summary: 查看購買項目列表
       security: [{ bearerAuth: [] }]
       parameters:
         - in: query
           name: studentId
           schema: { type: string }
+          description: 管理員可查看指定學生的購買記錄
         - $ref: '#/components/parameters/Sort'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
@@ -1271,13 +1278,117 @@ paths:
                   - $ref: '#/components/schemas/Paginated'
                   - type: object
                     properties: { items: { type: array, items: { $ref: '#/components/schemas/PurchaseItem' } } }
+    post:
+      tags: [Purchases]
+      summary: 管理員創建購買項目
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [studentId, packageName, quantity, type]
+              properties:
+                studentId: { type: string, description: 學生ID }
+                packageName: { type: string, description: 套餐名稱 }
+                quantity: { type: integer, minimum: 1, maximum: 100, description: 卡片數量 }
+                type: { $ref: '#/components/schemas/PurchaseType' }
+                suggestedLabel: { type: string, nullable: true, description: 建議標籤 }
+                notes: { type: string, nullable: true, description: 備註 }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PurchaseItem' }
+
+  /purchases/{id}:
+    get:
+      tags: [Purchases]
+      summary: 查看購買項目詳情
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PurchaseItem' }
+    put:
+      tags: [Purchases]
+      summary: 管理員更新購買項目
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                packageName: { type: string, nullable: true }
+                remaining: { type: integer, minimum: 0, nullable: true }
+                status: { type: string, enum: [draft, active, expired, consumed], nullable: true }
+                expiresAt: { type: string, format: date-time, nullable: true }
+                suggestedLabel: { type: string, nullable: true }
+                notes: { type: string, nullable: true }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PurchaseItem' }
+    delete:
+      tags: [Purchases]
+      summary: 管理員刪除購買項目
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
 
   /purchases/{id}/activate:
     post:
       tags: [Purchases]
-      summary: 啟動卡片（啟動後每張卡=一週效期；體驗卡優先；相同卡 First-Expire-First-Use）
+      summary: 啟動卡片
+      description: 啟動後每張卡預設一週效期。管理員可自定義過期天數。
       security: [{ bearerAuth: [] }]
-      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customExpireDays:
+                  type: integer
+                  minimum: 1
+                  maximum: 365
+                  description: 自定義過期天數（管理員專用）
       responses:
         '200':
           description: Activated

@@ -1010,11 +1010,11 @@
         {
             id: 'purchases',
             name: '💳 購買項目',
-            description: '測試購買項目管理',
+            description: '測試購買項目管理功能',
             tests: [
                 {
-                    id: 'purchases_list',
-                    name: '取得購買項目列表',
+                    id: 'purchases_list_student',
+                    name: '學生查看購買項目列表',
                     method: 'GET',
                     endpoint: '/purchases',
                     requireAuth: true,
@@ -1023,13 +1023,85 @@
                     roles: ['student']
                 },
                 {
-                    id: 'purchases_activate',
-                    name: '啟動卡片',
+                    id: 'purchases_create_admin',
+                    name: '管理員創建購買項目',
                     method: 'POST',
-                    endpoint: '/purchases/test-purchase-id/activate',
+                    endpoint: '/purchases',
+                    requireAuth: true,
+                    expectedStatus: 201,
+                    data: () => ({
+                        studentId: 'd90d434c-87c9-4eba-bdbc-b4e3fb32f1d7',
+                        packageName: '測試約課次卡 5張',
+                        quantity: 5,
+                        type: 'lesson_card',
+                        suggestedLabel: '測試用卡片',
+                        notes: 'API測試創建'
+                    }),
+                    expectedFields: ['id', 'packageName', 'quantity', 'type', 'status'],
+                    roles: ['admin']
+                },
+                {
+                    id: 'purchases_activate_student',
+                    name: '學生激活卡片',
+                    method: 'POST',
+                    endpoint: () => {
+                        const purchaseId = window.lastCreatedPurchaseId || '44444444-4444-4444-4444-444444444444';
+                        return `/purchases/${purchaseId}/activate`;
+                    },
                     requireAuth: true,
                     expectedStatus: 200,
+                    data: () => ({}),
+                    expectedFields: ['id', 'status', 'activatedAt', 'expiresAt'],
                     roles: ['student']
+                },
+                {
+                    id: 'purchases_activate_admin_custom',
+                    name: '管理員激活卡片 (自定義過期天數)',
+                    method: 'POST',
+                    endpoint: () => {
+                        const purchaseId = window.lastCreatedPurchaseId || '55555555-5555-5555-5555-555555555555';
+                        return `/purchases/${purchaseId}/activate`;
+                    },
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    data: () => ({
+                        customExpireDays: 90
+                    }),
+                    expectedFields: ['id', 'status', 'activatedAt', 'expiresAt'],
+                    roles: ['admin']
+                },
+                {
+                    id: 'purchases_update_admin',
+                    name: '管理員更新購買項目',
+                    method: 'PUT',
+                    endpoint: () => {
+                        const purchaseId = window.lastCreatedPurchaseId || '44444444-4444-4444-4444-444444444444';
+                        return `/purchases/${purchaseId}`;
+                    },
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    data: () => ({
+                        remaining: 3,
+                        notes: '管理員調整剩餘數量'
+                    }),
+                    expectedFields: ['id', 'remaining', 'notes'],
+                    roles: ['admin']
+                },
+                {
+                    id: 'purchases_extend_admin',
+                    name: '管理員延長過期時間',
+                    method: 'POST',
+                    endpoint: () => {
+                        const purchaseId = window.lastCreatedPurchaseId || '44444444-4444-4444-4444-444444444444';
+                        return `/purchases/${purchaseId}/extend`;
+                    },
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    data: () => ({
+                        newExpiresAt: '2025-12-31T23:59:59+08:00'
+                    }),
+                    expectedFields: ['id', 'expiresAt'],
+                    roles: ['admin']
                 }
             ]
         },
@@ -1864,6 +1936,12 @@ ${'='.repeat(80)}`;
                 if (testId.includes('bookings_create') && response.data && response.data.id) {
                     window.lastCreatedBookingId = response.data.id;
                     console.log('Saved booking ID for cancel tests:', response.data.id);
+                }
+
+                // 保存創建的購買項目ID供後續測試使用
+                if (testId.includes('purchases_create') && response.data && response.data.id) {
+                    window.lastCreatedPurchaseId = response.data.id;
+                    console.log('Saved purchase ID for activation tests:', response.data.id);
                 }
             } else {
                 updateTestStatus(testId, 'error', '失敗');

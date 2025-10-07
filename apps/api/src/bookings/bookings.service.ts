@@ -3,8 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Booking, BookingStatus, BookingSource } from '../entities/booking.entity';
 import { User, UserRole } from '../entities/user.entity';
-import { Purchase, PurchaseType } from '../entities/purchase.entity';
+import { Purchase, PurchaseType, PurchaseStatus } from '../entities/purchase.entity';
 import { TeacherAvailabilityService } from '../teacher-availability/teacher-availability.service';
+import { PurchasesService } from '../purchases/purchases.service';
 import { TimeSlotUtil } from '../common/time-slots.util';
 import { TimezoneUtil } from '../utils/timezone';
 import { DateTime } from 'luxon';
@@ -21,6 +22,7 @@ export class BookingsService {
     @InjectRepository(Purchase)
     private purchaseRepository: Repository<Purchase>,
     private teacherAvailabilityService: TeacherAvailabilityService,
+    private purchasesService: PurchasesService,
   ) {}
 
   async findUserBookings(userId: string, query: any = {}) {
@@ -203,18 +205,34 @@ export class BookingsService {
 
     const savedBooking = await this.bookingRepository.save(booking);
 
-    // 標記教師時間槽為已預約（使用UTC時間）
-    await this.teacherAvailabilityService.markAsBookedByUtc(
-      teacherId,
-      startDate,
-      endDate,
-      savedBooking.id
-    );
+    try {
+      // 計算需要的卡片數量（每30分鐘1張卡）
+      const durationMinutes = (endDate.getTime() - startDate.getTime()) / (1000 * 60);
+      const slotsNeeded = Math.ceil(durationMinutes / 30);
 
-    // TODO: 扣除課卡邏輯
-    // TODO: 發送通知邏輯
+      // 扣除課卡
+      const consumeResult = await this.purchasesService.consumeCards(
+        createBookingDto.studentId || userId,
+        slotsNeeded,
+        savedBooking.id
+      );
 
-    return this.findById(savedBooking.id);
+      // 標記教師時間槽為已預約（使用UTC時間）
+      await this.teacherAvailabilityService.markAsBookedByUtc(
+        teacherId,
+        startDate,
+        endDate,
+        savedBooking.id
+      );
+
+      // TODO: 發送通知邏輯
+
+      return this.findById(savedBooking.id);
+    } catch (error) {
+      // 如果扣卡失敗，刪除已創建的預約
+      await this.bookingRepository.remove(savedBooking);
+      throw error;
+    }
   }
 
   async findById(id: string) {
@@ -347,6 +365,10 @@ export class BookingsService {
       throw new BadRequestException('Cancellation not allowed within 2 hours of class time');
     }
 
+    // 計算課程時長和需要退還的卡片數
+    const durationMinutes = (booking.endsAt.getTime() - booking.startsAt.getTime()) / (1000 * 60);
+    const slotsToProcess = Math.ceil(durationMinutes / 30);
+
     // 更新預約狀態
     booking.status = BookingStatus.CANCELED;
     await this.bookingRepository.save(booking);
@@ -358,16 +380,53 @@ export class BookingsService {
       booking.endsAt
     );
 
-    // TODO: 實現課卡退還和取消卡扣除邏輯
+    // 處理卡片退還和扣除邏輯
+    let actualRefund = { lessonCardsReturned: 0, cancelCardsConsumed: 0, compensationGranted: 0 };
+
+    try {
+      if (refundInfo.lessonCardsReturned > 0) {
+        // 退還課卡
+        const refundResult = await this.purchasesService.refundCards(
+          booking.studentId,
+          slotsToProcess,
+          booking.id
+        );
+        actualRefund.lessonCardsReturned = refundResult.refunded;
+      }
+
+      if (refundInfo.cancelCardsConsumed > 0) {
+        // 扣除取消卡
+        try {
+          const cancelResult = await this.purchasesService.consumeCancelCards(
+            booking.studentId,
+            refundInfo.cancelCardsConsumed,
+            `cancel-${booking.id}`
+          );
+          actualRefund.cancelCardsConsumed = cancelResult.consumed;
+        } catch (error) {
+          // 如果沒有足夠的取消卡，記錄但不阻止取消
+          console.warn(`Insufficient cancel cards for booking ${booking.id}:`, error.message);
+          actualRefund.cancelCardsConsumed = 0;
+        }
+      }
+
+      if (refundInfo.compensationGranted > 0) {
+        // 發放補償卡（由管理員手動處理，這裡只記錄）
+        actualRefund.compensationGranted = refundInfo.compensationGranted;
+      }
+    } catch (error) {
+      console.error('Error processing card refund/consumption:', error);
+    }
+
     // TODO: 發送通知
 
     return {
       id: booking.id,
       status: booking.status,
       refund: {
-        lessonCardsReturned: refundInfo.lessonCardsReturned,
-        cancelCardsConsumed: refundInfo.cancelCardsConsumed,
-        compensationGranted: refundInfo.compensationGranted,
+        lessonCardsReturned: actualRefund.lessonCardsReturned,
+        cancelCardsConsumed: actualRefund.cancelCardsConsumed,
+        compensationGranted: actualRefund.compensationGranted,
         notes: refundInfo.notes,
       },
     };
@@ -456,5 +515,91 @@ export class BookingsService {
       compensationGranted: 0,
       notes: 'Admin force cancellation',
     };
+  }
+
+  async checkAndGrantCancelCards(studentId: string) {
+    // 計算學生已完成的課程數量
+    const completedBookings = await this.bookingRepository.count({
+      where: {
+        studentId,
+        status: BookingStatus.COMPLETED,
+      },
+    });
+
+    // 計算應該獲得的取消卡數量（每10堂課1張）
+    const expectedCancelCards = Math.floor(completedBookings / 10);
+
+    // 查看已經發放的取消卡數量
+    const existingCancelCards = await this.purchaseRepository
+      .createQueryBuilder('purchase')
+      .where('purchase.studentId = :studentId', { studentId })
+      .andWhere('purchase.type = :type', { type: PurchaseType.CANCEL_CARD })
+      .select('SUM(purchase.quantity)', 'total')
+      .getRawOne();
+
+    const grantedCancelCards = parseInt(existingCancelCards?.total || '0');
+
+    // 如果需要發放新的取消卡
+    if (expectedCancelCards > grantedCancelCards) {
+      const cardsToGrant = expectedCancelCards - grantedCancelCards;
+
+      // 創建取消卡記錄
+      const cancelCardPurchase = this.purchaseRepository.create({
+        studentId,
+        packageName: `取消約課次卡 ${cardsToGrant}張`,
+        quantity: cardsToGrant,
+        remaining: cardsToGrant,
+        type: PurchaseType.CANCEL_CARD,
+        status: PurchaseStatus.ACTIVE, // 取消卡自動激活
+        suggestedLabel: '系統自動發放',
+        notes: `完成${completedBookings}堂課自動獲得`,
+        activatedAt: new Date(),
+      });
+
+      // 設定過期時間（與最近的課卡過期時間一致）
+      const recentLessonCard = await this.purchaseRepository
+        .createQueryBuilder('purchase')
+        .where('purchase.studentId = :studentId', { studentId })
+        .andWhere('purchase.type IN (:...types)', { types: [PurchaseType.LESSON_CARD, PurchaseType.TRIAL_CARD] })
+        .andWhere('purchase.status = :status', { status: PurchaseStatus.ACTIVE })
+        .orderBy('purchase.expiresAt', 'DESC')
+        .getOne();
+
+      if (recentLessonCard && recentLessonCard.expiresAt) {
+        cancelCardPurchase.expiresAt = recentLessonCard.expiresAt;
+      } else {
+        // 如果沒有課卡，設定為7天後過期
+        cancelCardPurchase.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      }
+
+      await this.purchaseRepository.save(cancelCardPurchase);
+
+      return {
+        granted: cardsToGrant,
+        totalCompleted: completedBookings,
+        totalCancelCards: expectedCancelCards,
+      };
+    }
+
+    return null; // 沒有需要發放的卡片
+  }
+
+  // 課程完成時調用此方法
+  async completeBooking(bookingId: string) {
+    const booking = await this.bookingRepository.findOne({
+      where: { id: bookingId },
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    booking.status = BookingStatus.COMPLETED;
+    await this.bookingRepository.save(booking);
+
+    // 檢查並發放取消卡
+    await this.checkAndGrantCancelCards(booking.studentId);
+
+    return this.formatBookingDetail(booking);
   }
 }
