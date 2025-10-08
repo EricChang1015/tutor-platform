@@ -11,6 +11,7 @@ import { User } from './user.entity';
 export enum MediaType {
   IMAGE = 'image',
   VIDEO = 'video',
+  AUDIO = 'audio',
   OTHER = 'other',
 }
 
@@ -34,6 +35,9 @@ export class TeacherGallery {
 
   @Column({ type: 'text', nullable: true })
   caption?: string;
+
+  @Column({ nullable: true })
+  filename?: string;
 
   @CreateDateColumn({ name: 'uploaded_at' })
   uploadedAt: Date;

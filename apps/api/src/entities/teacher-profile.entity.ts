@@ -28,6 +28,9 @@ export class TeacherProfile {
   @Column({ name: 'experience_years', default: 0 })
   experienceYears: number;
 
+  @Column({ name: 'experience_since', nullable: true })
+  experienceSince?: number;
+
   @Column({ type: 'json' })
   domains: string[];
 

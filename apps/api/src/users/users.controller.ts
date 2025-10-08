@@ -17,6 +17,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes } from '
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -79,5 +80,45 @@ export class UsersController {
   async getAvatarUrl(@Param('id') id: string) {
     const avatarUrl = await this.usersService.getAvatarUrl(id);
     return { avatarUrl };
+  }
+
+  @Post(':id/change-password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '修改使用者密碼' })
+  @ApiResponse({ status: 200, description: '密碼修改成功' })
+  @ApiResponse({ status: 400, description: '密碼驗證失敗' })
+  @ApiResponse({ status: 401, description: '未授權' })
+  @ApiResponse({ status: 403, description: '權限不足' })
+  async changePassword(
+    @Param('id') id: string,
+    @Body() changePasswordDto: ChangePasswordDto,
+    @Request() req,
+  ) {
+    // 檢查權限：只能修改自己的密碼（管理員除外）
+    if (req.user.role !== 'admin' && id !== req.user.sub) {
+      throw new BadRequestException('Can only change own password');
+    }
+
+    return this.usersService.changePassword(id, changePasswordDto);
+  }
+
+  @Get(':id/profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '獲取使用者完整個人資料' })
+  @ApiResponse({ status: 200, description: '個人資料' })
+  @ApiResponse({ status: 401, description: '未授權' })
+  @ApiResponse({ status: 403, description: '權限不足' })
+  async getUserProfile(
+    @Param('id') id: string,
+    @Request() req,
+  ) {
+    // 檢查權限：只能查看自己的完整資料（管理員除外）
+    if (req.user.role !== 'admin' && id !== req.user.sub) {
+      throw new BadRequestException('Can only view own profile');
+    }
+
+    return this.usersService.getUserProfile(id);
   }
 }

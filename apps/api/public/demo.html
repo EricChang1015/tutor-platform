@@ -90,9 +90,54 @@
     /* Avatars */
     .avatar{
       width:54px; height:54px; border-radius:14px; background:linear-gradient(135deg,#e5f9f0,#d1fae5); border:1px solid var(--border);
-      display:grid; place-items:center; font-weight:900; color:#065f46
+      display:grid; place-items:center; font-weight:900; color:#065f46; overflow:hidden;
     }
     .avatar.sm{width:36px; height:36px; border-radius:10px; font-size:14px}
+    .avatar.round{border-radius:50%}
+    .avatar img{width:100%; height:100%; object-fit:cover}
+
+    /* 圖片裁切器 */
+    .crop-container{
+      position:relative; max-width:400px; margin:16px auto;
+    }
+    .crop-preview{
+      width:100px; height:100px; border-radius:50%; overflow:hidden; border:2px solid var(--border);
+      margin:16px auto; background:#f3f4f6;
+    }
+    .crop-preview img{width:100%; height:100%; object-fit:cover}
+
+    /* 表單樣式 */
+    .form-grid{display:grid; gap:16px; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr))}
+    .form-grid label{display:block; font-weight:600; margin-bottom:4px; color:#374151}
+    .form-grid input, .form-grid textarea, .form-grid select{
+      width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:8px;
+      background:white; font-size:14px;
+    }
+    .form-grid input:focus, .form-grid textarea:focus, .form-grid select:focus{
+      outline:none; border-color:var(--brand); box-shadow:0 0 0 3px rgba(37,99,235,0.1);
+    }
+
+    /* 檔案上傳區域 */
+    .upload-area{
+      border:2px dashed var(--border); border-radius:12px; padding:24px; text-align:center;
+      background:#f9fafb; cursor:pointer; transition:.2s;
+    }
+    .upload-area:hover{border-color:var(--brand); background:#f0f9ff}
+    .upload-area.dragover{border-color:var(--brand); background:#e0f2fe}
+
+    /* 相簿網格 */
+    .gallery-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px}
+    .gallery-item{
+      aspect-ratio:1; border-radius:12px; overflow:hidden; border:1px solid var(--border);
+      position:relative; cursor:pointer; transition:.2s;
+    }
+    .gallery-item:hover{transform:scale(1.02); box-shadow:var(--shadow)}
+    .gallery-item img, .gallery-item video{width:100%; height:100%; object-fit:cover}
+    .gallery-item .play-btn{
+      position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
+      background:rgba(0,0,0,0.7); color:white; border-radius:50%; width:40px; height:40px;
+      display:grid; place-items:center; font-size:16px;
+    }
     /* Layout */
     main{padding:10px}
     section[hidden]{display:none !important}
@@ -353,6 +398,9 @@
     <!-- Student Profile -->
     <section id="view-student" hidden></section>
 
+    <!-- Teacher Profile Management -->
+    <section id="view-teacher-profile-manage" hidden></section>
+
     <!-- Teacher Dashboard -->
     <section id="view-teacher-dashboard" hidden></section>
 
@@ -467,17 +515,25 @@
     $("#modalHost").addEventListener('click', e=>{ if(e.target.id==='modalHost') closeModal(); });
 
     // 頭像組件
-    function createAvatar(user, size = 54) {
+    function createAvatar(user, size = 54, options = {}) {
+      const { round = false, className = '' } = options;
       const initials = user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+      const avatarClass = `avatar ${round ? 'round' : ''} ${className}`.trim();
 
       if (user.avatarUrl) {
         return el('div', {
-          class: 'avatar',
-          style: `width:${size}px; height:${size}px; background-image:url(${user.avatarUrl}); background-size:cover; background-position:center; color:transparent`
-        }, initials);
+          class: avatarClass,
+          style: `width:${size}px; height:${size}px`,
+          title: user.name
+        }, el('img', {
+          src: user.avatarUrl,
+          alt: user.name,
+          style: 'width:100%; height:100%; object-fit:cover'
+        }));
       } else {
         return el('div', {
-          class: 'avatar',
+          class: avatarClass,
           style: `width:${size}px; height:${size}px`,
           title: user.name
         }, initials);
@@ -617,11 +673,13 @@
         renderPurchases();
       } else if (route === 'student') {
         renderStudentProfile();
+      } else if (route === 'teacher-profile') {
+        renderTeacherProfileManage();
       }
     }
 
     function showOnly(id) {
-      ['view-login','view-teachers','view-teacher-profile','view-materials','view-schedule','view-bookings','view-purchases','view-student','view-teacher-dashboard','view-admin']
+      ['view-login','view-teachers','view-teacher-profile','view-materials','view-schedule','view-bookings','view-purchases','view-student','view-teacher-profile-manage','view-teacher-dashboard','view-admin']
       .forEach(v => $( '#'+v ).hidden = (v!==id));
     }
 
@@ -711,7 +769,10 @@
       addTab('bookings', '我的預約', {hide: !role});
       addTab('purchases', '我的卡片', {hide: !role});
       if (role === 'student') addTab('student', '我的資料');
-      if (role === 'teacher') addTab('teacher-dashboard', '老師後台');
+      if (role === 'teacher') {
+        addTab('teacher-profile', '我的資料');
+        addTab('teacher-dashboard', '老師後台');
+      }
       if (role === 'admin') addTab('admin', '管理後台');
     }
 
@@ -740,7 +801,7 @@
 
     function createTeacherCard(teacher) {
       return el('div', {class: 'card teacher-card'},
-        createAvatar(teacher),
+        createAvatar(teacher, 54, { round: true }),
         el('div', {},
           el('div', {class: 'row wrap'},
             el('div', {class: 'title'}, teacher.name),
@@ -1609,12 +1670,13 @@
           el('div', {class: 'row wrap'},
             el('h2', {style: 'margin:0'}, '個人資料'),
             el('div', {class: 'spacer'}),
-            el('button', {class: 'btn small', onclick: () => editProfile(user)}, '編輯')
+            el('button', {class: 'btn small', onclick: () => editProfile(user)}, '編輯'),
+            el('button', {class: 'btn small', onclick: () => changePassword(user.id)}, '修改密碼')
           ),
           el('div', {class: 'hr'}),
           el('div', {class: 'row wrap', style: 'align-items:center; gap:16px'},
             el('div', {style: 'position:relative'},
-              createAvatar(user, 80),
+              createAvatar(user, 80, { round: true }),
               el('button', {
                 class: 'btn small',
                 style: 'position:absolute; bottom:-8px; right:-8px; border-radius:50%; width:32px; height:32px; padding:0; font-size:12px',
@@ -1657,33 +1719,33 @@
           const file = e.target.files[0];
           if (!file) return;
 
-          // 檢查文件大小 (1MB)
-          if (file.size > 1024 * 1024) {
-            toast('頭像文件不能超過 1MB', 'error');
+          // 檢查文件大小 (5MB)
+          if (file.size > 5 * 1024 * 1024) {
+            toast('頭像文件不能超過 5MB', 'error');
             return;
           }
 
-          try {
-            const formData = new FormData();
-            formData.append('avatar', file);
-
-            await apiRequest(`/users/${userId}/avatar`, {
-              method: 'POST',
-              body: formData,
-              headers: {} // 讓瀏覽器自動設定 Content-Type
-            });
-
-            toast('頭像上傳成功', 'success');
-            renderStudentProfile(); // 重新載入頁面
-          } catch (error) {
-            toast('頭像上傳失敗：' + error.message, 'error');
-          }
+          // 顯示圖片裁切器
+          showImageCropper(file, userId);
         }
       });
 
       document.body.appendChild(input);
       input.click();
       document.body.removeChild(input);
+    }
+
+    function showImageCropper(file, userId) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const modal = createCropperModal(img, file, userId);
+          openModal(modal);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
     }
 
     function editProfile(user) {
@@ -1746,6 +1808,574 @@
       } catch (error) {
         toast('更新失敗：' + error.message, 'error');
       }
+    }
+
+    function createCropperModal(img, file, userId) {
+      const canvas = el('canvas', { width: 400, height: 400 });
+      const ctx = canvas.getContext('2d');
+      const preview = el('canvas', { width: 100, height: 100, class: 'crop-preview' });
+      const previewCtx = preview.getContext('2d');
+
+      // 計算圖片縮放比例以適應 canvas
+      const scale = Math.min(400 / img.width, 400 / img.height);
+      const scaledWidth = img.width * scale;
+      const scaledHeight = img.height * scale;
+      const offsetX = (400 - scaledWidth) / 2;
+      const offsetY = (400 - scaledHeight) / 2;
+
+      // 裁切區域 (正方形，居中)
+      const cropSize = Math.min(scaledWidth, scaledHeight) * 0.8;
+      let cropX = (400 - cropSize) / 2;
+      let cropY = (400 - cropSize) / 2;
+
+      function drawImage() {
+        // 清除 canvas
+        ctx.clearRect(0, 0, 400, 400);
+
+        // 繪製圖片
+        ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+
+        // 繪製遮罩
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, 400, 400);
+
+        // 清除裁切區域
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        ctx.arc(cropX + cropSize/2, cropY + cropSize/2, cropSize/2, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // 繪製裁切邊框
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cropX + cropSize/2, cropY + cropSize/2, cropSize/2, 0, 2 * Math.PI);
+        ctx.stroke();
+
+        // 更新預覽
+        updatePreview();
+      }
+
+      function updatePreview() {
+        previewCtx.clearRect(0, 0, 100, 100);
+
+        // 計算裁切區域在原圖中的位置
+        const originalCropX = (cropX - offsetX) / scale;
+        const originalCropY = (cropY - offsetY) / scale;
+        const originalCropSize = cropSize / scale;
+
+        // 繪製裁切後的圖片到預覽
+        previewCtx.drawImage(
+          img,
+          originalCropX, originalCropY, originalCropSize, originalCropSize,
+          0, 0, 100, 100
+        );
+      }
+
+      // 拖拽功能
+      let isDragging = false;
+      canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // 檢查是否點擊在裁切區域內
+        const centerX = cropX + cropSize/2;
+        const centerY = cropY + cropSize/2;
+        const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+
+        if (distance <= cropSize/2) {
+          isDragging = true;
+        }
+      });
+
+      canvas.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // 更新裁切位置，確保不超出邊界
+        cropX = Math.max(0, Math.min(400 - cropSize, x - cropSize/2));
+        cropY = Math.max(0, Math.min(400 - cropSize, y - cropSize/2));
+
+        drawImage();
+      });
+
+      canvas.addEventListener('mouseup', () => {
+        isDragging = false;
+      });
+
+      drawImage();
+
+      return el('div', {},
+        el('div', {class: 'row wrap'},
+          el('h3', {style: 'margin:0'}, '裁切頭像'),
+          el('div', {class: 'spacer'}),
+          el('button', {class: 'btn small', onclick: closeModal}, '✕')
+        ),
+        el('div', {class: 'hr'}),
+        el('div', {style: 'text-align:center'},
+          el('p', {class: 'muted'}, '拖拽圓圈調整裁切位置'),
+          el('div', {class: 'crop-container'}, canvas),
+          el('div', {style: 'margin:16px 0'},
+            el('strong', {}, '預覽：'),
+            el('div', {style: 'margin-top:8px'}, preview)
+          )
+        ),
+        el('div', {class: 'row wrap', style: 'margin-top:16px'},
+          el('button', {
+            class: 'btn primary',
+            onclick: () => cropAndUpload(canvas, cropX, cropY, cropSize, offsetX, offsetY, scale, img, file, userId)
+          }, '確認上傳'),
+          el('button', {class: 'btn', onclick: closeModal}, '取消')
+        )
+      );
+    }
+
+    async function cropAndUpload(canvas, cropX, cropY, cropSize, offsetX, offsetY, scale, img, file, userId) {
+      try {
+        // 創建最終的裁切 canvas
+        const finalCanvas = el('canvas', { width: 500, height: 500 });
+        const finalCtx = finalCanvas.getContext('2d');
+
+        // 計算原圖中的裁切區域
+        const originalCropX = (cropX - offsetX) / scale;
+        const originalCropY = (cropY - offsetY) / scale;
+        const originalCropSize = cropSize / scale;
+
+        // 繪製裁切後的圖片
+        finalCtx.drawImage(
+          img,
+          originalCropX, originalCropY, originalCropSize, originalCropSize,
+          0, 0, 500, 500
+        );
+
+        // 轉換為 blob
+        finalCanvas.toBlob(async (blob) => {
+          const formData = new FormData();
+          formData.append('file', blob, `avatar-${userId}.jpg`);
+
+          await apiRequest(`/users/${userId}/avatar`, {
+            method: 'POST',
+            body: formData,
+            headers: {} // 讓瀏覽器自動設定 Content-Type
+          });
+
+          closeModal();
+          toast('頭像上傳成功', 'success');
+
+          // 重新載入頁面
+          if (currentUser.role === 'student') {
+            renderStudentProfile();
+          } else if (currentUser.role === 'teacher') {
+            renderTeacherProfileManage();
+          }
+        }, 'image/jpeg', 0.9);
+
+      } catch (error) {
+        toast('上傳失敗：' + error.message, 'error');
+      }
+    }
+
+    // 密碼修改功能
+    function changePassword(userId) {
+      const modal = el('div', {},
+        el('div', {class: 'row wrap'},
+          el('h3', {style: 'margin:0'}, '修改密碼'),
+          el('div', {class: 'spacer'}),
+          el('button', {class: 'btn small', onclick: closeModal}, '✕')
+        ),
+        el('div', {class: 'hr'}),
+        el('div', {class: 'form-grid'},
+          el('div', {},
+            el('label', {}, '當前密碼'),
+            el('input', {id: 'currentPassword', type: 'password', placeholder: '請輸入當前密碼'})
+          ),
+          el('div', {},
+            el('label', {}, '新密碼'),
+            el('input', {id: 'newPassword', type: 'password', placeholder: '請輸入新密碼 (至少6位)'})
+          ),
+          el('div', {},
+            el('label', {}, '確認新密碼'),
+            el('input', {id: 'confirmPassword', type: 'password', placeholder: '請再次輸入新密碼'})
+          )
+        ),
+        el('div', {class: 'row wrap', style: 'margin-top:16px'},
+          el('button', {class: 'btn primary', onclick: () => doChangePassword(userId)}, '修改密碼'),
+          el('button', {class: 'btn', onclick: closeModal}, '取消')
+        )
+      );
+
+      openModal(modal);
+    }
+
+    async function doChangePassword(userId) {
+      const currentPassword = $("#currentPassword").value;
+      const newPassword = $("#newPassword").value;
+      const confirmPassword = $("#confirmPassword").value;
+
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        toast('請填寫所有欄位', 'error');
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        toast('新密碼至少需要6位', 'error');
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        toast('新密碼和確認密碼不一致', 'error');
+        return;
+      }
+
+      try {
+        await apiRequest(`/users/${userId}/change-password`, {
+          method: 'POST',
+          body: JSON.stringify({
+            currentPassword,
+            newPassword,
+            confirmPassword
+          })
+        });
+
+        closeModal();
+        toast('密碼修改成功', 'success');
+      } catch (error) {
+        toast('密碼修改失敗：' + error.message, 'error');
+      }
+    }
+
+    // 教師個人資料管理頁面
+    async function renderTeacherProfileManage() {
+      showOnly('view-teacher-profile-manage');
+      const wrap = $("#view-teacher-profile-manage");
+      wrap.innerHTML = '';
+
+      // 歡迎橫幅
+      wrap.appendChild(el('div', {class: 'welcome'},
+        el('h1', {style: 'margin:0; font-size:20px; font-weight:800'}, '我的教師資料'),
+        el('p', {style: 'margin:6px 0 0; color:#e7ffe7'}, '管理您的教師檔案和教學資料')
+      ));
+
+      try {
+        // 獲取教師完整資料
+        const profile = await apiRequest(`/teachers/${currentUser.sub}/profile`);
+
+        // 基本資料卡片
+        wrap.appendChild(el('div', {class: 'card'},
+          el('div', {class: 'row wrap'},
+            el('h2', {style: 'margin:0'}, '基本資料'),
+            el('div', {class: 'spacer'}),
+            el('button', {class: 'btn small', onclick: () => editProfile(profile)}, '編輯'),
+            el('button', {class: 'btn small', onclick: () => changePassword(profile.id)}, '修改密碼')
+          ),
+          el('div', {class: 'hr'}),
+          el('div', {class: 'row wrap', style: 'align-items:center; gap:16px'},
+            el('div', {style: 'position:relative'},
+              createAvatar(profile, 80, { round: true }),
+              el('button', {
+                class: 'btn small',
+                style: 'position:absolute; bottom:-8px; right:-8px; border-radius:50%; width:32px; height:32px; padding:0; font-size:12px',
+                onclick: () => uploadAvatar(profile.id),
+                title: '更換頭像'
+              }, '📷')
+            ),
+            el('div', {},
+              el('div', {class: 'title'}, profile.name),
+              el('div', {class: 'muted'}, profile.email),
+              profile.bio ? el('div', {style: 'margin-top:8px'}, profile.bio) : null
+            )
+          ),
+          el('div', {class: 'form-grid', style: 'margin-top:16px'},
+            el('div', {},
+              el('label', {}, '電話'),
+              el('div', {}, profile.phone || '未設定')
+            ),
+            el('div', {},
+              el('label', {}, '時區'),
+              el('div', {}, profile.timezone || 'Asia/Taipei')
+            )
+          )
+        ));
+
+        // 教師專業資料卡片
+        wrap.appendChild(el('div', {class: 'card'},
+          el('div', {class: 'row wrap'},
+            el('h2', {style: 'margin:0'}, '教師資料'),
+            el('div', {class: 'spacer'}),
+            el('button', {class: 'btn small', onclick: () => editTeacherProfile(profile)}, '編輯')
+          ),
+          el('div', {class: 'hr'}),
+          el('div', {class: 'form-grid'},
+            el('div', {},
+              el('label', {}, '教學經驗'),
+              el('div', {}, profile.experienceSince ?
+                `從 ${profile.experienceSince} 年開始 (${profile.experienceYears} 年經驗)` :
+                '未設定')
+            ),
+            el('div', {},
+              el('label', {}, '時薪'),
+              el('div', {}, `$${profile.hourlyRate || 0} USD`)
+            ),
+            el('div', {},
+              el('label', {}, '教學地區'),
+              el('div', {}, profile.region || '未設定')
+            ),
+            el('div', {},
+              el('label', {}, '可教授語言'),
+              el('div', {}, profile.languages?.join(', ') || '未設定')
+            ),
+            el('div', {},
+              el('label', {}, '教學領域'),
+              el('div', {}, profile.domains?.join(', ') || '未設定')
+            ),
+            el('div', {},
+              el('label', {}, '評分'),
+              el('div', {}, `${profile.rating || 0} 分 (${profile.ratingsCount || 0} 評價)`)
+            )
+          ),
+          profile.introduction ? el('div', {style: 'margin-top:16px'},
+            el('label', {}, '自我介紹'),
+            el('div', {style: 'margin-top:4px; padding:12px; background:#f9fafb; border-radius:8px'},
+              profile.introduction)
+          ) : null,
+          profile.certificates ? el('div', {style: 'margin-top:16px'},
+            el('label', {}, '證書資訊'),
+            el('div', {style: 'margin-top:4px; padding:12px; background:#f9fafb; border-radius:8px'},
+              profile.certificates)
+          ) : null
+        ));
+
+        // 教師相簿
+        renderTeacherGallery(profile.id);
+
+      } catch (error) {
+        wrap.appendChild(el('div', {class: 'error'},
+          el('h3', {}, '載入失敗'),
+          el('p', {}, error.message)
+        ));
+      }
+    }
+
+    function editTeacherProfile(profile) {
+      const modal = el('div', {},
+        el('div', {class: 'row wrap'},
+          el('h3', {style: 'margin:0'}, '編輯教師資料'),
+          el('div', {class: 'spacer'}),
+          el('button', {class: 'btn small', onclick: closeModal}, '✕')
+        ),
+        el('div', {class: 'hr'}),
+        el('div', {class: 'form-grid'},
+          el('div', {},
+            el('label', {}, '自我介紹'),
+            el('textarea', {id: 'editIntroduction', value: profile.introduction || '', rows: 4, placeholder: '請介紹您的教學理念和經驗'})
+          ),
+          el('div', {},
+            el('label', {}, '證書資訊'),
+            el('textarea', {id: 'editCertificates', value: profile.certificates || '', rows: 3, placeholder: '請列出您的教學相關證書'})
+          ),
+          el('div', {},
+            el('label', {}, '開始教學年份'),
+            el('input', {id: 'editExperienceSince', type: 'number', value: profile.experienceSince || '', min: 1990, max: new Date().getFullYear(), placeholder: '例如：2020'})
+          ),
+          el('div', {},
+            el('label', {}, '時薪 (USD)'),
+            el('input', {id: 'editHourlyRate', type: 'number', value: profile.hourlyRate || '', min: 0, step: 0.5, placeholder: '例如：25'})
+          ),
+          el('div', {},
+            el('label', {}, '教學地區'),
+            el('input', {id: 'editRegion', value: profile.region || '', placeholder: '例如：台北市'})
+          ),
+          el('div', {},
+            el('label', {}, '可教授語言 (用逗號分隔)'),
+            el('input', {id: 'editLanguages', value: profile.languages?.join(', ') || '', placeholder: '例如：中文, 英文, 日文'})
+          ),
+          el('div', {},
+            el('label', {}, '教學領域 (用逗號分隔)'),
+            el('input', {id: 'editDomains', value: profile.domains?.join(', ') || '', placeholder: '例如：英語會話, 商務英語, 考試準備'})
+          )
+        ),
+        el('div', {class: 'row wrap', style: 'margin-top:16px'},
+          el('button', {class: 'btn primary', onclick: () => saveTeacherProfile(profile.id)}, '儲存'),
+          el('button', {class: 'btn', onclick: closeModal}, '取消')
+        )
+      );
+
+      openModal(modal);
+    }
+
+    async function saveTeacherProfile(teacherId) {
+      try {
+        const updateData = {
+          introduction: $("#editIntroduction").value,
+          certificates: $("#editCertificates").value,
+          experienceSince: parseInt($("#editExperienceSince").value) || undefined,
+          hourlyRate: parseFloat($("#editHourlyRate").value) || undefined,
+          region: $("#editRegion").value,
+          languages: $("#editLanguages").value.split(',').map(s => s.trim()).filter(s => s),
+          domains: $("#editDomains").value.split(',').map(s => s.trim()).filter(s => s)
+        };
+
+        await apiRequest(`/teachers/${teacherId}/profile`, {
+          method: 'PUT',
+          body: JSON.stringify(updateData)
+        });
+
+        closeModal();
+        toast('教師資料更新成功', 'success');
+        renderTeacherProfileManage(); // 重新載入頁面
+      } catch (error) {
+        toast('更新失敗：' + error.message, 'error');
+      }
+    }
+
+    // 教師相簿功能
+    async function renderTeacherGallery(teacherId) {
+      const wrap = $("#view-teacher-profile-manage");
+
+      try {
+        const gallery = await apiRequest(`/teachers/${teacherId}/gallery`);
+
+        const galleryCard = el('div', {class: 'card'},
+          el('div', {class: 'row wrap'},
+            el('h2', {style: 'margin:0'}, '教師相簿'),
+            el('div', {class: 'spacer'}),
+            el('button', {class: 'btn small', onclick: () => uploadGalleryFile(teacherId)}, '上傳檔案')
+          ),
+          el('div', {class: 'hr'}),
+          gallery.items.length > 0 ?
+            el('div', {class: 'gallery-grid'},
+              ...gallery.items.map(item => createGalleryItem(item))
+            ) :
+            el('div', {class: 'subtle', style: 'text-align:center; padding:40px'},
+              el('div', {style: 'font-size:48px; margin-bottom:16px'}, '📁'),
+              el('div', {class: 'muted'}, '還沒有上傳任何檔案'),
+              el('button', {class: 'btn primary', style: 'margin-top:16px', onclick: () => uploadGalleryFile(teacherId)}, '上傳第一個檔案')
+            )
+        );
+
+        wrap.appendChild(galleryCard);
+
+      } catch (error) {
+        console.error('載入相簿失敗:', error);
+      }
+    }
+
+    function createGalleryItem(item) {
+      const container = el('div', {class: 'gallery-item'});
+
+      if (item.type === 'image') {
+        container.appendChild(el('img', {
+          src: item.url,
+          alt: item.filename,
+          onclick: () => viewGalleryItem(item)
+        }));
+      } else if (item.type === 'video') {
+        container.appendChild(el('video', {
+          src: item.url,
+          onclick: () => viewGalleryItem(item)
+        }));
+        container.appendChild(el('div', {class: 'play-btn'}, '▶'));
+      } else if (item.type === 'audio') {
+        container.appendChild(el('div', {
+          style: 'background:#f3f4f6; display:grid; place-items:center; height:100%; font-size:48px',
+          onclick: () => viewGalleryItem(item)
+        }, '🎵'));
+        container.appendChild(el('div', {class: 'play-btn'}, '▶'));
+      } else {
+        container.appendChild(el('div', {
+          style: 'background:#f3f4f6; display:grid; place-items:center; height:100%; font-size:48px',
+          onclick: () => viewGalleryItem(item)
+        }, '📄'));
+      }
+
+      return container;
+    }
+
+    function viewGalleryItem(item) {
+      let content;
+
+      if (item.type === 'image') {
+        content = el('img', {
+          src: item.url,
+          style: 'max-width:100%; max-height:70vh; object-fit:contain'
+        });
+      } else if (item.type === 'video') {
+        content = el('video', {
+          src: item.url,
+          controls: true,
+          style: 'max-width:100%; max-height:70vh'
+        });
+      } else if (item.type === 'audio') {
+        content = el('div', {style: 'text-align:center; padding:40px'},
+          el('div', {style: 'font-size:64px; margin-bottom:16px'}, '🎵'),
+          el('audio', {
+            src: item.url,
+            controls: true,
+            style: 'width:100%; max-width:400px'
+          })
+        );
+      } else {
+        content = el('div', {style: 'text-align:center; padding:40px'},
+          el('div', {style: 'font-size:64px; margin-bottom:16px'}, '📄'),
+          el('p', {}, '無法預覽此檔案類型'),
+          el('a', {href: item.url, target: '_blank', class: 'btn primary'}, '下載檔案')
+        );
+      }
+
+      const modal = el('div', {},
+        el('div', {class: 'row wrap'},
+          el('h3', {style: 'margin:0'}, item.filename),
+          el('div', {class: 'spacer'}),
+          el('button', {class: 'btn small', onclick: closeModal}, '✕')
+        ),
+        el('div', {class: 'hr'}),
+        el('div', {style: 'text-align:center'}, content)
+      );
+
+      openModal(modal);
+    }
+
+    async function uploadGalleryFile(teacherId) {
+      const input = el('input', {
+        type: 'file',
+        accept: 'image/*,video/*,audio/*',
+        style: 'display:none',
+        onchange: async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          // 檢查文件大小 (10MB)
+          if (file.size > 10 * 1024 * 1024) {
+            toast('檔案不能超過 10MB', 'error');
+            return;
+          }
+
+          try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            await apiRequest(`/teachers/${teacherId}/gallery`, {
+              method: 'POST',
+              body: formData,
+              headers: {} // 讓瀏覽器自動設定 Content-Type
+            });
+
+            toast('檔案上傳成功', 'success');
+            renderTeacherProfileManage(); // 重新載入頁面
+          } catch (error) {
+            toast('上傳失敗：' + error.message, 'error');
+          }
+        }
+      });
+
+      document.body.appendChild(input);
+      input.click();
+      document.body.removeChild(input);
     }
   </script>
 </body>

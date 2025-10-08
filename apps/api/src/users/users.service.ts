@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole } from '../entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { UploadsService } from '../uploads/uploads.service';
 import { FileCategory } from '../uploads/upload.config';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -73,5 +75,58 @@ export class UsersService {
     });
 
     return user?.avatarUrl || null;
+  }
+
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
+    const { currentPassword, newPassword, confirmPassword } = changePasswordDto;
+
+    // 檢查新密碼和確認密碼是否一致
+    if (newPassword !== confirmPassword) {
+      throw new BadRequestException('New password and confirm password do not match');
+    }
+
+    // 獲取用戶（包含密碼）
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'passwordHash']
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // 驗證當前密碼
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isCurrentPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    // 加密新密碼
+    const saltRounds = 10;
+    const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    // 更新密碼
+    await this.userRepository.update(userId, { passwordHash: hashedNewPassword });
+
+    return { message: 'Password changed successfully' };
+  }
+
+  async getUserProfile(userId: string): Promise<any> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'email', 'name', 'phone', 'bio', 'avatarUrl', 'timezone', 'role', 'createdAt']
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // 如果是教師，獲取教師額外資料
+    if (user.role === UserRole.TEACHER) {
+      // 這裡需要查詢 teacher_profiles 表
+      // 暫時返回基本資料，後續會在 teachers 服務中實現
+    }
+
+    return user;
   }
 }

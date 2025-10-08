@@ -1,8 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole } from '../entities/user.entity';
 import { TeacherProfile } from '../entities/teacher-profile.entity';
+import { TeacherGallery, MediaType } from '../entities/teacher-gallery.entity';
+import { UpdateTeacherProfileDto } from './dto/update-teacher-profile.dto';
+import { UploadsService } from '../uploads/uploads.service';
+import { FileCategory } from '../uploads/upload.config';
 
 @Injectable()
 export class TeachersService {
@@ -11,6 +15,9 @@ export class TeachersService {
     private userRepository: Repository<User>,
     @InjectRepository(TeacherProfile)
     private teacherProfileRepository: Repository<TeacherProfile>,
+    @InjectRepository(TeacherGallery)
+    private teacherGalleryRepository: Repository<TeacherGallery>,
+    private uploadsService: UploadsService,
   ) {}
 
   async findAll(query: any = {}) {
@@ -117,6 +124,170 @@ export class TeachersService {
         mode: 'zoom_personal',
         defaultUrl: null,
       },
+    };
+  }
+
+  async getTeacherProfile(teacherId: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: teacherId, role: UserRole.TEACHER },
+      relations: ['teacherProfile'],
+      select: ['id', 'email', 'name', 'phone', 'bio', 'avatarUrl', 'timezone', 'role', 'createdAt']
+    });
+
+    if (!user) {
+      throw new NotFoundException('Teacher not found');
+    }
+
+    const profile = user.teacherProfile;
+    const currentYear = new Date().getFullYear();
+    const experienceYears = profile?.experienceSince ? currentYear - profile.experienceSince : 0;
+
+    return {
+      // 基本用戶資料
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      phone: user.phone,
+      bio: user.bio,
+      avatarUrl: user.avatarUrl,
+      timezone: user.timezone,
+      role: user.role,
+      createdAt: user.createdAt,
+
+      // 教師專屬資料
+      introduction: profile?.intro || '',
+      certificates: profile?.certifications || [],
+      experienceSince: profile?.experienceSince,
+      experienceYears,
+      languages: profile?.languages || [],
+      domains: profile?.domains || [],
+      region: profile?.regions?.[0] || '',
+      hourlyRate: profile?.unitPriceUsd || 0,
+      rating: profile?.rating || 0,
+      ratingsCount: profile?.ratingsCount || 0,
+    };
+  }
+
+  async updateTeacherProfile(teacherId: string, updateDto: UpdateTeacherProfileDto) {
+    const user = await this.userRepository.findOne({
+      where: { id: teacherId, role: UserRole.TEACHER },
+      relations: ['teacherProfile']
+    });
+
+    if (!user) {
+      throw new NotFoundException('Teacher not found');
+    }
+
+    let profile = user.teacherProfile;
+    if (!profile) {
+      // 如果沒有教師資料，創建一個新的
+      profile = this.teacherProfileRepository.create({
+        userId: teacherId,
+        intro: '',
+        certifications: [],
+        experienceYears: 0,
+        domains: [],
+        regions: [],
+        languages: [],
+        unitPriceUsd: 0,
+        rating: 0,
+        ratingsCount: 0,
+      });
+    }
+
+    // 更新教師資料
+    if (updateDto.introduction !== undefined) {
+      profile.intro = updateDto.introduction;
+    }
+    if (updateDto.certificates !== undefined) {
+      profile.certifications = [updateDto.certificates]; // 暫時作為字串陣列處理
+    }
+    if (updateDto.experienceSince !== undefined) {
+      profile.experienceSince = updateDto.experienceSince;
+      profile.experienceYears = new Date().getFullYear() - updateDto.experienceSince;
+    }
+    if (updateDto.languages !== undefined) {
+      profile.languages = updateDto.languages;
+    }
+    if (updateDto.domains !== undefined) {
+      profile.domains = updateDto.domains;
+    }
+    if (updateDto.region !== undefined) {
+      profile.regions = [updateDto.region];
+    }
+    if (updateDto.hourlyRate !== undefined) {
+      profile.unitPriceUsd = updateDto.hourlyRate;
+    }
+
+    await this.teacherProfileRepository.save(profile);
+
+    return this.getTeacherProfile(teacherId);
+  }
+
+  async uploadGalleryFile(teacherId: string, file: any) {
+    if (!file) {
+      throw new NotFoundException('No file provided');
+    }
+
+    // 檢查教師是否存在
+    const teacher = await this.userRepository.findOne({
+      where: { id: teacherId, role: UserRole.TEACHER }
+    });
+
+    if (!teacher) {
+      throw new NotFoundException('Teacher not found');
+    }
+
+    // 上傳檔案
+    const upload = await this.uploadsService.uploadFile(
+      teacherId,
+      file,
+      FileCategory.TEACHER_GALLERY
+    );
+
+    // 判斷檔案類型
+    let fileType = MediaType.OTHER;
+    if (file.mimetype.startsWith('image/')) {
+      fileType = MediaType.IMAGE;
+    } else if (file.mimetype.startsWith('video/')) {
+      fileType = MediaType.VIDEO;
+    } else if (file.mimetype.startsWith('audio/')) {
+      fileType = MediaType.AUDIO;
+    }
+
+    // 保存到相簿
+    const galleryItem = new TeacherGallery();
+    galleryItem.teacherId = teacherId;
+    galleryItem.type = fileType;
+    galleryItem.url = upload.publicUrl || upload.cdnUrl;
+    galleryItem.filename = file.originalname;
+
+    await this.teacherGalleryRepository.save(galleryItem);
+
+    return {
+      id: galleryItem.id,
+      type: galleryItem.type,
+      url: galleryItem.url,
+      filename: galleryItem.filename,
+      uploadedAt: galleryItem.uploadedAt,
+    };
+  }
+
+  async getTeacherGallery(teacherId: string) {
+    const gallery = await this.teacherGalleryRepository.find({
+      where: { teacherId },
+      order: { uploadedAt: 'DESC' }
+    });
+
+    return {
+      teacherId,
+      items: gallery.map(item => ({
+        id: item.id,
+        type: item.type,
+        url: item.url,
+        filename: item.filename,
+        uploadedAt: item.uploadedAt,
+      }))
     };
   }
 }
