@@ -701,10 +701,14 @@
 
         if (response.accessToken) {
           accessToken = response.accessToken;
-          currentUser = response.user;
+
+          // 獲取用戶信息
+          const userInfo = await apiRequest('/auth/me');
+          currentUser = userInfo;
+
           headerUI();
           goto('teachers');
-          toast(`歡迎，${currentUser.name || currentUser.username}`);
+          toast(`歡迎，${currentUser.name || currentUser.email}`);
         }
       } catch (error) {
         toast('登入失敗：' + error.message, 'error');
@@ -1664,7 +1668,7 @@
 
       try {
         // 獲取用戶資料
-        const user = await apiRequest(`/users/${currentUser.sub}`);
+        const user = await apiRequest(`/users/${currentUser.id}`);
 
         wrap.appendChild(el('div', {class: 'card'},
           el('div', {class: 'row wrap'},
@@ -2063,7 +2067,7 @@
 
       try {
         // 獲取教師完整資料
-        const profile = await apiRequest(`/teachers/${currentUser.sub}/profile`);
+        const profile = await apiRequest(`/teachers/${currentUser.id}/profile`);
 
         // 基本資料卡片
         wrap.appendChild(el('div', {class: 'card'},
