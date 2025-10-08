@@ -3,6 +3,7 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  UpdateDateColumn,
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
@@ -23,24 +24,34 @@ export class TeacherGallery {
   @Column({ name: 'teacher_id' })
   teacherId: string;
 
+  @Column({ name: 'upload_id', nullable: true })
+  uploadId?: string;
+
   @Column()
-  url: string;
+  title: string;
+
+  @Column({ type: 'text', nullable: true })
+  description?: string;
 
   @Column({
+    name: 'media_type',
     type: 'enum',
     enum: MediaType,
     default: MediaType.IMAGE,
   })
-  type: MediaType;
+  mediaType: MediaType;
 
-  @Column({ type: 'text', nullable: true })
-  caption?: string;
+  @Column()
+  url: string;
 
-  @Column({ nullable: true })
-  filename?: string;
+  @Column({ name: 'sort_order', default: 0 })
+  sortOrder: number;
 
-  @CreateDateColumn({ name: 'uploaded_at' })
-  uploadedAt: Date;
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 
   // 關聯
   @ManyToOne(() => User)

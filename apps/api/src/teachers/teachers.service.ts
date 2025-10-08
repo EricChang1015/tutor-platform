@@ -258,35 +258,39 @@ export class TeachersService {
     // 保存到相簿
     const galleryItem = new TeacherGallery();
     galleryItem.teacherId = teacherId;
-    galleryItem.type = fileType;
+    galleryItem.uploadId = upload.id;
+    galleryItem.title = file.originalname;
+    galleryItem.mediaType = fileType;
     galleryItem.url = upload.publicUrl || upload.cdnUrl;
-    galleryItem.filename = file.originalname;
+    galleryItem.sortOrder = 0;
 
     await this.teacherGalleryRepository.save(galleryItem);
 
     return {
       id: galleryItem.id,
-      type: galleryItem.type,
+      title: galleryItem.title,
+      mediaType: galleryItem.mediaType,
       url: galleryItem.url,
-      filename: galleryItem.filename,
-      uploadedAt: galleryItem.uploadedAt,
+      uploadedAt: galleryItem.createdAt,
     };
   }
 
   async getTeacherGallery(teacherId: string) {
     const gallery = await this.teacherGalleryRepository.find({
       where: { teacherId },
-      order: { uploadedAt: 'DESC' }
+      order: { createdAt: 'DESC' }
     });
 
     return {
       teacherId,
       items: gallery.map(item => ({
         id: item.id,
-        type: item.type,
+        title: item.title,
+        description: item.description,
+        mediaType: item.mediaType,
         url: item.url,
-        filename: item.filename,
-        uploadedAt: item.uploadedAt,
+        sortOrder: item.sortOrder,
+        uploadedAt: item.createdAt,
       }))
     };
   }

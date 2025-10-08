@@ -248,6 +248,40 @@
     .info-item label{font-size:14px; color:#6b7280; font-weight:500}
     .info-item span{font-size:14px; color:#111827; font-weight:600}
     .card-notes{margin-top:12px; padding:8px; background:#f9fafb; border-radius:4px; font-size:12px; color:#6b7280}
+
+    /* Admin 樣式 */
+    .tabs{display:flex; border-bottom:1px solid #e5e7eb; margin-bottom:20px}
+    .tab-btn{padding:12px 24px; border:none; background:none; cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s}
+    .tab-btn:hover{background:#f9fafb}
+    .tab-btn.active{border-bottom-color:#3b82f6; color:#3b82f6; font-weight:600}
+
+    .data-table{width:100%; border-collapse:collapse; margin-top:16px}
+    .data-table th, .data-table td{padding:12px; text-align:left; border-bottom:1px solid #e5e7eb}
+    .data-table th{background:#f9fafb; font-weight:600; color:#374151}
+    .data-table tr:hover{background:#f9fafb}
+
+    .badge{display:inline-block; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:600}
+    .badge.admin{background:#fef3c7; color:#d97706}
+    .badge.teacher{background:#dbeafe; color:#1d4ed8}
+    .badge.student{background:#dcfce7; color:#16a34a}
+    .badge.success{background:#dcfce7; color:#16a34a}
+    .badge.danger{background:#fee2e2; color:#dc2626}
+
+    .btn-group{display:flex; gap:4px; flex-wrap:wrap}
+    .btn-group .btn{margin:0}
+
+    .avatar-small{width:32px; height:32px; border-radius:50%; object-fit:cover}
+
+    .pagination{display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding:16px 0}
+    .pagination-info{color:#6b7280; font-size:14px}
+    .pagination-buttons{display:flex; gap:4px}
+
+    .stat-item{text-align:center}
+    .stat-number{font-size:24px; font-weight:700; color:#111827}
+    .stat-label{font-size:14px; color:#6b7280; margin-top:4px}
+
+    .loading, .error, .empty{text-align:center; padding:40px; color:#6b7280}
+    .error{color:#dc2626}
     .card-actions{padding:0 16px 16px; display:flex; gap:8px; justify-content:flex-end}
     .section{margin-bottom:32px}
     .section h2{margin:0 0 16px; font-size:18px; font-weight:700; color:#111827}
@@ -405,7 +439,178 @@
     <section id="view-teacher-dashboard" hidden></section>
 
     <!-- Admin -->
-    <section id="view-admin" hidden></section>
+    <section id="view-admin" hidden>
+      <div class="container">
+        <div class="title">管理員後台</div>
+        <div class="subtitle">用戶管理系統</div>
+
+        <!-- 用戶管理選項卡 -->
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="user-list">用戶列表</button>
+          <button class="tab-btn" data-tab="create-user">新增用戶</button>
+          <button class="tab-btn" data-tab="system-stats">系統統計</button>
+        </div>
+
+        <!-- 用戶列表 -->
+        <div id="admin-tab-user-list" class="tab-content">
+          <div class="card">
+            <div class="title">用戶列表</div>
+
+            <!-- 搜尋和篩選 -->
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr auto;">
+              <div>
+                <label>搜尋</label>
+                <input id="user-search" placeholder="姓名或Email" />
+              </div>
+              <div>
+                <label>角色</label>
+                <select id="user-role-filter">
+                  <option value="">全部</option>
+                  <option value="admin">管理員</option>
+                  <option value="teacher">教師</option>
+                  <option value="student">學生</option>
+                </select>
+              </div>
+              <div>
+                <label>狀態</label>
+                <select id="user-status-filter">
+                  <option value="">全部</option>
+                  <option value="true">啟用</option>
+                  <option value="false">停用</option>
+                </select>
+              </div>
+              <div style="align-self: end;">
+                <button class="btn primary" onclick="searchUsers()">搜尋</button>
+              </div>
+            </div>
+
+            <!-- 用戶表格 -->
+            <div id="users-table-container">
+              <div class="loading">載入中...</div>
+            </div>
+
+            <!-- 分頁 -->
+            <div id="users-pagination" class="pagination"></div>
+          </div>
+        </div>
+
+        <!-- 新增用戶 -->
+        <div id="admin-tab-create-user" class="tab-content" hidden>
+          <div class="card">
+            <div class="title">新增用戶</div>
+
+            <div class="form-grid">
+              <div>
+                <label>角色 *</label>
+                <select id="new-user-role" onchange="toggleTeacherFields()">
+                  <option value="student">學生</option>
+                  <option value="teacher">教師</option>
+                  <option value="admin">管理員</option>
+                </select>
+              </div>
+              <div>
+                <label>Email *</label>
+                <input id="new-user-email" type="email" placeholder="user@example.com" />
+              </div>
+              <div>
+                <label>姓名 *</label>
+                <input id="new-user-name" placeholder="用戶姓名" />
+              </div>
+              <div>
+                <label>初始密碼</label>
+                <input id="new-user-password" type="password" placeholder="留空使用預設密碼" />
+              </div>
+              <div>
+                <label>電話</label>
+                <input id="new-user-phone" placeholder="電話號碼" />
+              </div>
+              <div>
+                <label>時區</label>
+                <select id="new-user-timezone">
+                  <option value="Asia/Taipei">Asia/Taipei</option>
+                  <option value="UTC">UTC</option>
+                  <option value="America/New_York">America/New_York</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label>個人簡介</label>
+              <textarea id="new-user-bio" placeholder="個人簡介"></textarea>
+            </div>
+
+            <!-- 教師專用欄位 -->
+            <div id="teacher-fields" style="display: none;">
+              <div class="hr"></div>
+              <div class="subtitle">教師檔案</div>
+
+              <div class="form-grid">
+                <div>
+                  <label>教學經驗年數</label>
+                  <input id="new-teacher-experience" type="number" min="0" placeholder="5" />
+                </div>
+                <div>
+                  <label>開始教學年份</label>
+                  <input id="new-teacher-since" type="number" min="1990" placeholder="2020" />
+                </div>
+                <div>
+                  <label>每30分鐘價格(USD)</label>
+                  <input id="new-teacher-price" type="number" min="0" step="0.01" placeholder="25.00" />
+                </div>
+              </div>
+
+              <div>
+                <label>教師介紹</label>
+                <textarea id="new-teacher-intro" placeholder="教師自我介紹"></textarea>
+              </div>
+
+              <div>
+                <label>證書資訊 (逗號分隔)</label>
+                <textarea id="new-teacher-certifications" placeholder="TESOL, IELTS, TOEFL"></textarea>
+              </div>
+
+              <div class="form-grid">
+                <div>
+                  <label>教學領域 (逗號分隔)</label>
+                  <input id="new-teacher-domains" placeholder="English, Conversation, Business" />
+                </div>
+                <div>
+                  <label>教學地區 (逗號分隔)</label>
+                  <input id="new-teacher-regions" placeholder="Taiwan, Online" />
+                </div>
+                <div>
+                  <label>語言能力 (逗號分隔)</label>
+                  <input id="new-teacher-languages" placeholder="English, Chinese" />
+                </div>
+              </div>
+            </div>
+
+            <div class="row" style="margin-top: 20px;">
+              <button class="btn primary" onclick="createUser()">創建用戶</button>
+              <button class="btn" onclick="clearCreateUserForm()">清空表單</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 系統統計 -->
+        <div id="admin-tab-system-stats" class="tab-content" hidden>
+          <div class="grid cols-3">
+            <div class="card">
+              <div class="title">用戶統計</div>
+              <div id="user-stats">載入中...</div>
+            </div>
+            <div class="card">
+              <div class="title">預約統計</div>
+              <div id="booking-stats">載入中...</div>
+            </div>
+            <div class="card">
+              <div class="title">系統狀態</div>
+              <div id="system-stats">載入中...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- Modal + Toast -->
@@ -688,6 +893,8 @@
         renderStudentProfile();
       } else if (route === 'teacher-profile') {
         renderTeacherProfileManage();
+      } else if (route === 'admin') {
+        renderAdmin();
       }
     }
 
@@ -1457,6 +1664,545 @@
         toast('Demo資料已重置');
       } catch (error) {
         toast('重置失敗：' + error.message);
+      }
+    }
+
+    // === Admin 用戶管理功能 ===
+
+    let currentUsersPage = 1;
+    let currentUsersQuery = {};
+
+    async function renderAdmin() {
+      showOnly('view-admin');
+
+      // 初始化選項卡
+      initAdminTabs();
+
+      // 載入用戶列表
+      await loadUsers();
+
+      // 載入統計資料
+      await loadSystemStats();
+    }
+
+    function initAdminTabs() {
+      const tabBtns = document.querySelectorAll('#view-admin .tab-btn');
+      const tabContents = document.querySelectorAll('#view-admin .tab-content');
+
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tabName = btn.dataset.tab;
+
+          // 更新按鈕狀態
+          tabBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          // 顯示對應內容
+          tabContents.forEach(content => {
+            content.hidden = !content.id.includes(tabName);
+          });
+        });
+      });
+    }
+
+    async function loadUsers(page = 1) {
+      currentUsersPage = page;
+      const container = $('#users-table-container');
+      container.innerHTML = '<div class="loading">載入中...</div>';
+
+      try {
+        const query = {
+          page,
+          pageSize: 20,
+          ...currentUsersQuery
+        };
+
+        const queryString = new URLSearchParams(query).toString();
+        const response = await apiRequest(`/admin/users?${queryString}`);
+
+        renderUsersTable(response);
+        renderUsersPagination(response);
+      } catch (error) {
+        container.innerHTML = `<div class="error">載入失敗: ${error.message}</div>`;
+      }
+    }
+
+    function renderUsersTable(data) {
+      const container = $('#users-table-container');
+
+      if (!data.items || data.items.length === 0) {
+        container.innerHTML = '<div class="empty">沒有找到用戶</div>';
+        return;
+      }
+
+      const table = document.createElement('table');
+      table.className = 'data-table';
+
+      // 表頭
+      const thead = document.createElement('thead');
+      thead.innerHTML = `
+        <tr>
+          <th>頭像</th>
+          <th>姓名</th>
+          <th>Email</th>
+          <th>角色</th>
+          <th>狀態</th>
+          <th>註冊時間</th>
+          <th>操作</th>
+        </tr>
+      `;
+      table.appendChild(thead);
+
+      // 表身
+      const tbody = document.createElement('tbody');
+      data.items.forEach(user => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>
+            <img src="${user.avatarUrl || '/default-avatar.png'}"
+                 alt="Avatar" class="avatar-small"
+                 style="width: 32px; height: 32px; border-radius: 50%;" />
+          </td>
+          <td>${user.name}</td>
+          <td>${user.email}</td>
+          <td>
+            <span class="badge ${user.role}">${getRoleText(user.role)}</span>
+          </td>
+          <td>
+            <span class="badge ${user.active ? 'success' : 'danger'}">
+              ${user.active ? '啟用' : '停用'}
+            </span>
+          </td>
+          <td>${formatDate(user.createdAt)}</td>
+          <td>
+            <div class="btn-group">
+              <button class="btn small" onclick="editUser('${user.id}')">編輯</button>
+              <button class="btn small" onclick="resetUserPassword('${user.id}')">重置密碼</button>
+              ${user.role === 'teacher' ?
+                `<button class="btn small" onclick="manageTeacherProfile('${user.id}')">檔案</button>` :
+                ''
+              }
+              <button class="btn small ${user.active ? 'danger' : 'success'}"
+                      onclick="toggleUserStatus('${user.id}', ${!user.active})">
+                ${user.active ? '停用' : '啟用'}
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+      table.appendChild(tbody);
+
+      container.innerHTML = '';
+      container.appendChild(table);
+    }
+
+    function renderUsersPagination(data) {
+      const container = $('#users-pagination');
+
+      if (data.totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+
+      let html = '<div class="pagination-info">';
+      html += `顯示 ${(data.page - 1) * data.pageSize + 1}-${Math.min(data.page * data.pageSize, data.total)} `;
+      html += `共 ${data.total} 筆</div>`;
+      html += '<div class="pagination-buttons">';
+
+      // 上一頁
+      if (data.page > 1) {
+        html += `<button class="btn small" onclick="loadUsers(${data.page - 1})">上一頁</button>`;
+      }
+
+      // 頁碼
+      const startPage = Math.max(1, data.page - 2);
+      const endPage = Math.min(data.totalPages, data.page + 2);
+
+      for (let i = startPage; i <= endPage; i++) {
+        const active = i === data.page ? 'primary' : '';
+        html += `<button class="btn small ${active}" onclick="loadUsers(${i})">${i}</button>`;
+      }
+
+      // 下一頁
+      if (data.page < data.totalPages) {
+        html += `<button class="btn small" onclick="loadUsers(${data.page + 1})">下一頁</button>`;
+      }
+
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function searchUsers() {
+      const search = $('#user-search').value.trim();
+      const role = $('#user-role-filter').value;
+      const active = $('#user-status-filter').value;
+
+      currentUsersQuery = {};
+      if (search) currentUsersQuery.search = search;
+      if (role) currentUsersQuery.role = role;
+      if (active !== '') currentUsersQuery.active = active;
+
+      loadUsers(1);
+    }
+
+    function getRoleText(role) {
+      const roleMap = {
+        admin: '管理員',
+        teacher: '教師',
+        student: '學生'
+      };
+      return roleMap[role] || role;
+    }
+
+    function formatDate(dateString) {
+      return new Date(dateString).toLocaleDateString('zh-TW');
+    }
+
+    function toggleTeacherFields() {
+      const role = $('#new-user-role').value;
+      const teacherFields = $('#teacher-fields');
+      teacherFields.style.display = role === 'teacher' ? 'block' : 'none';
+    }
+
+    async function createUser() {
+      const role = $('#new-user-role').value;
+      const email = $('#new-user-email').value.trim();
+      const name = $('#new-user-name').value.trim();
+
+      if (!email || !name) {
+        toast('請填寫必要欄位');
+        return;
+      }
+
+      const userData = {
+        role,
+        email,
+        name,
+        password: $('#new-user-password').value.trim() || undefined,
+        phone: $('#new-user-phone').value.trim() || undefined,
+        bio: $('#new-user-bio').value.trim() || undefined,
+        timezone: $('#new-user-timezone').value,
+        active: true
+      };
+
+      // 如果是教師，添加教師檔案資料
+      if (role === 'teacher') {
+        const domains = $('#new-teacher-domains').value.trim();
+        const regions = $('#new-teacher-regions').value.trim();
+        const languages = $('#new-teacher-languages').value.trim();
+        const certifications = $('#new-teacher-certifications').value.trim();
+
+        Object.assign(userData, {
+          intro: $('#new-teacher-intro').value.trim() || undefined,
+          certifications: certifications ? certifications.split(',').map(s => s.trim()) : undefined,
+          experienceYears: parseInt($('#new-teacher-experience').value) || undefined,
+          experienceSince: parseInt($('#new-teacher-since').value) || undefined,
+          unitPriceUsd: parseFloat($('#new-teacher-price').value) || undefined,
+          domains: domains ? domains.split(',').map(s => s.trim()) : undefined,
+          regions: regions ? regions.split(',').map(s => s.trim()) : undefined,
+          languages: languages ? languages.split(',').map(s => s.trim()) : undefined
+        });
+      }
+
+      try {
+        const endpoint = role === 'teacher' ? '/admin/teachers' : '/admin/users';
+        await apiRequest(endpoint, {
+          method: 'POST',
+          body: JSON.stringify(userData)
+        });
+
+        toast('用戶創建成功');
+        clearCreateUserForm();
+        loadUsers(currentUsersPage); // 重新載入用戶列表
+      } catch (error) {
+        toast('創建失敗：' + error.message);
+      }
+    }
+
+    function clearCreateUserForm() {
+      $('#new-user-role').value = 'student';
+      $('#new-user-email').value = '';
+      $('#new-user-name').value = '';
+      $('#new-user-password').value = '';
+      $('#new-user-phone').value = '';
+      $('#new-user-bio').value = '';
+      $('#new-user-timezone').value = 'Asia/Taipei';
+
+      // 清空教師欄位
+      $('#new-teacher-intro').value = '';
+      $('#new-teacher-certifications').value = '';
+      $('#new-teacher-experience').value = '';
+      $('#new-teacher-since').value = '';
+      $('#new-teacher-price').value = '';
+      $('#new-teacher-domains').value = '';
+      $('#new-teacher-regions').value = '';
+      $('#new-teacher-languages').value = '';
+
+      toggleTeacherFields();
+    }
+
+    async function editUser(userId) {
+      try {
+        const user = await apiRequest(`/admin/users/${userId}`);
+        showEditUserModal(user);
+      } catch (error) {
+        toast('載入用戶資料失敗：' + error.message);
+      }
+    }
+
+    function showEditUserModal(user) {
+      const modal = createModal('編輯用戶', `
+        <div class="form-grid">
+          <div>
+            <label>姓名</label>
+            <input id="edit-user-name" value="${user.name}" />
+          </div>
+          <div>
+            <label>電話</label>
+            <input id="edit-user-phone" value="${user.phone || ''}" />
+          </div>
+          <div>
+            <label>時區</label>
+            <select id="edit-user-timezone">
+              <option value="Asia/Taipei" ${user.timezone === 'Asia/Taipei' ? 'selected' : ''}>Asia/Taipei</option>
+              <option value="UTC" ${user.timezone === 'UTC' ? 'selected' : ''}>UTC</option>
+              <option value="America/New_York" ${user.timezone === 'America/New_York' ? 'selected' : ''}>America/New_York</option>
+            </select>
+          </div>
+          <div>
+            <label>狀態</label>
+            <select id="edit-user-active">
+              <option value="true" ${user.active ? 'selected' : ''}>啟用</option>
+              <option value="false" ${!user.active ? 'selected' : ''}>停用</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label>個人簡介</label>
+          <textarea id="edit-user-bio">${user.bio || ''}</textarea>
+        </div>
+      `, [
+        {
+          text: '儲存',
+          class: 'primary',
+          onclick: () => saveUserEdit(user.id)
+        },
+        {
+          text: '取消',
+          onclick: () => closeModal()
+        }
+      ]);
+    }
+
+    async function saveUserEdit(userId) {
+      const userData = {
+        name: $('#edit-user-name').value.trim(),
+        phone: $('#edit-user-phone').value.trim() || undefined,
+        bio: $('#edit-user-bio').value.trim() || undefined,
+        timezone: $('#edit-user-timezone').value,
+        active: $('#edit-user-active').value === 'true'
+      };
+
+      try {
+        await apiRequest(`/admin/users/${userId}`, {
+          method: 'PUT',
+          body: JSON.stringify(userData)
+        });
+
+        toast('用戶資料更新成功');
+        closeModal();
+        loadUsers(currentUsersPage);
+      } catch (error) {
+        toast('更新失敗：' + error.message);
+      }
+    }
+
+    async function resetUserPassword(userId) {
+      const newPassword = prompt('請輸入新密碼（留空使用預設密碼 "password123"）:');
+      if (newPassword === null) return; // 用戶取消
+
+      const password = newPassword.trim() || 'password123';
+
+      try {
+        await apiRequest(`/admin/users/${userId}/reset-password`, {
+          method: 'POST',
+          body: JSON.stringify({
+            newPassword: password,
+            forceChangeOnNextLogin: false
+          })
+        });
+
+        toast('密碼重置成功');
+      } catch (error) {
+        toast('密碼重置失敗：' + error.message);
+      }
+    }
+
+    async function toggleUserStatus(userId, newStatus) {
+      const action = newStatus ? '啟用' : '停用';
+      if (!confirm(`確定要${action}此用戶嗎？`)) return;
+
+      try {
+        await apiRequest(`/admin/users/${userId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ active: newStatus })
+        });
+
+        toast(`用戶${action}成功`);
+        loadUsers(currentUsersPage);
+      } catch (error) {
+        toast(`${action}失敗：` + error.message);
+      }
+    }
+
+    async function manageTeacherProfile(teacherId) {
+      try {
+        const user = await apiRequest(`/admin/users/${teacherId}`);
+        showTeacherProfileModal(user);
+      } catch (error) {
+        toast('載入教師資料失敗：' + error.message);
+      }
+    }
+
+    function showTeacherProfileModal(user) {
+      const profile = user.teacherProfile || {};
+
+      const modal = createModal('管理教師檔案', `
+        <div class="form-grid">
+          <div>
+            <label>教學經驗年數</label>
+            <input id="edit-teacher-experience" type="number" min="0" value="${profile.experienceYears || ''}" />
+          </div>
+          <div>
+            <label>開始教學年份</label>
+            <input id="edit-teacher-since" type="number" min="1990" value="${profile.experienceSince || ''}" />
+          </div>
+          <div>
+            <label>每30分鐘價格(USD)</label>
+            <input id="edit-teacher-price" type="number" min="0" step="0.01" value="${profile.unitPriceUsd || ''}" />
+          </div>
+        </div>
+        <div>
+          <label>教師介紹</label>
+          <textarea id="edit-teacher-intro">${profile.intro || ''}</textarea>
+        </div>
+        <div>
+          <label>證書資訊 (逗號分隔)</label>
+          <textarea id="edit-teacher-certifications">${(profile.certifications || []).join(', ')}</textarea>
+        </div>
+        <div class="form-grid">
+          <div>
+            <label>教學領域 (逗號分隔)</label>
+            <input id="edit-teacher-domains" value="${(profile.domains || []).join(', ')}" />
+          </div>
+          <div>
+            <label>教學地區 (逗號分隔)</label>
+            <input id="edit-teacher-regions" value="${(profile.regions || []).join(', ')}" />
+          </div>
+          <div>
+            <label>語言能力 (逗號分隔)</label>
+            <input id="edit-teacher-languages" value="${(profile.languages || []).join(', ')}" />
+          </div>
+        </div>
+        <div>
+          <label>會議偏好</label>
+          <textarea id="edit-teacher-meeting">${profile.meetingPreference ? JSON.stringify(profile.meetingPreference) : ''}</textarea>
+        </div>
+      `, [
+        {
+          text: '儲存檔案',
+          class: 'primary',
+          onclick: () => saveTeacherProfile(user.id)
+        },
+        {
+          text: '管理相簿',
+          onclick: () => manageTeacherGallery(user.id)
+        },
+        {
+          text: '取消',
+          onclick: () => closeModal()
+        }
+      ]);
+    }
+
+    async function saveTeacherProfile(teacherId) {
+      const domains = $('#edit-teacher-domains').value.trim();
+      const regions = $('#edit-teacher-regions').value.trim();
+      const languages = $('#edit-teacher-languages').value.trim();
+      const certifications = $('#edit-teacher-certifications').value.trim();
+
+      const profileData = {
+        intro: $('#edit-teacher-intro').value.trim() || undefined,
+        certifications: certifications ? certifications.split(',').map(s => s.trim()) : undefined,
+        experienceYears: parseInt($('#edit-teacher-experience').value) || undefined,
+        experienceSince: parseInt($('#edit-teacher-since').value) || undefined,
+        unitPriceUsd: parseFloat($('#edit-teacher-price').value) || undefined,
+        meetingPreference: (() => {
+          const value = $('#edit-teacher-meeting').value.trim();
+          if (!value) return undefined;
+          try {
+            return JSON.parse(value);
+          } catch {
+            return { mode: 'zoom_personal', defaultUrl: value };
+          }
+        })(),
+        domains: domains ? domains.split(',').map(s => s.trim()) : undefined,
+        regions: regions ? regions.split(',').map(s => s.trim()) : undefined,
+        languages: languages ? languages.split(',').map(s => s.trim()) : undefined
+      };
+
+      try {
+        await apiRequest(`/admin/teachers/${teacherId}/profile`, {
+          method: 'PUT',
+          body: JSON.stringify(profileData)
+        });
+
+        toast('教師檔案更新成功');
+        closeModal();
+      } catch (error) {
+        toast('更新失敗：' + error.message);
+      }
+    }
+
+    async function manageTeacherGallery(teacherId) {
+      // 這裡可以實現教師相簿管理功能
+      toast('教師相簿管理功能開發中...');
+    }
+
+    async function loadSystemStats() {
+      try {
+        // 載入用戶統計
+        const usersResponse = await apiRequest('/admin/users?pageSize=1');
+        const userStats = `
+          <div class="stat-item">
+            <div class="stat-number">${usersResponse.total}</div>
+            <div class="stat-label">總用戶數</div>
+          </div>
+        `;
+        $('#user-stats').innerHTML = userStats;
+
+        // 載入預約統計
+        const bookingsResponse = await apiRequest('/admin/bookings');
+        const bookingStats = `
+          <div class="stat-item">
+            <div class="stat-number">${bookingsResponse.total || 0}</div>
+            <div class="stat-label">總預約數</div>
+          </div>
+        `;
+        $('#booking-stats').innerHTML = bookingStats;
+
+        // 系統狀態
+        const systemStats = `
+          <div class="stat-item">
+            <div class="stat-number">正常</div>
+            <div class="stat-label">系統狀態</div>
+          </div>
+        `;
+        $('#system-stats').innerHTML = systemStats;
+
+      } catch (error) {
+        console.error('載入統計資料失敗:', error);
       }
     }
 

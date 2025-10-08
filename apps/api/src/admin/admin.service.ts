@@ -1,14 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like, ILike } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User, UserRole } from '../entities/user.entity';
 import { TeacherProfile } from '../entities/teacher-profile.entity';
+import { TeacherGallery, MediaType } from '../entities/teacher-gallery.entity';
 import { Purchase, PurchaseType, PurchaseStatus } from '../entities/purchase.entity';
 import { Booking } from '../entities/booking.entity';
 import { TeacherAvailability } from '../entities/teacher-availability.entity';
 import { Material, MaterialType } from '../entities/material.entity';
 import { Review } from '../entities/review.entity';
+import { UploadsService } from '../uploads/uploads.service';
+import { FileCategory } from '../uploads/upload.config';
+import { CreateUserDto, CreateTeacherDto } from './dto/create-user.dto';
+import { UpdateUserDto, UpdateTeacherProfileDto, ResetPasswordDto } from './dto/update-user.dto';
+import { UserQueryDto } from './dto/user-query.dto';
 
 @Injectable()
 export class AdminService {
@@ -17,6 +23,8 @@ export class AdminService {
     private userRepository: Repository<User>,
     @InjectRepository(TeacherProfile)
     private teacherProfileRepository: Repository<TeacherProfile>,
+    @InjectRepository(TeacherGallery)
+    private teacherGalleryRepository: Repository<TeacherGallery>,
     @InjectRepository(Purchase)
     private purchaseRepository: Repository<Purchase>,
     @InjectRepository(Booking)
@@ -27,7 +35,165 @@ export class AdminService {
     private materialRepository: Repository<Material>,
     @InjectRepository(Review)
     private reviewRepository: Repository<Review>,
+    private uploadsService: UploadsService,
   ) {}
+
+  // === 用戶管理功能 ===
+
+  async getUsers(query: UserQueryDto) {
+    const { page, pageSize, role, active, search, sortBy, sortOrder } = query;
+
+    const queryBuilder = this.userRepository.createQueryBuilder('user')
+      .leftJoinAndSelect('user.teacherProfile', 'profile')
+      .select([
+        'user.id',
+        'user.email',
+        'user.role',
+        'user.name',
+        'user.phone',
+        'user.bio',
+        'user.avatarUrl',
+        'user.timezone',
+        'user.active',
+        'user.createdAt',
+        'user.updatedAt',
+        'profile.experienceYears',
+        'profile.domains',
+        'profile.regions',
+        'profile.unitPriceUsd'
+      ]);
+
+    // 篩選條件
+    if (role) {
+      queryBuilder.andWhere('user.role = :role', { role });
+    }
+
+    if (active !== undefined) {
+      queryBuilder.andWhere('user.active = :active', { active });
+    }
+
+    if (search) {
+      queryBuilder.andWhere(
+        '(user.name ILIKE :search OR user.email ILIKE :search)',
+        { search: `%${search}%` }
+      );
+    }
+
+    // 排序
+    const validSortFields = ['createdAt', 'name', 'email', 'role'];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    queryBuilder.orderBy(`user.${sortField}`, sortOrder);
+
+    // 分頁
+    const total = await queryBuilder.getCount();
+    const items = await queryBuilder
+      .skip((page - 1) * pageSize)
+      .take(pageSize)
+      .getMany();
+
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize)
+    };
+  }
+
+  async getUserById(id: string) {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: ['teacherProfile'],
+      select: [
+        'id', 'email', 'role', 'name', 'phone', 'bio', 'avatarUrl',
+        'timezone', 'locale', 'active', 'createdAt', 'updatedAt'
+      ]
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  async createUser(createUserDto: CreateUserDto) {
+    // 檢查email是否已存在
+    const existingUser = await this.userRepository.findOne({
+      where: { email: createUserDto.email }
+    });
+
+    if (existingUser) {
+      throw new BadRequestException('Email already exists');
+    }
+
+    const password = createUserDto.password || 'password123';
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = this.userRepository.create({
+      ...createUserDto,
+      passwordHash: hashedPassword,
+    });
+
+    const savedUser = await this.userRepository.save(user);
+
+    // 返回時不包含密碼
+    const { passwordHash, ...result } = savedUser;
+    return result;
+  }
+
+  async createTeacherWithProfile(createTeacherDto: CreateTeacherDto) {
+    // 檢查email是否已存在
+    const existingUser = await this.userRepository.findOne({
+      where: { email: createTeacherDto.email }
+    });
+
+    if (existingUser) {
+      throw new BadRequestException('Email already exists');
+    }
+
+    const password = createTeacherDto.password || 'password123';
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 創建用戶
+    const user = this.userRepository.create({
+      email: createTeacherDto.email,
+      name: createTeacherDto.name,
+      role: UserRole.TEACHER,
+      phone: createTeacherDto.phone,
+      bio: createTeacherDto.bio,
+      timezone: createTeacherDto.timezone,
+      active: createTeacherDto.active ?? true,
+      passwordHash: hashedPassword,
+    });
+
+    const savedUser = await this.userRepository.save(user);
+
+    // 創建教師檔案
+    const teacherProfile = this.teacherProfileRepository.create({
+      userId: savedUser.id,
+      intro: createTeacherDto.intro,
+      certifications: createTeacherDto.certifications,
+      experienceYears: createTeacherDto.experienceYears,
+      experienceSince: createTeacherDto.experienceSince,
+      domains: createTeacherDto.domains || [],
+      regions: createTeacherDto.regions || [],
+      languages: createTeacherDto.languages || [],
+      unitPriceUsd: createTeacherDto.unitPriceUsd || 25.00,
+      meetingPreference: createTeacherDto.meetingPreference || { mode: 'zoom_personal' },
+    });
+
+    await this.teacherProfileRepository.save(teacherProfile);
+
+    return {
+      id: savedUser.id,
+      email: savedUser.email,
+      name: savedUser.name,
+      role: savedUser.role,
+      active: savedUser.active,
+      profile: teacherProfile,
+    };
+  }
 
   async createTeacher(createTeacherDto: any) {
     // 建立用戶帳號
@@ -126,6 +292,150 @@ export class AdminService {
       status: savedPurchase.status,
       purchasedAt: savedPurchase.purchasedAt,
     };
+  }
+
+  async updateUser(id: string, updateUserDto: UpdateUserDto) {
+    const user = await this.userRepository.findOne({ where: { id } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // 更新用戶資料
+    Object.assign(user, updateUserDto);
+    await this.userRepository.save(user);
+
+    // 返回更新後的用戶資料（不包含密碼）
+    const { passwordHash, ...result } = user;
+    return result;
+  }
+
+  async updateTeacherProfile(teacherId: string, updateProfileDto: UpdateTeacherProfileDto) {
+    // 檢查教師是否存在
+    const teacher = await this.userRepository.findOne({
+      where: { id: teacherId, role: UserRole.TEACHER }
+    });
+
+    if (!teacher) {
+      throw new NotFoundException('Teacher not found');
+    }
+
+    // 查找或創建教師檔案
+    let profile = await this.teacherProfileRepository.findOne({
+      where: { userId: teacherId }
+    });
+
+    if (!profile) {
+      profile = this.teacherProfileRepository.create({
+        userId: teacherId,
+        ...updateProfileDto
+      });
+    } else {
+      Object.assign(profile, updateProfileDto);
+    }
+
+    await this.teacherProfileRepository.save(profile);
+    return profile;
+  }
+
+  async resetUserPassword(id: string, resetPasswordDto: ResetPasswordDto) {
+    const user = await this.userRepository.findOne({ where: { id } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const hashedPassword = await bcrypt.hash(resetPasswordDto.newPassword, 10);
+
+    await this.userRepository.update(id, {
+      passwordHash: hashedPassword,
+      // 可以添加強制修改密碼的邏輯
+    });
+
+    return {
+      message: 'Password reset successfully',
+      forceChangeOnNextLogin: resetPasswordDto.forceChangeOnNextLogin || false
+    };
+  }
+
+  async uploadTeacherGalleryFile(teacherId: string, file: any) {
+    // 檢查教師是否存在
+    const teacher = await this.userRepository.findOne({
+      where: { id: teacherId, role: UserRole.TEACHER }
+    });
+
+    if (!teacher) {
+      throw new NotFoundException('Teacher not found');
+    }
+
+    // 上傳檔案
+    const upload = await this.uploadsService.uploadFile(
+      teacherId,
+      file,
+      FileCategory.TEACHER_GALLERY
+    );
+
+    // 判斷檔案類型
+    let mediaType = MediaType.OTHER;
+    if (file.mimetype.startsWith('image/')) {
+      mediaType = MediaType.IMAGE;
+    } else if (file.mimetype.startsWith('video/')) {
+      mediaType = MediaType.VIDEO;
+    } else if (file.mimetype.startsWith('audio/')) {
+      mediaType = MediaType.AUDIO;
+    }
+
+    // 保存到教師相簿
+    const galleryItem = this.teacherGalleryRepository.create({
+      teacherId,
+      uploadId: upload.id,
+      title: file.originalname,
+      description: '',
+      mediaType,
+      url: upload.publicUrl || upload.cdnUrl,
+      sortOrder: 0
+    });
+
+    await this.teacherGalleryRepository.save(galleryItem);
+
+    return {
+      id: galleryItem.id,
+      title: galleryItem.title,
+      mediaType: galleryItem.mediaType,
+      url: galleryItem.url,
+      uploadedAt: galleryItem.createdAt
+    };
+  }
+
+  async deleteTeacherGalleryFile(teacherId: string, fileId: string) {
+    const galleryItem = await this.teacherGalleryRepository.findOne({
+      where: { id: fileId, teacherId }
+    });
+
+    if (!galleryItem) {
+      throw new NotFoundException('Gallery file not found');
+    }
+
+    // 刪除檔案記錄
+    await this.teacherGalleryRepository.remove(galleryItem);
+
+    // 可以選擇是否同時刪除實際檔案
+    // await this.uploadsService.deleteFile(galleryItem.uploadId, teacherId, 'admin');
+
+    return { message: 'Gallery file deleted successfully' };
+  }
+
+  async deleteUser(id: string) {
+    const user = await this.userRepository.findOne({ where: { id } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // 軟刪除：設置為非活躍狀態
+    await this.userRepository.update(id, { active: false });
+
+    return { message: 'User deactivated successfully' };
   }
 
   async getReports(query: any = {}) {
