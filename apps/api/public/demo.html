@@ -571,13 +571,26 @@
     async function apiRequest(endpoint, options = {}) {
       const url = `${API_BASE}${endpoint}`;
       const headers = {
-        'Content-Type': 'application/json',
         ...options.headers
       };
+
+      // 只有在body不是FormData時才設置Content-Type
+      if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+      }
 
       if (accessToken) {
         headers['Authorization'] = `Bearer ${accessToken}`;
       }
+
+      // 調試信息
+      console.log('API Request:', {
+        url,
+        method: options.method || 'GET',
+        headers,
+        bodyType: options.body ? options.body.constructor.name : 'undefined',
+        isFormData: options.body instanceof FormData
+      });
 
       try {
         const response = await fetch(url, {
