@@ -93,11 +93,13 @@ export class MinioService implements OnModuleInit {
   }
 
   getPublicUrl(objectName: string): string {
-    const endpoint = this.configService.get<string>('MINIO_ENDPOINT', 'localhost');
+    // 對於公開URL，使用外部可訪問的端點
+    const endpoint = this.configService.get<string>('MINIO_PUBLIC_ENDPOINT') ||
+                     this.configService.get<string>('MINIO_ENDPOINT', 'localhost');
     const port = this.configService.get<string>('MINIO_PORT', '9000');
     const useSSL = this.configService.get<string>('MINIO_USE_SSL', 'false') === 'true';
     const protocol = useSSL ? 'https' : 'http';
-    
+
     return `${protocol}://${endpoint}:${port}/${this.publicBucket}/${objectName}`;
   }
 

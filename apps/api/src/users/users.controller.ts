@@ -56,7 +56,7 @@ export class UsersController {
   @ApiResponse({ status: 400, description: '文件格式或大小不符合要求' })
   @ApiResponse({ status: 401, description: '未授權' })
   @ApiResponse({ status: 403, description: '權限不足' })
-  @UseInterceptors(FileInterceptor('avatar'))
+  @UseInterceptors(FileInterceptor('file'))
   async uploadAvatar(
     @Param('id') id: string,
     @UploadedFile() file: any,
