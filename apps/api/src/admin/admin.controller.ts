@@ -143,6 +143,14 @@ export class AdminController {
     return this.adminService.deleteUser(id);
   }
 
+  @Get('bookings')
+  @ApiOperation({ summary: '獲取預約統計' })
+  @ApiResponse({ status: 200, description: '預約統計資料' })
+  async getBookings(@Request() req) {
+    this.checkAdminRole(req.user.role);
+    return this.adminService.getBookingsStats();
+  }
+
   @Post('grant-cards')
   @ApiOperation({ summary: '授予學生卡片' })
   @ApiResponse({ status: 201, description: '卡片授予成功' })

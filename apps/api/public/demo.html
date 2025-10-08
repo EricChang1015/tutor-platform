@@ -719,6 +719,51 @@
     const closeModal = ()=> $("#modalHost").classList.add('hidden');
     $("#modalHost").addEventListener('click', e=>{ if(e.target.id==='modalHost') closeModal(); });
 
+    // 創建模態框的輔助函數
+    function createModal(title, content, buttons = []) {
+      const modal = document.createElement('div');
+
+      // 標題列
+      const header = document.createElement('div');
+      header.className = 'row wrap';
+      header.innerHTML = `
+        <h3 style="margin:0">${title}</h3>
+        <div class="spacer"></div>
+        <button class="btn small" onclick="closeModal()">✕</button>
+      `;
+
+      // 分隔線
+      const hr = document.createElement('div');
+      hr.className = 'hr';
+
+      // 內容
+      const contentDiv = document.createElement('div');
+      contentDiv.innerHTML = content;
+
+      // 按鈕列
+      const buttonRow = document.createElement('div');
+      buttonRow.className = 'row wrap';
+      buttonRow.style.marginTop = '16px';
+
+      buttons.forEach(button => {
+        const btn = document.createElement('button');
+        btn.className = button.class || 'btn';
+        btn.textContent = button.text;
+        btn.onclick = button.onclick;
+        buttonRow.appendChild(btn);
+      });
+
+      // 組裝模態框
+      modal.appendChild(header);
+      modal.appendChild(hr);
+      modal.appendChild(contentDiv);
+      if (buttons.length > 0) {
+        modal.appendChild(buttonRow);
+      }
+
+      return modal;
+    }
+
     // 頭像組件
     function createAvatar(user, size = 54, options = {}) {
       const { round = false, className = '' } = options;
@@ -1759,7 +1804,7 @@
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>
-            <img src="${user.avatarUrl || '/default-avatar.png'}"
+            <img src="${user.avatarUrl || '/default-avatar.svg'}"
                  alt="Avatar" class="avatar-small"
                  style="width: 32px; height: 32px; border-radius: 50%;" />
           </td>

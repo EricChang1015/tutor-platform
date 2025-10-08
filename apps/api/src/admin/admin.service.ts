@@ -6,7 +6,7 @@ import { User, UserRole } from '../entities/user.entity';
 import { TeacherProfile } from '../entities/teacher-profile.entity';
 import { TeacherGallery, MediaType } from '../entities/teacher-gallery.entity';
 import { Purchase, PurchaseType, PurchaseStatus } from '../entities/purchase.entity';
-import { Booking } from '../entities/booking.entity';
+import { Booking, BookingStatus } from '../entities/booking.entity';
 import { TeacherAvailability } from '../entities/teacher-availability.entity';
 import { Material, MaterialType } from '../entities/material.entity';
 import { Review } from '../entities/review.entity';
@@ -436,6 +436,26 @@ export class AdminService {
     await this.userRepository.update(id, { active: false });
 
     return { message: 'User deactivated successfully' };
+  }
+
+  async getBookingsStats() {
+    const totalBookings = await this.bookingRepository.count();
+    const completedBookings = await this.bookingRepository.count({
+      where: { status: BookingStatus.COMPLETED }
+    });
+    const scheduledBookings = await this.bookingRepository.count({
+      where: { status: BookingStatus.SCHEDULED }
+    });
+    const canceledBookings = await this.bookingRepository.count({
+      where: { status: BookingStatus.CANCELED }
+    });
+
+    return {
+      total: totalBookings,
+      completed: completedBookings,
+      scheduled: scheduledBookings,
+      canceled: canceledBookings
+    };
   }
 
   async getReports(query: any = {}) {
