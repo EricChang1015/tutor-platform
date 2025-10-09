@@ -143,6 +143,58 @@ curl -X POST http://localhost:3001/auth/login \
 - `GET /users/:id` - 用戶詳情
 - `PUT /users/:id` - 更新用戶資料
 - `POST /users/:id/avatar` - 上傳用戶頭像
+
+#### 教師可用時間（30 分鐘時段）快速導覽
+- 時段採 30 分鐘為單位，編號 0-47，對應 00:00-23:30
+- 預約需對齊時段（:00 或 :30），時長需為 30 的倍數
+
+範例指令：
+
+```bash
+# 1) 取得所有 30 分鐘時間槽（00:00 ~ 23:30）
+GET /teacher-availability/time-slots
+
+# 2) 搜尋可用教師（指定日期、時間範圍）
+GET /teacher-availability/search-teachers?date=2025-10-06&fromTime=14:00&toTime=15:00
+
+# 3) 查看教師時間表（支援 timezone，可省略則預設 Asia/Taipei）
+GET \
+  /teacher-availability/teacher-timetable?teacherId={TEACHER_ID}&date=2025-10-06\
+  &timezone=Asia/Shanghai
+
+# 4) 設定教師指定日期可用時段（管理員/教師）
+POST /teacher-availability/set-availability
+{
+  "teacherId": "{TEACHER_ID}",
+  "date": "2025-10-06",
+  "timeSlots": [18, 19]
+}
+
+# 5) 設定教師週間時間表（管理員/教師）
+POST /teacher-availability/set-weekly-schedule
+{
+  "teacherId": "{TEACHER_ID}",
+  "weeklySchedule": {
+    "monday": [18, 19],
+    "tuesday": [18, 19],
+    "wednesday": [18, 19],
+    "thursday": [18, 19],
+    "friday": [18, 19]
+  }
+}
+
+# 6) 建立預約（對齊時段，ISO8601 時間）
+POST /bookings
+{
+  "teacherId": "{TEACHER_ID}",
+  "startsAt": "2025-10-06T14:00:00+08:00",
+  "durationMinutes": 30,
+  "timezone": "Asia/Taipei",
+  "courseTitle": "English Conversation"
+}
+```
+> 注意：舊檔中的 /teacher-availability/time-slot/{id} 與 /set-weekly-availability 已被淘汰，請改用本段列出的端點與參數。
+
 - `GET /users/:id/avatar` - 獲取頭像 URL
 
 ### 教師相關
