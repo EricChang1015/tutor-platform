@@ -31,6 +31,12 @@
 - ✅ **通知系統**: 即時通知功能，支援多種通知類型
 - ✅ **API 文檔完善**: 更新所有 API 文檔，修復硬編碼日期問題
 
+## 🧭 文檔與測試整合說明
+
+- 本專案已將根目錄與 docs 目錄中的 Markdown 文檔整合到本 README（保留必要的 API 規格 openAPI.yaml 與示意資源）。
+- 測試腳本已整合為單一入口：run_all_tests.sh，可一次性跑完所有現有測試。
+- 過時或重複的報告類文檔已移除，以避免資訊重複與混淆。
+
 ## 🛠 技術架構
 
 ### 後端技術
@@ -76,7 +82,7 @@
    ```bash
    # 啟動所有服務
    docker-compose up -d
-   
+
    # 查看啟動狀態
    docker-compose ps
    ```
@@ -85,7 +91,7 @@
    ```bash
    # 查看 API 服務日誌
    docker-compose logs api -f
-   
+
    # 等待資料庫初始化完成
    docker-compose logs db
    ```
@@ -100,11 +106,19 @@
 ### 預設帳號
 ```
 管理員: admin@example.com / password
-教師1: teacher1@example.com / password  
+教師1: teacher1@example.com / password
 教師2: teacher2@example.com / password
 學生1: student1@example.com / password
 學生2: student2@example.com / password
 ```
+
+### 一鍵整合測試
+```bash
+# 執行所有測試腳本（整合版）
+chmod +x run_all_tests.sh
+./run_all_tests.sh
+```
+> 說明：上述腳本會依序執行根目錄下的所有測試（含前端上傳、Admin功能、Demo、API整合、時區測試）。
 
 ### 快速測試
 ```bash
@@ -191,7 +205,7 @@ POST /bookings
 
 **支援的時區**:
 - `Asia/Shanghai` - 上海時間 (UTC+8)
-- `Asia/Taipei` - 台北時間 (UTC+8)  
+- `Asia/Taipei` - 台北時間 (UTC+8)
 - `America/New_York` - 紐約時間 (UTC-5/-4)
 - `America/Los_Angeles` - 洛杉磯時間 (UTC-8/-7)
 - `Europe/London` - 倫敦時間 (UTC+0/+1)
@@ -251,7 +265,7 @@ POST /bookings
    ```bash
    # 複製環境變數範本
    cp .env.example .env
-   
+
    # 編輯環境變數
    nano .env
    ```
@@ -260,7 +274,7 @@ POST /bookings
    ```bash
    # 啟動資料庫和相關服務
    docker-compose up -d db minio mailhog
-   
+
    # 本地啟動 API 服務
    npm run start:dev
    ```
@@ -347,10 +361,10 @@ apps/api/src/
    server {
        listen 443 ssl;
        server_name api.yourdomain.com;
-       
+
        ssl_certificate /path/to/cert.pem;
        ssl_certificate_key /path/to/key.pem;
-       
+
        location / {
            proxy_pass http://localhost:3001;
            proxy_set_header Host $host;
@@ -363,7 +377,7 @@ apps/api/src/
    ```bash
    # 設定定期備份 (crontab)
    0 2 * * * docker-compose exec db pg_dump -U tutor tutordb | gzip > /backup/tutor_$(date +\%Y\%m\%d).sql.gz
-   
+
    # 保留最近 30 天的備份
    find /backup -name "tutor_*.sql.gz" -mtime +30 -delete
    ```
@@ -404,15 +418,15 @@ apps/api/src/
 
 ---
 
-**⚠️ 重要提醒**: 
+**⚠️ 重要提醒**:
 - 這是一個演示專案，請勿在生產環境中使用預設的密鑰和憑證
 - 生產部署前請更改所有預設密碼和密鑰
 - 建議啟用 HTTPS 和其他安全措施
 - 定期備份資料庫和重要檔案
 
-**🎯 專案狀態**: 
+**🎯 專案狀態**:
 - ✅ 核心功能完成
-- ✅ 時區問題已修復  
+- ✅ 時區問題已修復
 - ✅ API 文檔完整
 - ✅ 測試覆蓋充足
 - 🚀 準備生產部署
