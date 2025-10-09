@@ -20,7 +20,7 @@ docker-compose up -d
 
 # 等待服務啟動
 echo "⏳ 等待服務啟動..."
-sleep 10
+sleep 60
 
 # 檢查服務狀態
 echo "📊 檢查服務狀態..."
