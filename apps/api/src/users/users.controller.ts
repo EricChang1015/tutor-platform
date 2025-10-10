@@ -11,7 +11,7 @@ import {
   Request,
   BadRequestException,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 
 import { UsersService } from './users.service';
@@ -56,12 +56,15 @@ export class UsersController {
   @ApiResponse({ status: 400, description: '文件格式或大小不符合要求' })
   @ApiResponse({ status: 401, description: '未授權' })
   @ApiResponse({ status: 403, description: '權限不足' })
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(AnyFilesInterceptor())
   async uploadAvatar(
     @Param('id') id: string,
-    @UploadedFile() file: any,
+    @UploadedFile() _ignored: any,
     @Request() req,
   ) {
+    // 同時兼容前端可能傳遞的 `avatar` 或 `file` 欄位
+    const files = (req as any).files as any[] | undefined;
+    const file = files?.find(f => f.fieldname === 'avatar') || files?.find(f => f.fieldname === 'file');
     if (!file) {
       throw new BadRequestException('No avatar file provided');
     }
