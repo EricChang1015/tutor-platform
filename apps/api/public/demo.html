@@ -94,57 +94,17 @@
     }
     .avatar.sm{width:36px; height:36px; border-radius:10px; font-size:14px}
     .avatar.round{border-radius:50%}
-    .avatar img{width:100%; height:100%; object-fit:cover}
-
-    /* 圖片裁切器 */
-    .crop-container{
-      position:relative; max-width:400px; margin:16px auto;
-    }
-    .crop-preview{
-      width:100px; height:100px; border-radius:50%; overflow:hidden; border:2px solid var(--border);
-      margin:16px auto; background:#f3f4f6;
-    }
-    .crop-preview img{width:100%; height:100%; object-fit:cover}
-
-    /* 表單樣式 */
-    .form-grid{display:grid; gap:16px; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr))}
-    .form-grid label{display:block; font-weight:600; margin-bottom:4px; color:#374151}
-    .form-grid input, .form-grid textarea, .form-grid select{
-      width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:8px;
-      background:white; font-size:14px;
-    }
-    .form-grid input:focus, .form-grid textarea:focus, .form-grid select:focus{
-      outline:none; border-color:var(--brand); box-shadow:0 0 0 3px rgba(37,99,235,0.1);
-    }
-
-    /* 檔案上傳區域 */
-    .upload-area{
-      border:2px dashed var(--border); border-radius:12px; padding:24px; text-align:center;
-      background:#f9fafb; cursor:pointer; transition:.2s;
-    }
-    .upload-area:hover{border-color:var(--brand); background:#f0f9ff}
-    .upload-area.dragover{border-color:var(--brand); background:#e0f2fe}
-
-    /* 相簿網格 */
-    .gallery-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px}
-    .gallery-item{
-      aspect-ratio:1; border-radius:12px; overflow:hidden; border:1px solid var(--border);
-      position:relative; cursor:pointer; transition:.2s;
-    }
-    .gallery-item:hover{transform:scale(1.02); box-shadow:var(--shadow)}
-    .gallery-item img, .gallery-item video{width:100%; height:100%; object-fit:cover}
-    .gallery-item .play-btn{
-      position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
-      background:rgba(0,0,0,0.7); color:white; border-radius:50%; width:40px; height:40px;
-      display:grid; place-items:center; font-size:16px;
-    }
-    /* Layout */
-    main{padding:10px}
-    section[hidden]{display:none !important}
+    .avatar img{width:100%; height:100%; object-fit:cover; display:block}
     /* Teacher cards */
-    .teacher-card{display:flex; gap:12px}
-    .teacher-card .actions{display:flex; gap:8px; margin-top:8px; flex-wrap:wrap}
-    .tags{display:flex; gap:6px; flex-wrap:wrap}
+    .teacher-card{display:flex; gap:16px; align-items:flex-start}
+    .teacher-card-avatar{flex:0 0 auto}
+    .teacher-card-avatar .avatar{width:72px; height:72px; border-radius:50%; flex-shrink:0}
+    .teacher-card-body{flex:1; display:flex; flex-direction:column; gap:8px}
+    .teacher-card-head{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+    .teacher-name{font-size:18px; font-weight:700; color:var(--text)}
+    .teacher-card-tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:4px}
+    .teacher-card-tags .pill{background:#eef2ff; border-color:#e0e7ff; color:#1e40af}
+    .teacher-card-actions{display:flex; flex-wrap:wrap; gap:8px; margin-top:auto}
     /* Materials */
     .materials{display:grid; grid-template-columns:280px 1fr; gap:14px}
     .tree{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:10px; max-height:60vh; overflow:auto}
@@ -214,8 +174,10 @@
       .date-strip{flex-wrap:wrap}
       .date-pill{min-width:80px; font-size:12px}
       .cards-grid{grid-template-columns:1fr}
-      .teacher-card{flex-direction:column; text-align:center}
-      .teacher-card .actions{justify-content:center}
+      .teacher-card{flex-direction:column; align-items:center; text-align:center}
+      .teacher-card-body{align-items:center}
+      .teacher-card-head{justify-content:center}
+      .teacher-card-actions{justify-content:center; margin-top:12px}
       /* 改善手機端表格顯示 */
       table{font-size:14px}
       th, td{padding:8px 4px}
@@ -231,7 +193,6 @@
     .status-completed{background:#dcfce7; color:#16a34a}
     .status-noshow{background:#fef3c7; color:#d97706}
     .status-pending{background:#f3f4f6; color:#6b7280}
-
     /* Purchase Cards */
     .cards-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:16px; margin-top:16px}
     .purchase-card{background:white; border-radius:8px; border:1px solid #e5e7eb; overflow:hidden; transition:all 0.2s}
@@ -248,52 +209,31 @@
     .info-item label{font-size:14px; color:#6b7280; font-weight:500}
     .info-item span{font-size:14px; color:#111827; font-weight:600}
     .card-notes{margin-top:12px; padding:8px; background:#f9fafb; border-radius:4px; font-size:12px; color:#6b7280}
-
     /* Admin 樣式 */
     .tabs{display:flex; border-bottom:1px solid #e5e7eb; margin-bottom:20px}
     .tab-btn{padding:12px 24px; border:none; background:none; cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s}
     .tab-btn:hover{background:#f9fafb}
     .tab-btn.active{border-bottom-color:#3b82f6; color:#3b82f6; font-weight:600}
-
     .data-table{width:100%; border-collapse:collapse; margin-top:16px}
     .data-table th, .data-table td{padding:12px; text-align:left; border-bottom:1px solid #e5e7eb}
     .data-table th{background:#f9fafb; font-weight:600; color:#374151}
     .data-table tr:hover{background:#f9fafb}
-
-    .badge{display:inline-block; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:600}
     .badge.admin{background:#fef3c7; color:#d97706}
     .badge.teacher{background:#dbeafe; color:#1d4ed8}
     .badge.student{background:#dcfce7; color:#16a34a}
     .badge.success{background:#dcfce7; color:#16a34a}
     .badge.danger{background:#fee2e2; color:#dc2626}
-
     .btn-group{display:flex; gap:4px; flex-wrap:wrap}
     .btn-group .btn{margin:0}
-
     .avatar-small{width:32px; height:32px; border-radius:50%; object-fit:cover}
-
     .pagination{display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding:16px 0}
     .pagination-info{color:#6b7280; font-size:14px}
     .pagination-buttons{display:flex; gap:4px}
-
     .stat-item{text-align:center}
     .stat-number{font-size:24px; font-weight:700; color:#111827}
     .stat-label{font-size:14px; color:#6b7280; margin-top:4px}
-
     .loading, .error, .empty{text-align:center; padding:40px; color:#6b7280}
     .error{color:#dc2626}
-    .card-actions{padding:0 16px 16px; display:flex; gap:8px; justify-content:flex-end}
-    .section{margin-bottom:32px}
-    .section h2{margin:0 0 16px; font-size:18px; font-weight:700; color:#111827}
-    .purchase-card.consumed{border-left:4px solid #6b7280}
-    .card-header{padding:16px 16px 0; display:flex; justify-content:space-between; align-items:flex-start}
-    .card-header h3{margin:0; font-size:16px; font-weight:600; color:#111827}
-    .card-body{padding:16px}
-    .card-info{display:grid; gap:8px}
-    .info-item{display:flex; justify-content:space-between; align-items:center}
-    .info-item label{font-size:14px; color:#6b7280; font-weight:500}
-    .info-item span{font-size:14px; color:#111827; font-weight:600}
-    .card-notes{margin-top:12px; padding:8px; background:#f9fafb; border-radius:4px; font-size:12px; color:#6b7280}
     .card-actions{padding:0 16px 16px; display:flex; gap:8px; justify-content:flex-end}
     .section{margin-bottom:32px}
     .section h2{margin:0 0 16px; font-size:18px; font-weight:700; color:#111827}
@@ -389,6 +329,7 @@
           <select id="filter-region" class="pill">
             <option value="">全部地區</option>
             <option>Taiwan</option>
+            <option>Philippine</option>
           </select>
           <select id="filter-sort" class="pill">
             <option value="rating">排序：評分</option>
@@ -628,6 +569,9 @@
       favorites: {},
       notifications: []
     };
+    let teacherCache = [];
+    const teacherFilters = { tag: '', region: '', sort: 'rating', search: '' };
+    let teacherSearchDebounce = null;
 
     // 工具函數
     const $ = sel => document.querySelector(sel);
@@ -646,6 +590,31 @@
       });
       return node;
     };
+    const toArray = (value) => {
+      if (!value) return [];
+      if (Array.isArray(value)) return value;
+      if (typeof value === 'string') return value.split(',').map(s => s.trim()).filter(Boolean);
+      return [];
+    };
+    const unique = (arr) => Array.from(new Set(arr.map(item => typeof item === 'string' ? item.trim() : item).filter(Boolean)));
+    const getTeacherTags = (teacher) => unique([...toArray(teacher.domains), ...toArray(teacher.tags)]);
+    const getTeacherRegions = (teacher) => unique([
+      ...(typeof teacher.region === 'string' ? [teacher.region] : []),
+      ...toArray(teacher.regions)
+    ]);
+    const getTeacherRating = (teacher) => {
+      if (typeof teacher.rating === 'number') return teacher.rating;
+      if (typeof teacher.ratingAverage === 'number') return teacher.ratingAverage;
+      if (typeof teacher.rating === 'string') return parseFloat(teacher.rating) || 0;
+      return 0;
+    };
+    const getTeacherExperience = (teacher) => {
+      if (typeof teacher.experienceYears === 'number') return teacher.experienceYears;
+      if (typeof teacher.experienceYears === 'string') return parseInt(teacher.experienceYears, 10) || 0;
+      if (typeof teacher.experience === 'number') return teacher.experience;
+      return 0;
+    };
+    const getNextAvailable = (teacher) => teacher.nextAvailableAt || teacher.nextAvailable || teacher.next_available_at || null;
 
     const fmtDate = d => new Date(d).toLocaleDateString('zh-TW', {month:'2-digit', day:'2-digit', weekday:'short'});
     const fmtDateFull = d => new Date(d).toLocaleString('zh-TW', {year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
@@ -767,7 +736,7 @@
     // 頭像組件
     function createAvatar(user, size = 54, options = {}) {
       const { round = false, className = '' } = options;
-      const initials = user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      const initials = (user.name || user.email || 'U').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
       const avatarClass = `avatar ${round ? 'round' : ''} ${className}`.trim();
 
@@ -775,17 +744,17 @@
         return el('div', {
           class: avatarClass,
           style: `width:${size}px; height:${size}px`,
-          title: user.name
+          title: user.name || user.email || ''
         }, el('img', {
           src: user.avatarUrl,
-          alt: user.name,
-          style: 'width:100%; height:100%; object-fit:cover'
+          alt: user.name || 'avatar',
+          style: 'width:100%; height:100%; object-fit:cover; display:block'
         }));
       } else {
         return el('div', {
           class: avatarClass,
           style: `width:${size}px; height:${size}px`,
-          title: user.name
+          title: user.name || user.email || ''
         }, initials);
       }
     }
@@ -897,6 +866,31 @@
 
       // 重置按鈕
       $("#resetBtn").addEventListener('click', resetDemo);
+
+      const tagSelect = $("#filter-tag");
+      const regionSelect = $("#filter-region");
+      const sortSelect = $("#filter-sort");
+      if (tagSelect) {
+        tagSelect.addEventListener('change', () => applyTeacherFilters());
+      }
+      if (regionSelect) {
+        regionSelect.addEventListener('change', () => applyTeacherFilters());
+      }
+      if (sortSelect) {
+        sortSelect.addEventListener('change', () => applyTeacherFilters());
+      }
+
+      const searchInput = $("#globalSearch");
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          const value = e.target.value.trim().toLowerCase();
+          clearTimeout(teacherSearchDebounce);
+          teacherSearchDebounce = setTimeout(() => {
+            teacherFilters.search = value;
+            applyTeacherFilters();
+          }, 220);
+        });
+      }
     }
 
     function fillDemoCredentials(role) {
@@ -990,6 +984,15 @@
 
       accessToken = '';
       currentUser = null;
+      teacherCache = [];
+      teacherFilters.tag = '';
+      teacherFilters.region = '';
+      teacherFilters.sort = 'rating';
+      teacherFilters.search = '';
+      if ($("#filter-tag")) $("#filter-tag").value = '';
+      if ($("#filter-region")) $("#filter-region").value = '';
+      if ($("#filter-sort")) $("#filter-sort").value = 'rating';
+      if ($("#globalSearch")) $("#globalSearch").value = '';
       headerUI();
       goto('login');
       toast('已登出');
@@ -1008,7 +1011,7 @@
         const menu = $("#userMenu");
         let logoutBtn = menu.querySelector('#logoutBtn');
         if (!logoutBtn) {
-          logoutBtn = el('button', {id:'logoutBtn', class:'btn'}, `登出（${currentUser.name || currentUser.username}）`);
+          logoutBtn = el('button', {id:'logoutBtn', class:'btn'}, `登出（${currentUser.name || currentUser.username || currentUser.email}）`);
           logoutBtn.addEventListener('click', doLogout);
           menu.appendChild(logoutBtn);
         }
@@ -1045,41 +1048,131 @@
     }
 
     // 教師列表渲染
-    async function renderTeachers() {
+    async function renderTeachers(forceRefresh = false) {
       showOnly('view-teachers');
       $("#courseContext").textContent = '預約課程：' + (DB.courseContext?.name || '自由對話');
+      const grid = $("#teachersGrid");
+      if (!grid) return;
+      grid.innerHTML = '<div class="subtle" style="grid-column:1/-1; text-align:center; padding:24px">載入中...</div>';
 
       try {
-        const response = await apiRequest('/teachers');
-        const teachers = response.items || [];
-
-        const grid = $("#teachersGrid");
-        grid.innerHTML = '';
-
-        teachers.forEach(teacher => {
-          const card = createTeacherCard(teacher);
-          grid.appendChild(card);
-        });
-
+        if (forceRefresh || teacherCache.length === 0) {
+          const response = await apiRequest('/teachers');
+          teacherCache = response.items || [];
+        }
+        applyTeacherFilters();
       } catch (error) {
         console.error('Failed to load teachers:', error);
+        grid.innerHTML = '<div class="error" style="grid-column:1/-1">載入教師列表失敗</div>';
         toast('載入教師列表失敗', 'error');
       }
     }
 
+    function applyTeacherFilters() {
+      const grid = $("#teachersGrid");
+      if (!grid) return;
+
+      const tagValue = $("#filter-tag")?.value || '';
+      const regionValue = $("#filter-region")?.value || '';
+      const sortValue = $("#filter-sort")?.value || 'rating';
+
+      teacherFilters.tag = tagValue;
+      teacherFilters.region = regionValue;
+      teacherFilters.sort = sortValue;
+
+      if (!teacherCache || teacherCache.length === 0) {
+        grid.innerHTML = '<div class="subtle" style="grid-column:1/-1; text-align:center; padding:24px">目前沒有教師資料</div>';
+        return;
+      }
+
+      let filtered = teacherCache.slice();
+
+      if (tagValue) {
+        const normTag = tagValue.toLowerCase();
+        filtered = filtered.filter(teacher => getTeacherTags(teacher).some(tag => tag.toLowerCase() === normTag));
+      }
+
+      if (regionValue) {
+        const normRegion = regionValue.toLowerCase();
+        filtered = filtered.filter(teacher => getTeacherRegions(teacher).some(region => region.toLowerCase() === normRegion));
+      }
+
+      if (teacherFilters.search) {
+        filtered = filtered.filter(teacher => {
+          const combined = [
+            teacher.name,
+            ...(getTeacherRegions(teacher)),
+            ...(getTeacherTags(teacher)),
+            teacher.introSnippet,
+            teacher.intro,
+            teacher.bio
+          ].join(' ').toLowerCase();
+          return combined.includes(teacherFilters.search);
+        });
+      }
+
+      switch (sortValue) {
+        case 'exp':
+          filtered.sort((a, b) => getTeacherExperience(b) - getTeacherExperience(a));
+          break;
+        case 'soonest':
+          filtered.sort((a, b) => {
+            const aTime = getNextAvailable(a) ? new Date(getNextAvailable(a)).getTime() : Number.POSITIVE_INFINITY;
+            const bTime = getNextAvailable(b) ? new Date(getNextAvailable(b)).getTime() : Number.POSITIVE_INFINITY;
+            return aTime - bTime;
+          });
+          break;
+        case 'rating':
+        default:
+          filtered.sort((a, b) => getTeacherRating(b) - getTeacherRating(a));
+          break;
+      }
+
+      renderTeacherCards(filtered);
+    }
+
+    function renderTeacherCards(teachers) {
+      const grid = $("#teachersGrid");
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      if (!teachers || teachers.length === 0) {
+        grid.appendChild(el('div', {
+          class: 'subtle',
+          style: 'grid-column:1/-1; text-align:center; padding:24px'
+        }, '目前沒有符合條件的教師'));
+        return;
+      }
+
+      teachers.forEach(teacher => {
+        const card = createTeacherCard(teacher);
+        grid.appendChild(card);
+      });
+    }
+
     function createTeacherCard(teacher) {
+      const regions = getTeacherRegions(teacher);
+      const regionLabel = regions[0] || '未設定';
+      const experienceYears = getTeacherExperience(teacher);
+      const rating = getTeacherRating(teacher);
+      const ratingLabel = rating ? rating.toFixed(2) : '0.00';
+      const tags = getTeacherTags(teacher);
+
       return el('div', {class: 'card teacher-card'},
-        createAvatar(teacher, 54, { round: true }),
-        el('div', {},
-          el('div', {class: 'row wrap'},
-            el('div', {class: 'title'}, teacher.name),
-            el('span', {class: 'badge'}, `地區：${teacher.region}`),
-            el('span', {class: 'badge'}, `經驗：${teacher.experienceYears} 年`),
-            el('span', {class: 'badge'}, `評分：${teacher.rating}`)
+        el('div', {class: 'teacher-card-avatar'},
+          createAvatar(teacher, 72, { round: true })
+        ),
+        el('div', {class: 'teacher-card-body'},
+          el('div', {class: 'teacher-card-head'},
+            el('div', {class: 'teacher-name'}, teacher.name || '未命名教師'),
+            regionLabel ? el('span', {class: 'badge'}, `地區：${regionLabel}`) : null,
+            el('span', {class: 'badge'}, `經驗：${experienceYears} 年`),
+            el('span', {class: 'badge'}, `評分：${ratingLabel}`)
           ),
-          el('div', {class: 'tags'}, ...teacher.domains.map(domain => el('span', {class: 'pill'}, domain))),
-          el('div', {class: 'muted'}, teacher.introSnippet || '專業教師'),
-          el('div', {class: 'actions'},
+          tags.length ? el('div', {class: 'teacher-card-tags'},
+            ...tags.map(domain => el('span', {class: 'pill'}, domain))
+          ) : null,
+          el('div', {class: 'teacher-card-actions'},
             el('button', {class: 'btn small', onclick: () => openTeacherProfile(teacher.id)}, '查看 Profile'),
             el('button', {class: 'btn small primary', onclick: () => openSchedule(teacher.id)}, '預約'),
             currentUser?.role === 'student'
@@ -1112,9 +1205,9 @@
           el('div', {},
             el('div', {class: 'title'}, teacher.name),
             el('div', {class: 'chips'},
-              el('span', {class: 'badge'}, `地區：${teacher.region}`),
-              el('span', {class: 'badge'}, `年資：${teacher.experienceYears} 年`),
-              el('span', {class: 'badge'}, `評分：${teacher.rating}`)
+              el('span', {class: 'badge'}, `地區：${getTeacherRegions(teacher)[0] || '未設定'}`),
+              el('span', {class: 'badge'}, `年資：${getTeacherExperience(teacher)} 年`),
+              el('span', {class: 'badge'}, `評分：${getTeacherRating(teacher).toFixed(2)}`)
             )
           ),
           el('div', {class: 'spacer'}),
@@ -1123,9 +1216,9 @@
             el('button', {class: 'btn small', onclick: () => goto('teachers')}, '返回列表')
           )
         ),
-        el('div', {class: 'tags', style: 'margin-top:6px'}, ...teacher.domains.map(x => el('span', {class: 'pill'}, x))),
+        el('div', {class: 'tags', style: 'margin-top:6px'}, ...getTeacherTags(teacher).map(x => el('span', {class: 'pill'}, x))),
         el('div', {class: 'hr'}),
-        el('div', {}, el('b', {}, '自我介紹'), el('div', {class: 'muted'}, teacher.intro || '專業教師，歡迎預約課程'))
+        el('div', {}, el('b', {}, '自我介紹'), el('div', {class: 'muted'}, teacher.intro || teacher.introduction || '專業教師，歡迎預約課程'))
       ));
     }
 
@@ -1512,7 +1605,10 @@
       const icon = '📁';
       const nodeEl = el('div', {
         class: 'node',
-        onclick: () => selectMaterial(folder)
+        onclick: (event) => {
+          event.stopPropagation();
+          selectMaterial(folder);
+        }
       },
         el('span', {class: 'icon'}, icon),
         el('span', {}, folder.name)
@@ -1537,7 +1633,10 @@
           const materialIcon = material.type === 'pdf' ? '📄' : '📝';
           const materialNode = el('div', {
             class: 'node',
-            onclick: () => selectMaterial(material)
+            onclick: (event) => {
+              event.stopPropagation();
+              selectMaterial(material);
+            }
           },
             el('span', {class: 'icon'}, materialIcon),
             el('span', {}, material.title)
@@ -1552,14 +1651,13 @@
     }
 
     function selectMaterial(material) {
-      // 移除之前的選中狀態
       document.querySelectorAll('.tree .node.active').forEach(node => {
         node.classList.remove('active');
       });
-
-      // 添加當前選中狀態
-      event.currentTarget.classList.add('active');
-
+      const eventTarget = event?.currentTarget;
+      if (eventTarget) {
+        eventTarget.classList.add('active');
+      }
       renderMaterialsContent(material);
     }
 
@@ -1577,7 +1675,6 @@
       pane.appendChild(el('div', {class: 'title'}, title));
 
       if (material.name && !material.type) {
-        // 這是一個資料夾
         pane.appendChild(el('div', {class: 'muted'}, '這是一個資料夾，包含多個教材項目'));
         const childCount = (material.children?.length || 0) + (material.materials?.length || 0);
         pane.appendChild(el('div', {class: 'muted'}, `包含 ${childCount} 個項目`));
@@ -1585,7 +1682,6 @@
           el('button', {class: 'btn', onclick: () => selectCourseContext(material)}, '選擇此課程')
         ));
       } else {
-        // 這是一個教材
         const content = material.content || '暫無內容描述';
         pane.appendChild(el('div', {class: 'muted'}, `類型：${material.type === 'pdf' ? 'PDF文件' : '教材頁面'}`));
         pane.appendChild(el('div', {class: 'hr'}));
@@ -1613,7 +1709,6 @@
       const wrap = $("#view-bookings");
       wrap.innerHTML = '';
 
-      // 歡迎橫幅
       wrap.appendChild(el('div', {class: 'welcome'},
         el('h1', {style: 'margin:0; font-size:20px; font-weight:800'}, `歡迎回來，${currentUser?.name || '用戶'}！`),
         el('p', {style: 'margin:6px 0 0; color:#e7ffe7'}, '準備好開始今天的學習之旅了嗎？')
@@ -1623,7 +1718,6 @@
         const response = await apiRequest(`/bookings?timezone=${currentTimezone}`);
         const bookings = response.items || [];
 
-        // 當前預約
         const listCard = el('div', {class: 'card', style: 'margin-top:16px'},
           el('div', {class: 'row wrap'},
             el('h2', {class: 'title', style: 'margin:0'}, '當前預約'),
@@ -1661,7 +1755,6 @@
 
       const tbody = el('tbody');
       bookings.forEach(booking => {
-        // 顯示本地時間和教師時區時間
         const localTime = booking.startsAtLocal || fmtDateWithTimezone(booking.startsAt, currentTimezone);
         const teacherTime = booking.teacherLocalTime ?
           `教師時間: ${booking.teacherLocalTime}` :
@@ -1782,7 +1875,6 @@
       const table = document.createElement('table');
       table.className = 'data-table';
 
-      // 表頭
       const thead = document.createElement('thead');
       thead.innerHTML = `
         <tr>
@@ -1797,7 +1889,6 @@
       `;
       table.appendChild(thead);
 
-      // 表身
       const tbody = document.createElement('tbody');
       data.items.forEach(user => {
         const row = document.createElement('tr');
@@ -1854,12 +1945,10 @@
       html += `共 ${data.total} 筆</div>`;
       html += '<div class="pagination-buttons">';
 
-      // 上一頁
       if (data.page > 1) {
         html += `<button class="btn small" onclick="loadUsers(${data.page - 1})">上一頁</button>`;
       }
 
-      // 頁碼
       const startPage = Math.max(1, data.page - 2);
       const endPage = Math.min(data.totalPages, data.page + 2);
 
@@ -1868,7 +1957,6 @@
         html += `<button class="btn small ${active}" onclick="loadUsers(${i})">${i}</button>`;
       }
 
-      // 下一頁
       if (data.page < data.totalPages) {
         html += `<button class="btn small" onclick="loadUsers(${data.page + 1})">下一頁</button>`;
       }
@@ -1930,7 +2018,6 @@
         active: true
       };
 
-      // 如果是教師，添加教師檔案資料
       if (role === 'teacher') {
         const domains = $('#new-teacher-domains').value.trim();
         const regions = $('#new-teacher-regions').value.trim();
@@ -1958,7 +2045,7 @@
 
         toast('用戶創建成功');
         clearCreateUserForm();
-        loadUsers(currentUsersPage); // 重新載入用戶列表
+        loadUsers(currentUsersPage);
       } catch (error) {
         toast('創建失敗：' + error.message);
       }
@@ -1973,7 +2060,6 @@
       $('#new-user-bio').value = '';
       $('#new-user-timezone').value = 'Asia/Taipei';
 
-      // 清空教師欄位
       $('#new-teacher-intro').value = '';
       $('#new-teacher-certifications').value = '';
       $('#new-teacher-experience').value = '';
@@ -2066,7 +2152,7 @@
 
     async function resetUserPassword(userId) {
       const newPassword = prompt('請輸入新密碼（留空使用預設密碼 "password123"）:');
-      if (newPassword === null) return; // 用戶取消
+      if (newPassword === null) return;
 
       const password = newPassword.trim() || 'password123';
 
@@ -2214,13 +2300,11 @@
     }
 
     async function manageTeacherGallery(teacherId) {
-      // 這裡可以實現教師相簿管理功能
       toast('教師相簿管理功能開發中...');
     }
 
     async function loadSystemStats() {
       try {
-        // 載入用戶統計
         const usersResponse = await apiRequest('/admin/users?pageSize=1');
         const userStats = `
           <div class="stat-item">
@@ -2230,7 +2314,6 @@
         `;
         $('#user-stats').innerHTML = userStats;
 
-        // 載入預約統計
         const bookingsResponse = await apiRequest('/admin/bookings');
         const bookingStats = `
           <div class="stat-item">
@@ -2240,7 +2323,6 @@
         `;
         $('#booking-stats').innerHTML = bookingStats;
 
-        // 系統狀態
         const systemStats = `
           <div class="stat-item">
             <div class="stat-number">正常</div>
@@ -2260,7 +2342,6 @@
       const wrap = $("#view-purchases");
       wrap.innerHTML = '';
 
-      // 歡迎橫幅
       wrap.appendChild(el('div', {class: 'welcome'},
         el('h1', {style: 'margin:0; font-size:20px; font-weight:800'}, '我的卡片'),
         el('p', {style: 'margin:6px 0 0; color:#e7ffe7'}, '管理您的課程卡片和激活狀態')
@@ -2279,13 +2360,11 @@
           return;
         }
 
-        // 按狀態分組顯示
         const activeCards = purchases.filter(p => p.status === 'active' && !p.isExpired);
         const draftCards = purchases.filter(p => p.status === 'draft');
         const expiredCards = purchases.filter(p => p.status === 'expired' || p.isExpired);
         const consumedCards = purchases.filter(p => p.status === 'consumed');
 
-        // 可用卡片
         if (activeCards.length > 0) {
           wrap.appendChild(el('div', {class: 'section'},
             el('h2', {}, '可用卡片'),
@@ -2295,7 +2374,6 @@
           ));
         }
 
-        // 待激活卡片
         if (draftCards.length > 0) {
           wrap.appendChild(el('div', {class: 'section'},
             el('h2', {}, '待激活卡片'),
@@ -2305,7 +2383,6 @@
           ));
         }
 
-        // 已過期卡片
         if (expiredCards.length > 0) {
           wrap.appendChild(el('div', {class: 'section'},
             el('h2', {}, '已過期卡片'),
@@ -2315,7 +2392,6 @@
           ));
         }
 
-        // 已用完卡片
         if (consumedCards.length > 0) {
           wrap.appendChild(el('div', {class: 'section'},
             el('h2', {}, '已用完卡片'),
@@ -2334,7 +2410,6 @@
     }
 
     function createPurchaseCard(purchase) {
-      const isActive = purchase.status === 'active' && !purchase.isExpired;
       const canActivate = purchase.canActivate;
 
       return el('div', {class: `purchase-card ${purchase.status}`},
@@ -2406,7 +2481,7 @@
         });
 
         toast('卡片激活成功', 'success');
-        renderPurchases(); // 重新載入
+        renderPurchases();
       } catch (error) {
         toast('激活失敗：' + error.message, 'error');
       }
@@ -2467,14 +2542,12 @@
       const wrap = $("#view-student");
       wrap.innerHTML = '';
 
-      // 歡迎橫幅
       wrap.appendChild(el('div', {class: 'welcome'},
         el('h1', {style: 'margin:0; font-size:20px; font-weight:800'}, '我的資料'),
         el('p', {style: 'margin:6px 0 0; color:#e7ffe7'}, '管理您的個人資料和設定')
       ));
 
       try {
-        // 獲取用戶資料
         const user = await apiRequest(`/users/${currentUser.id}`);
 
         wrap.appendChild(el('div', {class: 'card'},
@@ -2530,13 +2603,11 @@
           const file = e.target.files[0];
           if (!file) return;
 
-          // 檢查文件大小 (5MB)
           if (file.size > 5 * 1024 * 1024) {
             toast('頭像文件不能超過 5MB', 'error');
             return;
           }
 
-          // 顯示圖片裁切器
           showImageCropper(file, userId);
         }
       });
@@ -2615,7 +2686,7 @@
 
         closeModal();
         toast('資料更新成功', 'success');
-        renderStudentProfile(); // 重新載入頁面
+        renderStudentProfile();
       } catch (error) {
         toast('更新失敗：' + error.message, 'error');
       }
@@ -2627,36 +2698,28 @@
       const preview = el('canvas', { width: 100, height: 100, class: 'crop-preview' });
       const previewCtx = preview.getContext('2d');
 
-      // 計算圖片縮放比例以適應 canvas
       const scale = Math.min(400 / img.width, 400 / img.height);
       const scaledWidth = img.width * scale;
       const scaledHeight = img.height * scale;
       const offsetX = (400 - scaledWidth) / 2;
       const offsetY = (400 - scaledHeight) / 2;
 
-      // 裁切區域 (正方形，居中)
       const cropSize = Math.min(scaledWidth, scaledHeight) * 0.8;
       let cropX = (400 - cropSize) / 2;
       let cropY = (400 - cropSize) / 2;
 
       function drawImage() {
-        // 清除 canvas
         ctx.clearRect(0, 0, 400, 400);
-
-        // 繪製圖片
         ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
 
-        // 繪製遮罩
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(0, 0, 400, 400);
 
-        // 清除裁切區域
         ctx.globalCompositeOperation = 'destination-out';
         ctx.beginPath();
         ctx.arc(cropX + cropSize/2, cropY + cropSize/2, cropSize/2, 0, 2 * Math.PI);
         ctx.fill();
 
-        // 繪製裁切邊框
         ctx.globalCompositeOperation = 'source-over';
         ctx.strokeStyle = '#3b82f6';
         ctx.lineWidth = 2;
@@ -2664,19 +2727,16 @@
         ctx.arc(cropX + cropSize/2, cropY + cropSize/2, cropSize/2, 0, 2 * Math.PI);
         ctx.stroke();
 
-        // 更新預覽
         updatePreview();
       }
 
       function updatePreview() {
         previewCtx.clearRect(0, 0, 100, 100);
 
-        // 計算裁切區域在原圖中的位置
         const originalCropX = (cropX - offsetX) / scale;
         const originalCropY = (cropY - offsetY) / scale;
         const originalCropSize = cropSize / scale;
 
-        // 繪製裁切後的圖片到預覽
         previewCtx.drawImage(
           img,
           originalCropX, originalCropY, originalCropSize, originalCropSize,
@@ -2684,14 +2744,12 @@
         );
       }
 
-      // 拖拽功能
       let isDragging = false;
       canvas.addEventListener('mousedown', (e) => {
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        // 檢查是否點擊在裁切區域內
         const centerX = cropX + cropSize/2;
         const centerY = cropY + cropSize/2;
         const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
@@ -2708,7 +2766,6 @@
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        // 更新裁切位置，確保不超出邊界
         cropX = Math.max(0, Math.min(400 - cropSize, x - cropSize/2));
         cropY = Math.max(0, Math.min(400 - cropSize, y - cropSize/2));
 
@@ -2748,23 +2805,19 @@
 
     async function cropAndUpload(canvas, cropX, cropY, cropSize, offsetX, offsetY, scale, img, file, userId) {
       try {
-        // 創建最終的裁切 canvas
         const finalCanvas = el('canvas', { width: 500, height: 500 });
         const finalCtx = finalCanvas.getContext('2d');
 
-        // 計算原圖中的裁切區域
         const originalCropX = (cropX - offsetX) / scale;
         const originalCropY = (cropY - offsetY) / scale;
         const originalCropSize = cropSize / scale;
 
-        // 繪製裁切後的圖片
         finalCtx.drawImage(
           img,
           originalCropX, originalCropY, originalCropSize, originalCropSize,
           0, 0, 500, 500
         );
 
-        // 轉換為 blob
         finalCanvas.toBlob(async (blob) => {
           const formData = new FormData();
           formData.append('file', blob, `avatar-${userId}.jpg`);
@@ -2772,13 +2825,12 @@
           await apiRequest(`/users/${userId}/avatar`, {
             method: 'POST',
             body: formData,
-            headers: {} // 讓瀏覽器自動設定 Content-Type
+            headers: {}
           });
 
           closeModal();
           toast('頭像上傳成功', 'success');
 
-          // 重新載入頁面
           if (currentUser.role === 'student') {
             renderStudentProfile();
           } else if (currentUser.role === 'teacher') {
@@ -2791,7 +2843,6 @@
       }
     }
 
-    // 密碼修改功能
     function changePassword(userId) {
       const modal = el('div', {},
         el('div', {class: 'row wrap'},
@@ -2860,23 +2911,19 @@
       }
     }
 
-    // 教師個人資料管理頁面
     async function renderTeacherProfileManage() {
       showOnly('view-teacher-profile-manage');
       const wrap = $("#view-teacher-profile-manage");
       wrap.innerHTML = '';
 
-      // 歡迎橫幅
       wrap.appendChild(el('div', {class: 'welcome'},
         el('h1', {style: 'margin:0; font-size:20px; font-weight:800'}, '我的教師資料'),
         el('p', {style: 'margin:6px 0 0; color:#e7ffe7'}, '管理您的教師檔案和教學資料')
       ));
 
       try {
-        // 獲取教師完整資料
         const profile = await apiRequest(`/teachers/${currentUser.id}/profile`);
 
-        // 基本資料卡片
         wrap.appendChild(el('div', {class: 'card'},
           el('div', {class: 'row wrap'},
             el('h2', {style: 'margin:0'}, '基本資料'),
@@ -2913,7 +2960,6 @@
           )
         ));
 
-        // 教師專業資料卡片
         wrap.appendChild(el('div', {class: 'card'},
           el('div', {class: 'row wrap'},
             el('h2', {style: 'margin:0'}, '教師資料'),
@@ -2961,7 +3007,6 @@
           ) : null
         ));
 
-        // 教師相簿
         renderTeacherGallery(profile.id);
 
       } catch (error) {
@@ -3019,32 +3064,6 @@
       openModal(modal);
     }
 
-    async function saveTeacherProfile(teacherId) {
-      try {
-        const updateData = {
-          introduction: $("#editIntroduction").value,
-          certificates: $("#editCertificates").value,
-          experienceSince: parseInt($("#editExperienceSince").value) || undefined,
-          hourlyRate: parseFloat($("#editHourlyRate").value) || undefined,
-          region: $("#editRegion").value,
-          languages: $("#editLanguages").value.split(',').map(s => s.trim()).filter(s => s),
-          domains: $("#editDomains").value.split(',').map(s => s.trim()).filter(s => s)
-        };
-
-        await apiRequest(`/teachers/${teacherId}/profile`, {
-          method: 'PUT',
-          body: JSON.stringify(updateData)
-        });
-
-        closeModal();
-        toast('教師資料更新成功', 'success');
-        renderTeacherProfileManage(); // 重新載入頁面
-      } catch (error) {
-        toast('更新失敗：' + error.message, 'error');
-      }
-    }
-
-    // 教師相簿功能
     async function renderTeacherGallery(teacherId) {
       const wrap = $("#view-teacher-profile-manage");
 
@@ -3160,7 +3179,6 @@
           const file = e.target.files[0];
           if (!file) return;
 
-          // 檢查文件大小 (10MB)
           if (file.size > 10 * 1024 * 1024) {
             toast('檔案不能超過 10MB', 'error');
             return;
@@ -3173,11 +3191,11 @@
             await apiRequest(`/teachers/${teacherId}/gallery`, {
               method: 'POST',
               body: formData,
-              headers: {} // 讓瀏覽器自動設定 Content-Type
+              headers: {}
             });
 
             toast('檔案上傳成功', 'success');
-            renderTeacherProfileManage(); // 重新載入頁面
+            renderTeacherProfileManage();
           } catch (error) {
             toast('上傳失敗：' + error.message, 'error');
           }
