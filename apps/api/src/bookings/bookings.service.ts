@@ -27,7 +27,7 @@ export class BookingsService {
 
   async findUserBookings(userId: string, query: any = {}) {
     const { page = 1, pageSize = 20, roleView, from, to, status, sort, timezone = 'Asia/Taipei' } = query;
-    
+
     const queryBuilder = this.bookingRepository
       .createQueryBuilder('booking')
       .leftJoinAndSelect('booking.student', 'student')
@@ -58,21 +58,21 @@ export class BookingsService {
     if (status) {
       if (status === 'upcoming') {
         queryBuilder.andWhere('booking.startsAt > NOW()');
-        queryBuilder.andWhere('booking.status IN (:...statuses)', { 
-          statuses: [BookingStatus.SCHEDULED, BookingStatus.PENDING] 
+        queryBuilder.andWhere('booking.status IN (:...statuses)', {
+          statuses: [BookingStatus.SCHEDULED, BookingStatus.PENDING]
         });
       } else if (status === 'past') {
         queryBuilder.andWhere('booking.startsAt <= NOW()');
-        queryBuilder.andWhere('booking.status = :status', { 
-          status: BookingStatus.COMPLETED 
+        queryBuilder.andWhere('booking.status = :status', {
+          status: BookingStatus.COMPLETED
         });
       } else if (status === 'canceled') {
-        queryBuilder.andWhere('booking.status = :status', { 
-          status: BookingStatus.CANCELED 
+        queryBuilder.andWhere('booking.status = :status', {
+          status: BookingStatus.CANCELED
         });
       } else if (status === 'pending') {
-        queryBuilder.andWhere('booking.status IN (:...statuses)', { 
-          statuses: [BookingStatus.PENDING, BookingStatus.PENDING_TEACHER] 
+        queryBuilder.andWhere('booking.status IN (:...statuses)', {
+          statuses: [BookingStatus.PENDING, BookingStatus.PENDING_TEACHER]
         });
       }
     }
@@ -602,4 +602,100 @@ export class BookingsService {
 
     return this.formatBookingDetail(booking);
   }
+
+  async addMessage(bookingId: string, senderId: string, text: string) {
+    // 簡化：不持久化，直接回傳訊息物件（與 OpenAPI 相容）
+    const booking = await this.bookingRepository.findOne({ where: { id: bookingId } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    const msg = {
+      id: `${bookingId}-${Date.now()}`,
+      senderId,
+      text,
+      createdAt: new Date().toISOString(),
+    };
+    return msg;
+  }
+
+  async reschedule(bookingId: string, user: any, newStartsAt: string, durationMinutes: number = 30) {
+    const booking = await this.bookingRepository.findOne({ where: { id: bookingId } });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    // 權限：學生或教師或管理員其中之一
+    const allowed = user.sub === booking.studentId || user.sub === booking.teacherId || user.role === 'admin';
+    if (!allowed) throw new ForbiddenException('No permission to reschedule');
+
+    // 僅可改期未開始課程
+    if (!this.canReschedule(booking)) throw new BadRequestException('Cannot reschedule');
+
+    // 驗證時間
+    const validation = TimezoneUtil.validateBookingTime(newStartsAt, durationMinutes);
+    if (!validation.valid) {
+      throw new BadRequestException(validation.error);
+    }
+
+    const newStart = TimezoneUtil.isoToUtcDate(newStartsAt);
+    const newEnd = new Date(newStart.getTime() + durationMinutes * 60000);
+
+    // 檢查教師可用性與衝突
+    const teacherId = booking.teacherId;
+    const isAvailable = await this.teacherAvailabilityService.checkAvailabilityByUtc(teacherId, newStart, newEnd);
+    if (!isAvailable) throw new ConflictException('Teacher not available');
+
+    const conflicts = await this.bookingRepository
+      .createQueryBuilder('b')
+      .where('b.id != :id', { id: bookingId })
+      .andWhere('(b.studentId = :studentId OR b.teacherId = :teacherId)', { studentId: booking.studentId, teacherId })
+      .andWhere('b.startsAt < :end AND b.endsAt > :start', { start: newStart, end: newEnd })
+      .andWhere('b.status = :status', { status: BookingStatus.SCHEDULED })
+      .getCount();
+    if (conflicts > 0) throw new ConflictException('Time slot conflicts');
+
+    // 釋放舊時段、標記新時段
+    await this.teacherAvailabilityService.releaseBookedSlot(teacherId, booking.startsAt, booking.endsAt);
+    await this.teacherAvailabilityService.markAsBookedByUtc(teacherId, newStart, newEnd, booking.id);
+
+    booking.startsAt = newStart;
+    booking.endsAt = newEnd;
+    // 改期後可能需要教師確認
+    booking.status = BookingStatus.PENDING_TEACHER;
+    await this.bookingRepository.save(booking);
+
+    return {
+      id: booking.id,
+      status: booking.status,
+      startsAt: booking.startsAt,
+      endsAt: booking.endsAt,
+    };
+  }
+
+  async getIcs(bookingId: string, requesterId: string) {
+    const booking = await this.bookingRepository.findOne({ where: { id: bookingId }, relations: ['teacher', 'student'] });
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (![booking.studentId, booking.teacherId].includes(requesterId)) throw new ForbiddenException('No access');
+
+    const dtStart = booking.startsAt.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+    const dtEnd = booking.endsAt.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+    const uid = `${booking.id}@tutor-platform`;
+    const summary = booking.courseTitle || 'Lesson';
+
+    const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Tutor Platform//EN\nBEGIN:VEVENT\nUID:${uid}\nDTSTAMP:${dtStart}\nDTSTART:${dtStart}\nDTEND:${dtEnd}\nSUMMARY:${summary}\nEND:VEVENT\nEND:VCALENDAR`;
+    // Nest 會以字串回傳。若需 header，可在 controller 設定 Response。
+    return ics;
+  }
+
+  async confirm(bookingId: string, user: any) {
+    const booking = await this.bookingRepository.findOne({ where: { id: bookingId } });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    // 僅老師或管理員可確認
+    const isTeacher = user.sub === booking.teacherId;
+    const isAdmin = user.role === 'admin';
+    if (!isTeacher && !isAdmin) throw new ForbiddenException('Only teacher/admin can confirm');
+
+    booking.status = BookingStatus.SCHEDULED;
+    await this.bookingRepository.save(booking);
+    return { id: booking.id, status: booking.status };
+  }
+
+
 }

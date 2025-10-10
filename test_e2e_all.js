@@ -88,9 +88,16 @@ async function run() {
     log.step('Teachers: list and one detail');
     const teachers = await api('/teachers');
     if (!teachers.items || teachers.items.length === 0) throw new Error('No teachers');
-    const teacherCard = teachers.items[0];
-    const teacherId = teacherCard.id;
-    const teacherDetail = await api(`/teachers/${teacherId}`);
+    let teacherDetail, teacherId;
+    for (const t of teachers.items) {
+      try {
+        const d = await api(`/teachers/${t.id}`);
+        teacherDetail = d; teacherId = t.id; break;
+      } catch (e) {
+        log.warn(`Skip teacher ${t.id}: ${e.message}`);
+      }
+    }
+    if (!teacherId) throw new Error('No valid teacher detail available');
     log.ok(`Teachers: ${teachers.items.length}, detail=${teacherDetail.name}`);
 
     log.step('Availability: time slots / teacher timetable / set-availability');

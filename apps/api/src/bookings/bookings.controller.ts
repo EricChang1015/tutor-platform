@@ -53,6 +53,42 @@ export class BookingsController {
     return this.bookingsService.findById(id);
   }
 
+
+  @Post(':id/messages')
+  @ApiOperation({ summary: '預約留言' })
+  @ApiResponse({ status: 201, description: '留言已建立' })
+  async postMessage(
+    @Param('id') id: string,
+    @Body() body: { text: string },
+    @Request() req,
+  ) {
+    return this.bookingsService.addMessage(id, req.user.sub, body?.text || '');
+  }
+
+  @Post(':id/reschedule')
+  @ApiOperation({ summary: '改期' })
+  @ApiResponse({ status: 200, description: '改期成功' })
+  async reschedule(
+    @Param('id') id: string,
+    @Body() body: { newStartsAt: string; durationMinutes: number },
+    @Request() req,
+  ) {
+    return this.bookingsService.reschedule(id, req.user, body.newStartsAt, body.durationMinutes || 30);
+  }
+
+  @Get(':id/ics')
+  @ApiOperation({ summary: '下載 .ics' })
+  @ApiResponse({ status: 200, description: 'ICS file' })
+  async getIcs(@Param('id') id: string, @Request() req) {
+    return this.bookingsService.getIcs(id, req.user.sub);
+  }
+
+  @Post(':id/confirm')
+  @ApiOperation({ summary: '老師/管理確認預約' })
+  @ApiResponse({ status: 200, description: '確認成功' })
+  async confirm(@Param('id') id: string, @Request() req) {
+    return this.bookingsService.confirm(id, req.user);
+  }
   @Post(':id/cancel')
   @ApiOperation({
     summary: '取消預約',
