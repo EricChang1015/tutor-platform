@@ -1425,8 +1425,8 @@
             description: '測試管理員專用功能',
             tests: [
                 {
-                    id: 'admin_reports',
-                    name: '查看報表',
+                    id: 'admin_reports_old',
+                    name: '查看報表（舊端點）',
                     method: 'GET',
                     endpoint: '/admin/reports',
                     requireAuth: true,
@@ -1519,6 +1519,90 @@
                     name: '非管理員訪問（應失敗）',
                     method: 'GET',
                     endpoint: '/admin/reports',
+                    requireAuth: true,
+                    expectedStatus: 403,
+                    roles: ['teacher', 'student'],
+                    shouldFail: true
+                }
+            ]
+        },
+        {
+            id: 'reports',
+            name: '📊 報表功能',
+            description: '測試管理員與老師報表',
+            tests: [
+                {
+                    id: 'reports_admin',
+                    name: '管理員報表',
+                    method: 'GET',
+                    endpoint: '/reports/admin',
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    expectedFields: ['bookings', 'financials'],
+                    roles: ['admin']
+                },
+                {
+                    id: 'reports_admin_with_filter',
+                    name: '管理員報表（帶篩選）',
+                    method: 'GET',
+                    endpoint: '/reports/admin?from=2025-10-01T00:00:00Z&to=2025-10-31T23:59:59Z',
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    expectedFields: ['bookings', 'financials'],
+                    roles: ['admin']
+                },
+                {
+                    id: 'reports_teacher',
+                    name: '老師報表',
+                    method: 'GET',
+                    endpoint: '/reports/teacher',
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    expectedFields: ['bookings'],
+                    roles: ['teacher', 'admin']
+                },
+                {
+                    id: 'reports_teacher_forbidden',
+                    name: '學生訪問老師報表（應失敗）',
+                    method: 'GET',
+                    endpoint: '/reports/teacher',
+                    requireAuth: true,
+                    expectedStatus: 403,
+                    roles: ['student'],
+                    shouldFail: true
+                }
+            ]
+        },
+        {
+            id: 'admin-bookings',
+            name: '📋 Admin 預約管理',
+            description: '測試管理員全域預約查詢',
+            tests: [
+                {
+                    id: 'admin_bookings_list',
+                    name: 'Admin 預約清單',
+                    method: 'GET',
+                    endpoint: '/admin/bookings',
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    expectedFields: ['total'],
+                    roles: ['admin']
+                },
+                {
+                    id: 'admin_bookings_with_filters',
+                    name: 'Admin 預約清單（帶篩選）',
+                    method: 'GET',
+                    endpoint: '/admin/bookings?from=2025-10-01T00:00:00Z&to=2025-10-31T23:59:59Z',
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    expectedFields: ['total'],
+                    roles: ['admin']
+                },
+                {
+                    id: 'admin_bookings_forbidden',
+                    name: '非管理員訪問（應失敗）',
+                    method: 'GET',
+                    endpoint: '/admin/bookings',
                     requireAuth: true,
                     expectedStatus: 403,
                     roles: ['teacher', 'student'],
