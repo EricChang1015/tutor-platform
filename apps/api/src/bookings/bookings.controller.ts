@@ -2,13 +2,17 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Param,
   Body,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   Request,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiBody, ApiConsumes } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 import { BookingsService } from './bookings.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -21,6 +25,26 @@ import { CancelBookingDto } from './dto/cancel-booking.dto';
 @ApiBearerAuth()
 export class BookingsController {
   constructor(private bookingsService: BookingsService) {}
+
+  @Get(':id/evidence')
+  @ApiOperation({ summary: '\u5217\u51fa\u9810\u7d04\u7684\u8ab2\u5f8c\u8b49\u64da' })
+  async listEvidence(@Param('id') id: string, @Request() req) {
+    return this.bookingsService.listEvidence(id, req.user);
+  }
+
+  @Post(':id/evidence')
+  @ApiOperation({ summary: '\u4e0a\u50b3\u8ab2\u5f8c\u8b49\u64da\u4e26\u7d81\u5b9a\u9810\u7d04\uff08category=class_recording\uff09' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadEvidence(@Param('id') id: string, @UploadedFile() file: any, @Request() req) {
+    return this.bookingsService.uploadEvidence(id, req.user, file);
+  }
+
+  @Delete(':id/evidence/:fileId')
+  @ApiOperation({ summary: '\u79fb\u9664\u8ab2\u5f8c\u8b49\u64da' })
+  async deleteEvidence(@Param('id') id: string, @Param('fileId') fileId: string, @Request() req) {
+    return this.bookingsService.deleteEvidence(id, fileId, req.user);
+  }
 
   @Get()
   @ApiOperation({ summary: '我的預約清單' })

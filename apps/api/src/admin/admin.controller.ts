@@ -144,10 +144,15 @@ export class AdminController {
   }
 
   @Get('bookings')
-  @ApiOperation({ summary: '獲取預約統計' })
-  @ApiResponse({ status: 200, description: '預約統計資料' })
-  async getBookings(@Request() req) {
+  @ApiOperation({ summary: '管理員預約清單（全域）或統計' })
+  @ApiResponse({ status: 200, description: '預約清單或統計資料' })
+  async getBookings(@Request() req, @Query() query: any) {
     this.checkAdminRole(req.user.role);
+    const hasFilters = ['teacherId','studentId','statusExact','hasReport','hasEvidence','settlementStatus','from','to','page','pageSize']
+      .some((k) => query[k] !== undefined);
+    if (hasFilters) {
+      return this.adminService.listAdminBookings(query);
+    }
     return this.adminService.getBookingsStats();
   }
 

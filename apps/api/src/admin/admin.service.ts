@@ -199,7 +199,7 @@ export class AdminService {
     // 建立用戶帳號
     const password = createTeacherDto.password || 'password';
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     const user = this.userRepository.create({
       email: createTeacherDto.email,
       passwordHash: hashedPassword,
@@ -236,7 +236,7 @@ export class AdminService {
   async createStudent(createStudentDto: any) {
     const password = createStudentDto.password || 'password';
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     const user = this.userRepository.create({
       email: createStudentDto.email,
       passwordHash: hashedPassword,
@@ -438,17 +438,63 @@ export class AdminService {
     return { message: 'User deactivated successfully' };
   }
 
+  async listAdminBookings(query: any = {}) {
+    const { page = 1, pageSize = 20, from, to, teacherId, studentId, statusExact, hasReport, hasEvidence } = query;
+    const qb = this.bookingRepository
+      .createQueryBuilder('b')
+      .leftJoinAndSelect('b.student', 'student')
+      .leftJoinAndSelect('b.teacher', 'teacher');
+
+    if (from) qb.andWhere('b.startsAt >= :from', { from });
+    if (to) qb.andWhere('b.startsAt <= :to', { to });
+    if (teacherId) qb.andWhere('b.teacherId = :teacherId', { teacherId });
+    if (studentId) qb.andWhere('b.studentId = :studentId', { studentId });
+    if (statusExact) qb.andWhere('b.status = :status', { status: statusExact });
+    if (hasReport !== undefined) {
+      if (String(hasReport) === 'true') qb.andWhere('b.teacherReportSubmittedAt IS NOT NULL');
+      else qb.andWhere('b.teacherReportSubmittedAt IS NULL');
+    }
+    if (hasEvidence !== undefined) {
+      if (String(hasEvidence) === 'true') {
+        qb.andWhere("EXISTS (SELECT 1 FROM booking_evidences e WHERE e.booking_id = b.id)");
+      } else {
+        qb.andWhere("NOT EXISTS (SELECT 1 FROM booking_evidences e WHERE e.booking_id = b.id)");
+      }
+    }
+
+    const total = await qb.getCount();
+    const items = await qb.orderBy('b.startsAt', 'DESC').skip((page - 1) * pageSize).take(pageSize).getMany();
+
+    const mapped = await Promise.all(items.map(async (booking) => {
+      const evidenceCount = await this.bookingRepository.query('SELECT COUNT(1) AS c FROM booking_evidences WHERE booking_id = $1', [booking.id]);
+      const ec = parseInt(evidenceCount?.[0]?.c || '0', 10);
+      const hasReportFlag = !!(booking as any).teacherReportSubmittedAt;
+      const percent = (hasReportFlag ? 30 : 0) + (ec > 0 ? 30 : 0);
+      return {
+        id: booking.id,
+        teacher: { id: booking.teacherId, name: booking.teacher?.name },
+        student: { id: booking.studentId, name: booking.student?.name },
+        startsAt: booking.startsAt,
+        endsAt: booking.endsAt,
+        status: booking.status,
+        postClass: {
+          teacherReportSubmittedAt: (booking as any).teacherReportSubmittedAt || null,
+          teacherComment: (booking as any).teacherComment || null,
+          reportStatus: (booking as any).postClassReportStatus || 'none',
+          evidenceCount: ec,
+        },
+        progress: { percent, attendance: 'unknown', hasReport: hasReportFlag, evidenceCount: ec, settlementStatus: 'pending' },
+      };
+    }));
+
+    return { items: mapped, page, pageSize, total };
+  }
+
   async getBookingsStats() {
     const totalBookings = await this.bookingRepository.count();
-    const completedBookings = await this.bookingRepository.count({
-      where: { status: BookingStatus.COMPLETED }
-    });
-    const scheduledBookings = await this.bookingRepository.count({
-      where: { status: BookingStatus.SCHEDULED }
-    });
-    const canceledBookings = await this.bookingRepository.count({
-      where: { status: BookingStatus.CANCELED }
-    });
+    const completedBookings = await this.bookingRepository.count({ where: { status: BookingStatus.COMPLETED } });
+    const scheduledBookings = await this.bookingRepository.count({ where: { status: BookingStatus.SCHEDULED } });
+    const canceledBookings = await this.bookingRepository.count({ where: { status: BookingStatus.CANCELED } });
 
     return {
       total: totalBookings,
@@ -461,17 +507,41 @@ export class AdminService {
   async getReports(query: any = {}) {
     const { from, to, teacherId } = query;
 
-    // 簡化版本：返回模擬統計資料
+    const qb = this.bookingRepository.createQueryBuilder('b');
+    if (from) qb.andWhere('b.startsAt >= :from', { from });
+    if (to) qb.andWhere('b.startsAt <= :to', { to });
+    if (teacherId) qb.andWhere('b.teacherId = :teacherId', { teacherId });
+
+    const total = await qb.getCount();
+
+    const completed = await qb.clone().andWhere('b.status = :s', { s: BookingStatus.COMPLETED }).getCount();
+    const canceled = await qb.clone().andWhere('b.status = :s', { s: BookingStatus.CANCELED }).getCount();
+    const noshow = await qb.clone().andWhere('b.status = :s', { s: BookingStatus.NOSHOW }).getCount();
+
+    const completionRate = total > 0 ? (completed / total) : 0;
+    const cancellationRate = total > 0 ? (canceled / total) : 0;
+    const noshowRate = total > 0 ? (noshow / total) : 0;
+
+    // Financials（簡化：無 settlement 表，先返回 0；後續可接 settlements/teacher price）
+    const financials = {
+      payableUSDReady: 0,
+      payableUSDSettled: 0,
+      outstandingUSD: 0,
+    };
+
     return {
-      totalBookings: 0,
-      completedBookings: 0,
-      canceledBookings: 0,
-      completionRate: '0.00',
-      cancellationRate: '0.00',
-      technicalCancellationRate: '0.00',
-      period: from && to ? `${from} to ${to}` : 'All time',
-      teacherId: teacherId || 'All teachers',
-      message: 'Reports feature is working. Database queries will be implemented later.',
+      bookings: {
+        total,
+        completed,
+        canceled,
+        technicalCanceled: 0,
+        completionRate,
+        cancelRate: cancellationRate,
+        technicalCancelRate: 0,
+      },
+      financials,
+      period: from && to ? `${from} to ${to}` : 'all',
+      teacherId: teacherId || null,
     };
   }
 

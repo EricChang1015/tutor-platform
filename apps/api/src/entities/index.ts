@@ -10,3 +10,4 @@ export { Review, ReviewStatus } from './review.entity';
 export { Notification } from './notification.entity';
 export { Favorite } from './favorite.entity';
 export { Upload } from './upload.entity';
+export { BookingEvidence } from './booking-evidence.entity';

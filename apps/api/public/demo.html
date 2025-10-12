@@ -370,6 +370,20 @@
     <!-- Purchases -->
     <section id="view-purchases" hidden></section>
 
+    <!-- Reports -->
+    <section id="view-reports" hidden>
+      <div class="grid cols-2">
+        <div class="card">
+          <div class="title">報表</div>
+          <div class="row wrap" style="gap:8px; margin:8px 0">
+            <button class="btn small" onclick="loadTeacherReport()">載入我的（Teacher）報表</button>
+            <button class="btn small" onclick="loadAdminReport()">載入管理員報表</button>
+          </div>
+          <div id="reports-result" class="subtle">尚未載入</div>
+        </div>
+      </div>
+    </section>
+
     <!-- Student Profile -->
     <section id="view-student" hidden></section>
 
@@ -848,7 +862,7 @@
       // 登入相關
       $("#login-submit").addEventListener('click', doLogin);
       $("#loginBtn").addEventListener('click', () => goto('login'));
-      
+
       // Demo 填入按鈕
       document.querySelectorAll('[data-demo-fill]').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -907,7 +921,7 @@
     }
 
     // 路由系統
-    const ROUTES = ['login','teachers','teacher-profile','materials','schedule','bookings','student','teacher-dashboard','admin'];
+    const ROUTES = ['login','teachers','teacher-profile','materials','schedule','bookings','student','teacher-dashboard','admin','reports'];
     const goto = (hash)=>{ location.hash = '#/'+hash; };
     const current = ()=> (location.hash.replace('#/','')||'login');
 
@@ -916,7 +930,7 @@
     function render() {
       const route = current();
       showOnly('view-' + route.split('/')[0]);
-      
+
       if (route.startsWith('teachers') && route !== 'teachers') {
         renderTeachers();
       } else if (route === 'teachers') {
@@ -933,6 +947,8 @@
         renderTeacherProfileManage();
       } else if (route === 'admin') {
         renderAdmin();
+      } else if (route === 'reports') {
+        renderReports();
       }
     }
 
@@ -1043,8 +1059,12 @@
       if (role === 'teacher') {
         addTab('teacher-profile', '我的資料');
         addTab('teacher-dashboard', '老師後台');
+        addTab('reports', '報表');
       }
-      if (role === 'admin') addTab('admin', '管理後台');
+      if (role === 'admin') {
+        addTab('admin', '管理後台');
+        addTab('reports', '報表');
+      }
     }
 
     // 教師列表渲染
@@ -1110,6 +1130,7 @@
           return combined.includes(teacherFilters.search);
         });
       }
+
 
       switch (sortValue) {
         case 'exp':
@@ -3206,6 +3227,43 @@
       input.click();
       document.body.removeChild(input);
     }
+    async function renderReports() {
+      showOnly('view-reports');
+      const box = document.getElementById('reports-result');
+      box.textContent = '載入中...';
+      try {
+        if (currentUser?.role === 'admin') {
+          const data = await apiRequest('/reports/admin');
+          box.textContent = JSON.stringify(data, null, 2);
+        } else if (currentUser?.role === 'teacher') {
+          const data = await apiRequest('/reports/teacher');
+          box.textContent = JSON.stringify(data, null, 2);
+        } else {
+          box.textContent = '僅教師或管理員可查看報表';
+        }
+      } catch (e) {
+        box.textContent = '載入失敗：' + e.message;
+      }
+    }
+
+    async function loadAdminReport() {
+      const box = document.getElementById('reports-result');
+      box.textContent = '載入中...';
+      try {
+        const data = await apiRequest('/reports/admin');
+        box.textContent = JSON.stringify(data, null, 2);
+      } catch (e) { box.textContent = '載入失敗：' + e.message; }
+    }
+
+    async function loadTeacherReport() {
+      const box = document.getElementById('reports-result');
+      box.textContent = '載入中...';
+      try {
+        const data = await apiRequest('/reports/teacher');
+        box.textContent = JSON.stringify(data, null, 2);
+      } catch (e) { box.textContent = '載入失敗：' + e.message; }
+    }
+
   </script>
 </body>
 </html>

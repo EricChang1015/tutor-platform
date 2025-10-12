@@ -1,6 +1,14 @@
-# 家教平台 (Tutor Platform)
+# 家教平台 (Tutor Platform) v1.3.0
 
-一個現代化的線上家教預約平台，支援多時區、多語言，提供完整的教師管理、學生預約、課程管理等功能。
+一個現代化的線上家教預約平台，支援多時區、多語言，提供完整的教師管理、學生預約、課程管理、課後證據上傳與報表功能。
+
+## 📋 最新功能（v1.3.0）
+- ✅ 課後證據上傳與綁定 booking（老師可上傳課程截圖）
+- ✅ 老師課後評語（commentToStudent）
+- ✅ Admin 全域預約查詢與篩選（/admin/bookings）
+- ✅ 報表功能（/reports/admin 與 /reports/teacher）
+- ✅ 支援圖片格式的課後證據（jpg/png/webp）
+- 📖 詳細說明請參考 [報表與證據功能文檔](docs/reports-evidence-feature.md)
 
 ## 🚀 功能特色
 
@@ -22,14 +30,13 @@
 - **郵件服務**: 完整的郵件通知系統
 - **安全認證**: JWT 認證，角色權限控制
 
-### 最新功能 (v1.2.0)
-- ✅ **時區修復**: 修復不同時區用戶獲取當地時間可用性問題
-- ✅ **預約衝突優化**: 修復相鄰時段預約衝突問題，使用正確的時間重疊邏輯
-- ✅ **頭像上傳**: 完整的用戶頭像上傳和管理功能
-- ✅ **收藏功能**: 學生可收藏和管理喜愛的教師
-- ✅ **評價系統**: 完整的課程評價和教師評分系統
-- ✅ **通知系統**: 即時通知功能，支援多種通知類型
-- ✅ **API 文檔完善**: 更新所有 API 文檔，修復硬編碼日期問題
+### 最新功能 (v1.3.0)
+- ✅ **課後證據**：老師可對每堂課上傳截圖並與 booking 綁定（MinIO，category=class_recording）
+- ✅ **老師課後評語**：/post-class/{id}/teacher-report 支援 commentToStudent 與 evidenceFileIds
+- ✅ **Admin 全域預約清單**：/admin/bookings 支援學生/老師/證據/結算等條件過濾，內含 progress
+- ✅ **報表增強**：/reports/admin、/reports/teacher 回傳 financials/earnings 匯總
+- ✅ **OpenAPI 1.3.0**：更新 docs/openAPI.yaml 與新增 docs/markdown.md 說明
+- ✅ **相容性**：新增欄位皆為 optional，不破壞既有端點
 
 ## 🧭 文檔與測試整合說明
 
@@ -132,6 +139,9 @@ curl -X POST http://localhost:3001/auth/login \
 ```
 
 ## 📚 API 文檔
+
+- OpenAPI 規格：docs/openAPI.yaml（v1.3.0）
+- 報表與課後證據說明：docs/markdown.md
 
 ### 認證相關
 - `POST /auth/login` - 用戶登入
@@ -434,6 +444,14 @@ apps/api/src/
    ```
 
 ## 🔄 更新日誌
+### v1.3.0 (2025-10-12)
+- 新增 booking 級別課後證據（MinIO）並與預約綁定
+- 老師課後評語與 evidenceFileIds 綁定
+- Admin 全域預約清單（多條件過濾，含 progress）
+- 報表增強：Admin/Teacher 金額彙總欄位
+- OpenAPI 更新至 1.3.0，新增 docs/markdown.md
+
+
 
 ### v1.2.0 (2025-10-06)
 - ✅ **重大修復**: 時區處理邏輯完全重構

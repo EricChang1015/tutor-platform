@@ -12,6 +12,10 @@ import { DateTime } from 'luxon';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { CancelBookingDto, CancelCause } from './dto/cancel-booking.dto';
 
+import { Upload } from '../entities/upload.entity';
+import { BookingEvidence } from '../entities/booking-evidence.entity';
+import { UploadsService } from '../uploads/uploads.service';
+import { FileCategory } from '../uploads/upload.config';
 @Injectable()
 export class BookingsService {
   constructor(
@@ -21,8 +25,13 @@ export class BookingsService {
     private userRepository: Repository<User>,
     @InjectRepository(Purchase)
     private purchaseRepository: Repository<Purchase>,
+    @InjectRepository(Upload)
+    private uploadRepository: Repository<Upload>,
+    @InjectRepository(BookingEvidence)
+    private evidenceRepository: Repository<BookingEvidence>,
     private teacherAvailabilityService: TeacherAvailabilityService,
     private purchasesService: PurchasesService,
+    private uploadsService: UploadsService,
   ) {}
 
   async findUserBookings(userId: string, query: any = {}) {
@@ -686,16 +695,114 @@ export class BookingsService {
   async confirm(bookingId: string, user: any) {
     const booking = await this.bookingRepository.findOne({ where: { id: bookingId } });
     if (!booking) throw new NotFoundException('Booking not found');
-
-    // 僅老師或管理員可確認
     const isTeacher = user.sub === booking.teacherId;
     const isAdmin = user.role === 'admin';
     if (!isTeacher && !isAdmin) throw new ForbiddenException('Only teacher/admin can confirm');
-
     booking.status = BookingStatus.SCHEDULED;
     await this.bookingRepository.save(booking);
     return { id: booking.id, status: booking.status };
   }
+
+  // 課後證據：列出
+  // 課後證據：列出
+  async listEvidence(bookingId: string, user: any) {
+    const booking = await this.bookingRepository.findOne({ where: { id: bookingId } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    const canRead = user.role === 'admin' || user.sub === booking.teacherId || user.sub === booking.studentId;
+    if (!canRead) throw new ForbiddenException('No access');
+
+    const rows = await this.evidenceRepository.find({ where: { bookingId }, order: { createdAt: 'DESC' } as any });
+    if (!rows || rows.length === 0) return { items: [] };
+
+    // 取 uploads 基本資訊
+    const fileIds = rows.map(r => r.fileId);
+    const files = await this.uploadRepository.findByIds(fileIds as any);
+    const map = new Map(files.map(f => [f.id, f]));
+
+    const items = rows.map(r => {
+      const f = map.get(r.fileId);
+      return {
+        id: r.fileId,
+        url: f?.publicUrl || null,
+        mimeType: f?.mimeType || null,
+        size: f?.fileSize || null,
+        uploadedAt: r.createdAt,
+        uploadedBy: { id: r.uploadedBy }
+      };
+    });
+    return { items };
+  }
+
+  // 課後證據：上傳並綁定 booking（category=class_recording）
+  async uploadEvidence(bookingId: string, user: any, file: any) {
+    const booking = await this.bookingRepository.findOne({ where: { id: bookingId } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    const isTeacher = user?.role === 'admin' || user?.sub === booking.teacherId;
+    if (!isTeacher) throw new ForbiddenException('Only teacher/admin can upload');
+    if (!file) throw new BadRequestException('No file');
+
+    const uploaded = await this.uploadsService.uploadFile(user.sub, file, FileCategory.CLASS_RECORDING as any);
+    const link = this.evidenceRepository.create({ bookingId, fileId: uploaded.id, uploadedBy: user.sub } as any);
+    const saved = await this.evidenceRepository.save(link);
+
+    return {
+      id: uploaded.id,
+      url: uploaded.publicUrl || null,
+      mimeType: uploaded.mimeType,
+      size: uploaded.fileSize,
+      uploadedAt: (saved as any).createdAt || new Date(),
+    };
+  }
+
+  // 課後證據：刪除連結（僅老師/管理員）
+  async deleteEvidence(bookingId: string, fileId: string, user: any) {
+    const booking = await this.bookingRepository.findOne({ where: { id: bookingId } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    const canDelete = user.role === 'admin' || user.sub === booking.teacherId;
+    if (!canDelete) throw new ForbiddenException('Only teacher/admin can delete');
+
+    await this.evidenceRepository.delete({ bookingId, fileId } as any);
+    return { ok: true };
+  }
+
+  // 老師課後回報：支持 commentToStudent 與 evidenceFileIds
+  async submitTeacherReport(bookingId: string, user: any, body: any) {
+    const booking = await this.bookingRepository.findOne({ where: { id: bookingId } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    const isTeacher = user.role === 'admin' || user.sub === booking.teacherId;
+    if (!isTeacher) throw new ForbiddenException('Only teacher/admin can report');
+
+    const { rubrics, commentToStudent, evidenceFileIds } = body || {};
+    // 更新回報欄位
+    (booking as any).teacherComment = commentToStudent ?? (booking as any).teacherComment ?? null;
+    (booking as any).teacherReportSubmittedAt = new Date();
+    (booking as any).postClassReportStatus = 'submitted';
+    await this.bookingRepository.save(booking);
+
+    // 綁定證據
+    if (Array.isArray(evidenceFileIds) && evidenceFileIds.length > 0) {
+      const uniq = Array.from(new Set(evidenceFileIds.filter(Boolean)));
+      for (const fid of uniq) {
+        const exists = await this.evidenceRepository.findOne({ where: { bookingId, fileId: fid } as any });
+        if (!exists) {
+          const link = this.evidenceRepository.create({ bookingId, fileId: fid, uploadedBy: user.sub } as any);
+          await this.evidenceRepository.save(link);
+        }
+      }
+    }
+
+    // 回傳簡化
+    return {
+      id: booking.id,
+      postClass: {
+        teacherReportSubmittedAt: (booking as any).teacherReportSubmittedAt,
+        teacherComment: (booking as any).teacherComment || null,
+        reportStatus: (booking as any).postClassReportStatus || 'submitted',
+      }
+    };
+  }
+
+
 
 
 }

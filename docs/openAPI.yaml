@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: 家教系統 API
-  version: 1.2.0
+  version: 1.3.0
   description: >
     MVP 對齊需求 + 可擴展。完整時區支援，時間 ISO 8601（含時區）；查詢可帶 timezone 參數。
     - 時區：支援全球時區，資料庫存 UTC，API 自動轉換本地時間
@@ -55,6 +55,21 @@ components:
     From: { in: query, name: from, schema: { type: string, format: date-time } }
     To: { in: query, name: to, schema: { type: string, format: date-time } }
     Tz: { in: query, name: tz, schema: { type: string, description: IANA time zone, example: Asia/Taipei } }
+    HasReport:
+      in: query
+      name: hasReport
+      schema: { type: boolean }
+      description: 是否已提交老師課後回報
+    HasEvidence:
+      in: query
+      name: hasEvidence
+      schema: { type: boolean }
+      description: 是否已上傳課後證據（至少一張）
+    SettlementStatus:
+      in: query
+      name: settlementStatus
+      schema: { type: string, enum: [pending, blocked, ready, settled] }
+      description: 結算狀態
   schemas:
     Error:
       type: object
@@ -225,6 +240,21 @@ components:
     BookingSource:
       type: string
       enum: [student, admin, teacher, system]
+    BookingProgress:
+      type: object
+      properties:
+        percent: { type: integer, minimum: 0, maximum: 100 }
+        attendance: { type: string, enum: [unknown, attended, noshow], default: unknown }
+        hasReport: { type: boolean }
+        evidenceCount: { type: integer }
+        settlementStatus: { type: string, enum: [pending, blocked, ready, settled], default: pending }
+    BookingPostClass:
+      type: object
+      properties:
+        teacherReportSubmittedAt: { type: string, format: date-time, nullable: true }
+        teacherComment: { type: string, nullable: true }
+        reportStatus: { type: string, enum: [none, submitted, verified], default: none }
+        evidenceCount: { type: integer }
     BookingSummary:
       type: object
       properties:
@@ -275,10 +305,9 @@ components:
                 teacherUnitUSD: { type: number, nullable: true }
                 payableAt: { type: string, format: date-time, nullable: true }
             postClass:
-              type: object
-              properties:
-                teacherReportSubmittedAt: { type: string, format: date-time, nullable: true }
-                studentGoal: { type: string, nullable: true }
+              $ref: '#/components/schemas/BookingPostClass'
+            progress:
+              $ref: '#/components/schemas/BookingProgress'
     ReviewItem:
       type: object
       properties:
@@ -1259,6 +1288,75 @@ paths:
       tags: [Post-Class]
       summary: 老師課後回報與上傳證明
       security: [{ bearerAuth: [] }]
+
+  /bookings/{id}/evidence:
+    get:
+      tags: [Bookings]
+      summary: 列出課後證據
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        url: { type: string, format: uri, nullable: true }
+                        mimeType: { type: string }
+                        size: { type: integer }
+                        uploadedAt: { type: string, format: date-time }
+                        uploadedBy:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            role: { $ref: '#/components/schemas/Role' }
+                            name: { type: string, nullable: true }
+    post:
+      tags: [Bookings]
+      summary: 上傳課後證據並綁定預約（category=class_recording）
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  url: { type: string, format: uri, nullable: true }
+                  mimeType: { type: string }
+                  size: { type: integer }
+                  uploadedAt: { type: string, format: date-time }
+  /bookings/{id}/evidence/{fileId}:
+    delete:
+      tags: [Bookings]
+      summary: 移除課後證據
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: fileId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: No Content }
+
       parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
       requestBody:
         required: true

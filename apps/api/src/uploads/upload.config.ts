@@ -77,10 +77,13 @@ export const UPLOAD_CONFIG: UploadConfig = {
     allowedMimeTypes: [
       'video/mp4',
       'video/webm',
-      'video/quicktime'
+      'video/quicktime',
+      'image/jpeg',
+      'image/png',
+      'image/webp'
     ],
-    maxSizeBytes: 500 * 1024 * 1024, // 500MB
-    extensions: ['.mp4', '.webm', '.mov']
+    maxSizeBytes: 500 * 1024 * 1024, // 500MB（影片）/ 圖片一般遠小於此值
+    extensions: ['.mp4', '.webm', '.mov', '.jpg', '.jpeg', '.png', '.webp']
   },
   
   teacher_gallery: {

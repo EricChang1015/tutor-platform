@@ -83,6 +83,15 @@ export class Booking {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
+  @Column({ name: 'teacher_comment', type: 'text', nullable: true })
+  teacherComment?: string;
+
+  @Column({ name: 'teacher_report_submitted_at', type: 'timestamptz', nullable: true })
+  teacherReportSubmittedAt?: Date;
+
+  @Column({ name: 'post_class_report_status', type: 'varchar', nullable: true, default: 'none' })
+  postClassReportStatus?: string;
+
   // 關聯
   @ManyToOne(() => User, (user) => user.studentBookings)
   @JoinColumn({ name: 'student_id' })
