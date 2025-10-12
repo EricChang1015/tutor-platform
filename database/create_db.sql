@@ -1,5 +1,6 @@
 -- 家教平台資料庫結構 (PostgreSQL)
 -- 建立時間: 2025-09-30
+-- 更新時間: 2025-10-12 (整合所有遷移)
 
 -- 建立擴展
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -17,7 +18,7 @@ CREATE TABLE users (
     avatar_url VARCHAR(500) NULL,
     bio TEXT NULL,
     phone VARCHAR(50) NULL,
-    timezone VARCHAR(100) NULL DEFAULT 'Asia/Taipei',
+    timezone VARCHAR(50) NULL DEFAULT 'Asia/Taipei',
     locale VARCHAR(10) NULL DEFAULT 'zh-TW',
     settings JSONB NULL,
     active BOOLEAN DEFAULT TRUE,
@@ -38,6 +39,7 @@ CREATE TABLE teacher_profiles (
     intro TEXT NOT NULL,
     certifications JSONB NULL,
     experience_years INTEGER NOT NULL DEFAULT 0,
+    experience_since INTEGER NULL,
     domains JSONB NOT NULL,
     regions JSONB NOT NULL,
     languages JSONB NULL,
@@ -59,13 +61,18 @@ CREATE INDEX idx_teacher_profiles_rating ON teacher_profiles(rating);
 CREATE TABLE teacher_gallery (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     teacher_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    upload_id UUID NULL,
+    title VARCHAR(255) NOT NULL DEFAULT 'Untitled',
+    description TEXT NULL,
+    media_type VARCHAR(20) DEFAULT 'image' CHECK (media_type IN ('image', 'video', 'audio', 'other')),
     url VARCHAR(500) NOT NULL,
-    type VARCHAR(20) CHECK (type IN ('image', 'video', 'other')) DEFAULT 'image',
-    caption TEXT NULL,
-    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_teacher_gallery_teacher_id ON teacher_gallery(teacher_id);
+CREATE INDEX idx_teacher_gallery_sort_order ON teacher_gallery(sort_order);
 
 -- 購買項目表
 CREATE TABLE purchases (
@@ -94,8 +101,8 @@ CREATE TABLE bookings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     student_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     teacher_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    starts_at TIMESTAMP NOT NULL,
-    ends_at TIMESTAMP NOT NULL,
+    starts_at TIMESTAMPTZ NOT NULL,
+    ends_at TIMESTAMPTZ NOT NULL,
     status VARCHAR(20) CHECK (status IN ('scheduled', 'pending', 'pending_teacher', 'canceled', 'completed', 'noshow')) DEFAULT 'scheduled',
     source VARCHAR(20) CHECK (source IN ('student', 'admin', 'teacher', 'system')) DEFAULT 'student',
     material_id UUID NULL,
@@ -111,6 +118,11 @@ CREATE INDEX idx_bookings_student_id ON bookings(student_id);
 CREATE INDEX idx_bookings_teacher_id ON bookings(teacher_id);
 CREATE INDEX idx_bookings_status ON bookings(status);
 CREATE INDEX idx_bookings_time_range ON bookings(starts_at, ends_at);
+CREATE INDEX idx_bookings_starts_at_utc ON bookings(starts_at);
+CREATE INDEX idx_bookings_teacher_time ON bookings(teacher_id, starts_at, ends_at);
+CREATE INDEX idx_bookings_time_overlap ON bookings(starts_at, ends_at, status);
+CREATE INDEX idx_bookings_student_time ON bookings(student_id, starts_at, ends_at, status);
+CREATE INDEX idx_bookings_teacher_time_status ON bookings(teacher_id, starts_at, ends_at, status);
 
 -- 教師可用時間表
 CREATE TABLE teacher_availability (
@@ -121,6 +133,8 @@ CREATE TABLE teacher_availability (
     status VARCHAR(20) CHECK (status IN ('available', 'booked', 'unavailable')) DEFAULT 'available',
     booking_id UUID NULL REFERENCES bookings(id) ON DELETE SET NULL,
     reason TEXT NULL,
+    start_time_utc TIMESTAMPTZ NULL,
+    end_time_utc TIMESTAMPTZ NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(teacher_id, date, time_slot)
@@ -132,6 +146,11 @@ CREATE INDEX idx_teacher_availability_status ON teacher_availability(status);
 CREATE INDEX idx_teacher_availability_teacher_date ON teacher_availability(teacher_id, date);
 CREATE INDEX idx_teacher_availability_date_time_slot ON teacher_availability(date, time_slot);
 CREATE INDEX idx_teacher_availability_search ON teacher_availability(date, time_slot, status) WHERE status = 'available';
+CREATE INDEX idx_teacher_availability_utc ON teacher_availability(start_time_utc, end_time_utc);
+CREATE INDEX idx_teacher_availability_teacher_utc ON teacher_availability(teacher_id, start_time_utc);
+CREATE INDEX idx_teacher_availability_teacher_utc_status ON teacher_availability(teacher_id, start_time_utc, end_time_utc, status);
+CREATE INDEX idx_teacher_availability_utc_range ON teacher_availability(start_time_utc, end_time_utc) WHERE status = 'available';
+CREATE INDEX idx_teacher_availability_utc_between ON teacher_availability(teacher_id, status, start_time_utc, end_time_utc);
 
 -- 教材表
 CREATE TABLE materials (
@@ -222,46 +241,97 @@ CREATE TRIGGER trigger_materials_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_materials_updated_at();
 
--- 建立函數來檢查時間槽衝突
-CREATE OR REPLACE FUNCTION check_booking_time_slot_conflict()
+-- 建立 teacher_gallery 表的更新觸發器
+CREATE OR REPLACE FUNCTION update_teacher_gallery_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER trigger_update_teacher_gallery_updated_at
+    BEFORE UPDATE ON teacher_gallery
+    FOR EACH ROW
+    EXECUTE FUNCTION update_teacher_gallery_updated_at();
+
+-- 建立函數來自動計算 teacher_availability 的 UTC 時間
+CREATE OR REPLACE FUNCTION calculate_availability_utc()
 RETURNS TRIGGER AS $$
 DECLARE
-    start_slot INTEGER;
-    end_slot INTEGER;
-    slot_count INTEGER;
-    available_count INTEGER;
+    teacher_tz VARCHAR(50);
+    local_datetime TIMESTAMP;
+    hours INTEGER;
+    minutes INTEGER;
 BEGIN
-    -- 計算開始和結束時間槽
-    start_slot := EXTRACT(HOUR FROM NEW.starts_at) * 2 + 
-                  CASE WHEN EXTRACT(MINUTE FROM NEW.starts_at) >= 30 THEN 1 ELSE 0 END;
-    end_slot := EXTRACT(HOUR FROM NEW.ends_at) * 2 + 
-                CASE WHEN EXTRACT(MINUTE FROM NEW.ends_at) >= 30 THEN 1 ELSE 0 END;
-    
-    -- 檢查教師在該時間段是否可用
-    SELECT COUNT(*) INTO available_count
-    FROM teacher_availability
-    WHERE teacher_id = NEW.teacher_id
-      AND date = NEW.starts_at::date
-      AND time_slot >= start_slot
-      AND time_slot < end_slot
-      AND status = 'available';
-    
-    slot_count := end_slot - start_slot;
-    
-    -- 如果可用時間槽數量不足，拋出錯誤
-    IF available_count < slot_count THEN
-        RAISE EXCEPTION 'Teacher is not available for the requested time slots';
+    -- 獲取教師的時區
+    SELECT timezone INTO teacher_tz
+    FROM users
+    WHERE id = NEW.teacher_id;
+
+    -- 如果沒有找到時區，使用預設值
+    IF teacher_tz IS NULL THEN
+        teacher_tz := 'Asia/Taipei';
     END IF;
-    
+
+    -- 計算時間槽對應的小時和分鐘
+    hours := NEW.time_slot / 2;
+    minutes := (NEW.time_slot % 2) * 30;
+
+    -- 構建本地時間
+    local_datetime := (NEW.date || ' ' || LPAD(hours::TEXT, 2, '0') || ':' || LPAD(minutes::TEXT, 2, '0') || ':00')::TIMESTAMP;
+
+    -- 轉換為 UTC（假設本地時間在教師時區）
+    NEW.start_time_utc := timezone('UTC', timezone(teacher_tz, local_datetime));
+
+    -- 結束時間是開始時間 + 30 分鐘
+    NEW.end_time_utc := NEW.start_time_utc + INTERVAL '30 minutes';
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- 建立觸發器來檢查預約時間衝突
-CREATE TRIGGER trigger_check_booking_conflict
+-- 創建觸發器來自動更新 UTC 時間
+CREATE TRIGGER trigger_calculate_availability_utc
+    BEFORE INSERT OR UPDATE ON teacher_availability
+    FOR EACH ROW
+    EXECUTE FUNCTION calculate_availability_utc();
+
+-- 建立函數來檢查預約UTC時間衝突
+CREATE OR REPLACE FUNCTION check_booking_utc_conflict()
+RETURNS TRIGGER AS $$
+DECLARE
+    available_count INTEGER;
+    required_duration_minutes INTEGER;
+    required_slots INTEGER;
+BEGIN
+    -- 計算預約持續時間（分鐘）
+    required_duration_minutes := EXTRACT(EPOCH FROM (NEW.ends_at - NEW.starts_at)) / 60;
+    required_slots := CEIL(required_duration_minutes / 30.0);
+
+    -- 檢查教師在該UTC時間範圍內是否有足夠的可用時間槽
+    -- 使用正確的時間重疊邏輯：start_time_utc < end_time AND end_time_utc > start_time
+    SELECT COUNT(*) INTO available_count
+    FROM teacher_availability
+    WHERE teacher_id = NEW.teacher_id
+      AND start_time_utc < NEW.ends_at
+      AND end_time_utc > NEW.starts_at
+      AND status = 'available';
+
+    -- 如果可用時間槽數量不足，拋出錯誤
+    IF available_count < required_slots THEN
+        RAISE EXCEPTION 'Teacher is not available for the requested time slots. Required: %, Available: %', required_slots, available_count;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 建立觸發器來檢查預約UTC時間衝突
+CREATE TRIGGER trigger_check_booking_utc_conflict
     BEFORE INSERT OR UPDATE ON bookings
     FOR EACH ROW
-    EXECUTE FUNCTION check_booking_time_slot_conflict();
+    EXECUTE FUNCTION check_booking_utc_conflict();
 
 -- 通知表
 CREATE TABLE notifications (
@@ -288,9 +358,9 @@ INSERT INTO users (id, email, password_hash, role, name, timezone, locale) VALUE
 ('55555555-5555-5555-5555-555555555555', 'student2@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'Student Two', 'Asia/Taipei', 'zh-TW');
 
 -- 插入教師詳細資料
-INSERT INTO teacher_profiles (user_id, intro, experience_years, domains, regions, unit_price_usd) VALUES
-('22222222-2222-2222-2222-222222222222', '經驗豐富的英語教師，專精於會話和文法教學。', 5, '["English", "Conversation"]', '["Taiwan"]', 25.00),
-('44444444-4444-4444-4444-444444444444', '母語英語教師，專精於發音和口音訓練。', 8, '["English", "Pronunciation", "IELTS"]', '["Taiwan", "Online"]', 30.00);
+INSERT INTO teacher_profiles (user_id, intro, experience_years, experience_since, domains, regions, unit_price_usd) VALUES
+('22222222-2222-2222-2222-222222222222', '經驗豐富的英語教師，專精於會話和文法教學。', 5, 2020, '["English", "Conversation"]', '["Taiwan"]', 25.00),
+('44444444-4444-4444-4444-444444444444', '母語英語教師，專精於發音和口音訓練。', 8, 2017, '["English", "Pronunciation", "IELTS"]', '["Taiwan", "Online"]', 30.00);
 
 -- 插入教材資料
 INSERT INTO materials (title, type, folder_id, content) VALUES
@@ -318,4 +388,18 @@ FROM users u
     CROSS JOIN generate_series(18, 47) as slot  -- 09:00 到 23:30 的時間槽
 WHERE u.role = 'teacher' AND u.active = true
 ON CONFLICT (teacher_id, date, time_slot) DO NOTHING;
+
+-- 添加註釋說明重要欄位
+COMMENT ON COLUMN users.timezone IS 'IANA 時區名稱，例如 Asia/Taipei, America/New_York';
+COMMENT ON COLUMN teacher_profiles.experience_since IS 'Year when teacher started teaching (e.g., 2020)';
+COMMENT ON COLUMN teacher_availability.start_time_utc IS 'UTC 開始時間，由觸發器自動計算';
+COMMENT ON COLUMN teacher_availability.end_time_utc IS 'UTC 結束時間，由觸發器自動計算';
+COMMENT ON COLUMN bookings.starts_at IS 'UTC 預約開始時間';
+COMMENT ON COLUMN bookings.ends_at IS 'UTC 預約結束時間';
+COMMENT ON COLUMN teacher_gallery.media_type IS '媒體類型: image, video, audio, other';
+COMMENT ON COLUMN teacher_gallery.title IS '檔案標題';
+COMMENT ON COLUMN teacher_gallery.description IS '檔案描述';
+COMMENT ON COLUMN teacher_gallery.sort_order IS '排序順序';
+COMMENT ON COLUMN teacher_gallery.upload_id IS '上傳檔案ID';
+
 COMMIT;
