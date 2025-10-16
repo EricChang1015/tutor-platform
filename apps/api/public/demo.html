@@ -1055,12 +1055,12 @@
 
       addTab('teachers', '推薦教師', {hide: !role});
       addTab('materials', '教材', {hide: !role});
-      addTab('bookings', '我的預約', {hide: !role});
+      addTab('bookings', '代處理預約', {hide: !role});
       addTab('purchases', '我的卡片', {hide: !role});
       if (role === 'student') addTab('student', '我的資料');
       if (role === 'teacher') {
         addTab('teacher-profile', '我的資料');
-        addTab('teacher-dashboard', '老師後台');
+        addTab('teacher-dashboard', '課程確認');
         addTab('reports', '報表');
       }
       if (role === 'admin') {
@@ -3237,11 +3237,34 @@
 
       const card = el('div', { class: 'card' },
         el('div', { class: 'row wrap' },
-          el('h2', { class: 'title', style: 'margin:0' }, '老師後台：我的預約'),
+          el('h2', { class: 'title', style: 'margin:0' }, '課程確認'),
           el('div', { class: 'spacer' }),
           el('span', { class: 'pill' }, `時區：${currentTimezone}`)
         ),
         el('div', { class: 'hr' })
+        // 過濾器列
+        const filterRow = el('div', { class: 'row wrap', style: 'gap:8px; margin:8px 0' },
+          el('div', {},
+            el('label', {}, '處理狀態'),
+            el('select', { id: 'td-filter-report', class: 'pill' },
+              el('option', { value: '' }, '全部'),
+              el('option', { value: 'none', selected: true }, '未處理'),
+              el('option', { value: 'submitted' }, '已處理')
+            )
+          ),
+          el('div', {},
+            el('label', {}, '課程狀態'),
+            el('select', { id: 'td-filter-status', class: 'pill' },
+              el('option', { value: '' }, '全部'),
+              el('option', { value: 'scheduled', selected: true }, '已排程'),
+              el('option', { value: 'canceled' }, '已取消'),
+              el('option', { value: 'noshow' }, '未出席'),
+              el('option', { value: 'completed' }, '已完成')
+            )
+          )
+        );
+        card.appendChild(filterRow);
+
       );
       wrap.appendChild(card);
 
@@ -3260,28 +3283,62 @@
         table.appendChild(thead);
         const tbody = document.createElement('tbody');
 
-        items.forEach(b => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${b.courseTitle || '自由對話'}</td>
-            <td>${b.student?.name || '-'}</td>
-            <td>
-              <div>${fmtDateWithTimezone(b.startsAt, currentTimezone)}</div>
-              <div class="muted" style="font-size:11px">${fmtDateWithTimezone(b.startsAt, 'Asia/Taipei')}</div>
-            </td>
-            <td>${getStatusChip(b.status).outerHTML}</td>
-            <td>
-              <div class="btn-group">
-                <button class="btn small" data-act="evidence" data-id="${b.id}">上傳證據</button>
-                <button class="btn small primary" data-act="report" data-id="${b.id}">提交回報</button>
-              </div>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
+        // 僅顯示當天與之前 + 新增雙過濾器
+        const allItems = (items || []);
+        const endOfToday = new Date(); endOfToday.setHours(23,59,59,999);
+        const table = document.createElement('table');
+        table.className = 'data-table';
+        const thead = document.createElement('thead');
+        thead.innerHTML = '<tr><th>課程</th><th>學生</th><th>時間</th><th>狀態</th><th>操作</th></tr>';
+        table.appendChild(thead);
+        const tbody = document.createElement('tbody');
         table.appendChild(tbody);
         card.appendChild(table);
 
+        function isSubmitted(b){
+          const s = (b.postClassReportStatus || '').toLowerCase();
+          return s === 'submitted' || !!b.teacherReportSubmittedAt;
+        }
+        function normStatus(s){ return (s||'').toLowerCase(); }
+
+        function applyFilters(){
+          const reportFilter = document.getElementById('td-filter-report')?.value || 'none';
+          const statusFilter = document.getElementById('td-filter-status')?.value || 'scheduled';
+          let arr = allItems.filter(b => new Date(b.startsAt) <= endOfToday);
+          if (reportFilter === 'none') arr = arr.filter(b => !isSubmitted(b));
+          else if (reportFilter === 'submitted') arr = arr.filter(b => isSubmitted(b));
+          if (statusFilter) arr = arr.filter(b => normStatus(b.status) === normStatus(statusFilter));
+          tbody.innerHTML = '';
+          if (arr.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="muted">目前沒有符合條件的預約</td></tr>';
+            return;
+          }
+          arr.forEach(b => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${b.courseTitle || '自由對話'}</td>
+              <td>${b.student?.name || '未知學生'}</td>
+              <td>
+                <div>${fmtDateFull(b.startsAt)}</div>
+                <div style="font-size:12px; color:#6b7280">教師時區：${b.teacher?.timezone || 'Asia/Taipei'}</div>
+              </td>
+              <td>${getStatusChip(b.status).outerHTML} ${isSubmitted(b) ? '<span class="badge" style="margin-left:6px">已回報</span>' : ''}</td>
+              <td>
+                <div class="btn-group">
+                  <button class="btn small" data-id="${b.id}" data-act="evidence">上傳證據</button>
+                  <button class="btn small primary" data-id="${b.id}" data-act="report">提交回報</button>
+                </div>
+              </td>`;
+            tbody.appendChild(tr);
+          });
+        }
+        document.getElementById('td-filter-report').addEventListener('change', applyFilters);
+        document.getElementById('td-filter-status').addEventListener('change', applyFilters);
+        document.getElementById('td-filter-report').value = 'none';
+        document.getElementById('td-filter-status').value = 'scheduled';
+        applyFilters();
+
+        // 事件綁定（保留原有邏輯）
         card.addEventListener('click', async (e) => {
           const btn = e.target.closest('button');
           if (!btn) return;
@@ -3290,6 +3347,9 @@
           if (act === 'evidence') await uploadEvidenceForBooking(bid);
           if (act === 'report') await openTeacherReportModal(bid);
         });
+
+
+
       } catch (err) {
         card.appendChild(el('div', { class: 'error' }, '載入失敗：' + err.message));
       }
