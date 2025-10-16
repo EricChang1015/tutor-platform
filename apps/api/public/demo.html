@@ -945,6 +945,8 @@
         renderStudentProfile();
       } else if (route === 'teacher-profile') {
         renderTeacherProfileManage();
+      } else if (route === 'teacher-dashboard') {
+        renderTeacherDashboard();
       } else if (route === 'admin') {
         renderAdmin();
       } else if (route === 'reports') {
@@ -3227,20 +3229,141 @@
       input.click();
       document.body.removeChild(input);
     }
+    // 老師後台：我的預約清單與課後作業
+    async function renderTeacherDashboard() {
+      showOnly('view-teacher-dashboard');
+      const wrap = document.getElementById('view-teacher-dashboard');
+      wrap.innerHTML = '';
+
+      const card = el('div', { class: 'card' },
+        el('div', { class: 'row wrap' },
+          el('h2', { class: 'title', style: 'margin:0' }, '老師後台：我的預約'),
+          el('div', { class: 'spacer' }),
+          el('span', { class: 'pill' }, `時區：${currentTimezone}`)
+        ),
+        el('div', { class: 'hr' })
+      );
+      wrap.appendChild(card);
+
+      try {
+        const resp = await apiRequest(`/bookings?roleView=teacher&timezone=${encodeURIComponent(currentTimezone)}`);
+        const items = resp.items || [];
+        if (items.length === 0) {
+          card.appendChild(el('div', { class: 'muted' }, '目前沒有預約記錄'));
+          return;
+        }
+
+        const table = document.createElement('table');
+        table.className = 'data-table';
+        const thead = document.createElement('thead');
+        thead.innerHTML = '<tr><th>課程</th><th>學生</th><th>時間</th><th>狀態</th><th>操作</th></tr>';
+        table.appendChild(thead);
+        const tbody = document.createElement('tbody');
+
+        items.forEach(b => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${b.courseTitle || '自由對話'}</td>
+            <td>${b.student?.name || '-'}</td>
+            <td>
+              <div>${fmtDateWithTimezone(b.startsAt, currentTimezone)}</div>
+              <div class="muted" style="font-size:11px">${fmtDateWithTimezone(b.startsAt, 'Asia/Taipei')}</div>
+            </td>
+            <td>${getStatusChip(b.status).outerHTML}</td>
+            <td>
+              <div class="btn-group">
+                <button class="btn small" data-act="evidence" data-id="${b.id}">上傳證據</button>
+                <button class="btn small primary" data-act="report" data-id="${b.id}">提交回報</button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        card.appendChild(table);
+
+        card.addEventListener('click', async (e) => {
+          const btn = e.target.closest('button');
+          if (!btn) return;
+          const bid = btn.getAttribute('data-id');
+          const act = btn.getAttribute('data-act');
+          if (act === 'evidence') await uploadEvidenceForBooking(bid);
+          if (act === 'report') await submitTeacherReport(bid);
+        });
+      } catch (err) {
+        card.appendChild(el('div', { class: 'error' }, '載入失敗：' + err.message));
+      }
+    }
+
+    async function uploadEvidenceForBooking(bookingId) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*,video/*';
+      input.onchange = async () => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const fd = new FormData();
+        fd.append('file', file);
+        try {
+          await apiRequest(`/bookings/${bookingId}/evidence`, { method: 'POST', body: fd });
+          toast('上傳成功', 'success');
+        } catch (e) {
+          toast('上傳失敗：' + e.message, 'error');
+        }
+      };
+      document.body.appendChild(input);
+      input.click();
+      document.body.removeChild(input);
+    }
+
+    async function submitTeacherReport(bookingId) {
+      try {
+        const comment = window.prompt('輸入課後評語（可留空）', '');
+        let evidenceIds = [];
+        try {
+          const list = await apiRequest(`/bookings/${bookingId}/evidence`);
+          evidenceIds = (list.items || []).map(it => it.id);
+        } catch (_) {}
+        const payload = { rubrics: {}, commentToStudent: comment || undefined, evidenceFileIds: evidenceIds };
+        await apiRequest(`/post-class/${bookingId}/teacher-report`, { method: 'POST', body: JSON.stringify(payload) });
+        toast('回報已提交', 'success');
+      } catch (e) {
+        toast('提交失敗：' + e.message, 'error');
+      }
+    }
+
     async function renderReports() {
       showOnly('view-reports');
       const box = document.getElementById('reports-result');
       box.textContent = '載入中...';
       try {
-        if (currentUser?.role === 'admin') {
-          const data = await apiRequest('/reports/admin');
-          box.textContent = JSON.stringify(data, null, 2);
-        } else if (currentUser?.role === 'teacher') {
-          const data = await apiRequest('/reports/teacher');
-          box.textContent = JSON.stringify(data, null, 2);
-        } else {
-          box.textContent = '僅教師或管理員可查看報表';
+        const isAdmin = currentUser?.role === 'admin';
+        const data = await apiRequest(isAdmin ? '/reports/admin' : '/reports/teacher');
+        box.innerHTML = '';
+        const b = data.bookings || {};
+        const total = b.total ?? 0;
+        const completed = b.completed ?? 0;
+        const canceled = b.canceled ?? 0;
+        const noshow = b.noshow ?? 0;
+        const completionRate = b.completionRate ?? 0;
+        const cancelRate = b.cancelRate ?? 0;
+        const noshowRate = b.noshowRate ?? 0;
+
+        const grid = el('div', { class: 'grid cols-3' },
+          el('div', { class: 'card stat-item' }, el('div', { class: 'stat-number' }, String(total)), el('div', { class: 'stat-label' }, '總預約')),
+          el('div', { class: 'card stat-item' }, el('div', { class: 'stat-number' }, String(completed)), el('div', { class: 'stat-label' }, '已完成')),
+          el('div', { class: 'card stat-item' }, el('div', { class: 'stat-number' }, String(canceled)), el('div', { class: 'stat-label' }, '已取消')),
+        );
+        const grid2 = el('div', { class: 'grid cols-3', style: 'margin-top:12px' },
+          el('div', { class: 'card stat-item' }, el('div', { class: 'stat-number' }, String(noshow)), el('div', { class: 'stat-label' }, '未出席')),
+          el('div', { class: 'card stat-item' }, el('div', { class: 'stat-number' }, (completionRate * 100).toFixed(1) + '%'), el('div', { class: 'stat-label' }, '完成率')),
+          el('div', { class: 'card stat-item' }, el('div', { class: 'stat-number' }, (cancelRate * 100).toFixed(1) + '%'), el('div', { class: 'stat-label' }, '取消率')),
+        );
+        if (typeof noshowRate === 'number' && !isNaN(noshowRate)) {
+          grid2.appendChild(el('div', { class: 'card stat-item' }, el('div', { class: 'stat-number' }, (noshowRate * 100).toFixed(1) + '%'), el('div', { class: 'stat-label' }, '未出席率')));
         }
+        box.appendChild(grid);
+        box.appendChild(grid2);
       } catch (e) {
         box.textContent = '載入失敗：' + e.message;
       }
@@ -3250,8 +3373,11 @@
       const box = document.getElementById('reports-result');
       box.textContent = '載入中...';
       try {
-        const data = await apiRequest('/reports/admin');
-        box.textContent = JSON.stringify(data, null, 2);
+        await apiRequest('/reports/admin');
+        const prev = currentUser;
+        currentUser = { ...(prev||{}), role: 'admin' };
+        await renderReports();
+        currentUser = prev;
       } catch (e) { box.textContent = '載入失敗：' + e.message; }
     }
 
@@ -3259,8 +3385,8 @@
       const box = document.getElementById('reports-result');
       box.textContent = '載入中...';
       try {
-        const data = await apiRequest('/reports/teacher');
-        box.textContent = JSON.stringify(data, null, 2);
+        await apiRequest('/reports/teacher');
+        await renderReports();
       } catch (e) { box.textContent = '載入失敗：' + e.message; }
     }
 
