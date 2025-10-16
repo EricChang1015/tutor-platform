@@ -98,7 +98,6 @@
     /* Teacher cards */
     .teacher-card{display:flex; gap:16px; align-items:flex-start}
     .teacher-card-avatar{flex:0 0 auto}
-    .teacher-card-avatar .avatar{width:72px; height:72px; border-radius:50%; flex-shrink:0}
     .teacher-card-body{flex:1; display:flex; flex-direction:column; gap:8px}
     .teacher-card-head{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
     .teacher-name{font-size:18px; font-weight:700; color:var(--text)}
@@ -390,8 +389,8 @@
     <!-- Teacher Profile Management -->
     <section id="view-teacher-profile-manage" hidden></section>
 
-    <!-- Teacher Dashboard -->
-    <section id="view-teacher-dashboard" hidden></section>
+    <!-- Course Confirmation -->
+    <section id="view-course-confirmation" hidden></section>
 
     <!-- Admin -->
     <section id="view-admin" hidden>
@@ -663,6 +662,9 @@
       if (current() === 'bookings') {
         renderBookings();
       }
+      if (current() === 'course-confirmation') {
+        renderCourseConfirmation();
+      }
     }
 
     function updateCurrentTimeDisplay() {
@@ -921,7 +923,7 @@
     }
 
     // 路由系統
-    const ROUTES = ['login','teachers','teacher-profile','materials','schedule','bookings','student','teacher-dashboard','admin','reports'];
+    const ROUTES = ['login','teachers','teacher-profile','materials','schedule','bookings','student','course-confirmation','admin','reports'];
     const goto = (hash)=>{ location.hash = '#/'+hash; };
     const current = ()=> (location.hash.replace('#/','')||'login');
 
@@ -945,8 +947,8 @@
         renderStudentProfile();
       } else if (route === 'teacher-profile') {
         renderTeacherProfileManage();
-      } else if (route === 'teacher-dashboard') {
-        renderTeacherDashboard();
+      } else if (route === 'course-confirmation') {
+        renderCourseConfirmation();
       } else if (route === 'admin') {
         renderAdmin();
       } else if (route === 'reports') {
@@ -955,7 +957,7 @@
     }
 
     function showOnly(id) {
-      ['view-login','view-teachers','view-teacher-profile','view-materials','view-schedule','view-bookings','view-purchases','view-student','view-teacher-profile-manage','view-teacher-dashboard','view-admin']
+      ['view-login','view-teachers','view-teacher-profile','view-materials','view-schedule','view-bookings','view-purchases','view-student','view-teacher-profile-manage','view-course-confirmation','view-admin']
       .forEach(v => $( '#'+v ).hidden = (v!==id));
     }
 
@@ -1055,12 +1057,12 @@
 
       addTab('teachers', '推薦教師', {hide: !role});
       addTab('materials', '教材', {hide: !role});
-      addTab('bookings', '代處理預約', {hide: !role});
+      addTab('bookings', '我的預約', {hide: !role});
       addTab('purchases', '我的卡片', {hide: !role});
       if (role === 'student') addTab('student', '我的資料');
       if (role === 'teacher') {
         addTab('teacher-profile', '我的資料');
-        addTab('teacher-dashboard', '課程確認');
+        addTab('course-confirmation', '課程確認');
         addTab('reports', '報表');
       }
       if (role === 'admin') {
@@ -3229,10 +3231,11 @@
       input.click();
       document.body.removeChild(input);
     }
-    // 老師後台：我的預約清單與課後作業
-    async function renderTeacherDashboard() {
-      showOnly('view-teacher-dashboard');
-      const wrap = document.getElementById('view-teacher-dashboard');
+
+    // 課程確認
+    async function renderCourseConfirmation() {
+      showOnly('view-course-confirmation');
+      const wrap = document.getElementById('view-course-confirmation');
       wrap.innerHTML = '';
 
       const card = el('div', { class: 'card' },
@@ -3241,14 +3244,14 @@
           el('div', { class: 'spacer' }),
           el('span', { class: 'pill' }, `時區：${currentTimezone}`)
         ),
-        el('div', { class: 'hr' })
+        el('div', { class: 'hr' }),
         // 過濾器列
-        const filterRow = el('div', { class: 'row wrap', style: 'gap:8px; margin:8px 0' },
+        el('div', { class: 'row wrap', style: 'gap:8px; margin:8px 0' },
           el('div', {},
             el('label', {}, '處理狀態'),
             el('select', { id: 'td-filter-report', class: 'pill' },
               el('option', { value: '' }, '全部'),
-              el('option', { value: 'none', selected: true }, '未處理'),
+              el('option', { value: 'none' }, '未處理'),
               el('option', { value: 'submitted' }, '已處理')
             )
           ),
@@ -3256,15 +3259,13 @@
             el('label', {}, '課程狀態'),
             el('select', { id: 'td-filter-status', class: 'pill' },
               el('option', { value: '' }, '全部'),
-              el('option', { value: 'scheduled', selected: true }, '已排程'),
+              el('option', { value: 'scheduled' }, '已排程'),
               el('option', { value: 'canceled' }, '已取消'),
               el('option', { value: 'noshow' }, '未出席'),
               el('option', { value: 'completed' }, '已完成')
             )
           )
-        );
-        card.appendChild(filterRow);
-
+        )
       );
       wrap.appendChild(card);
 
@@ -3282,37 +3283,37 @@
         thead.innerHTML = '<tr><th>課程</th><th>學生</th><th>時間</th><th>狀態</th><th>操作</th></tr>';
         table.appendChild(thead);
         const tbody = document.createElement('tbody');
-
-        // 僅顯示當天與之前 + 新增雙過濾器
-        const allItems = (items || []);
-        const endOfToday = new Date(); endOfToday.setHours(23,59,59,999);
-        const table = document.createElement('table');
-        table.className = 'data-table';
-        const thead = document.createElement('thead');
-        thead.innerHTML = '<tr><th>課程</th><th>學生</th><th>時間</th><th>狀態</th><th>操作</th></tr>';
-        table.appendChild(thead);
-        const tbody = document.createElement('tbody');
         table.appendChild(tbody);
         card.appendChild(table);
 
-        function isSubmitted(b){
+        const allItems = items;
+        const endOfToday = new Date(); endOfToday.setHours(23, 59, 59, 999);
+
+        function isSubmitted(b) {
           const s = (b.postClassReportStatus || '').toLowerCase();
           return s === 'submitted' || !!b.teacherReportSubmittedAt;
         }
-        function normStatus(s){ return (s||'').toLowerCase(); }
+        const norm = s => (s || '').toLowerCase();
 
-        function applyFilters(){
-          const reportFilter = document.getElementById('td-filter-report')?.value || 'none';
-          const statusFilter = document.getElementById('td-filter-status')?.value || 'scheduled';
+        function applyFilters() {
+          const reportFilter = document.getElementById('td-filter-report')?.value || '';
+          const statusFilter = document.getElementById('td-filter-status')?.value || '';
+
           let arr = allItems.filter(b => new Date(b.startsAt) <= endOfToday);
+
+          // 處理狀態：'' 代表不過濾
           if (reportFilter === 'none') arr = arr.filter(b => !isSubmitted(b));
           else if (reportFilter === 'submitted') arr = arr.filter(b => isSubmitted(b));
-          if (statusFilter) arr = arr.filter(b => normStatus(b.status) === normStatus(statusFilter));
+
+          // 課程狀態：'' 代表不過濾
+          if (statusFilter) arr = arr.filter(b => norm(b.status) === norm(statusFilter));
+
           tbody.innerHTML = '';
           if (arr.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="muted">目前沒有符合條件的預約</td></tr>';
             return;
           }
+
           arr.forEach(b => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -3332,13 +3333,17 @@
             tbody.appendChild(tr);
           });
         }
+
+        // 預設兩個 filter 都為「全部」
+        document.getElementById('td-filter-report').value = '';
+        document.getElementById('td-filter-status').value = '';
+        // 綁定事件
         document.getElementById('td-filter-report').addEventListener('change', applyFilters);
         document.getElementById('td-filter-status').addEventListener('change', applyFilters);
-        document.getElementById('td-filter-report').value = 'none';
-        document.getElementById('td-filter-status').value = 'scheduled';
+        // 初次套用
         applyFilters();
 
-        // 事件綁定（保留原有邏輯）
+        // 操作按鈕事件
         card.addEventListener('click', async (e) => {
           const btn = e.target.closest('button');
           if (!btn) return;
@@ -3347,8 +3352,6 @@
           if (act === 'evidence') await uploadEvidenceForBooking(bid);
           if (act === 'report') await openTeacherReportModal(bid);
         });
-
-
 
       } catch (err) {
         card.appendChild(el('div', { class: 'error' }, '載入失敗：' + err.message));
@@ -3391,6 +3394,7 @@
         toast('提交失敗：' + e.message, 'error');
       }
     }
+
     async function openTeacherReportModal(bookingId) {
       try {
         const b = await apiRequest(`/bookings/${bookingId}`);
@@ -3423,7 +3427,7 @@
           <div>
             <label>課後證據</label>
             ${evidenceListHtml}
-            <div class="hint">可先在「老師後台」上傳證據，再於此提交回報。</div>
+            <div class="hint">可先在「課程確認」上傳證據，再於此提交回報。</div>
           </div>
           <div class="hr"></div>
           <div>
@@ -3463,16 +3467,11 @@
         const sel = document.getElementById('teacher-report-status');
         if (sel) { sel.value = ['completed','noshow','canceled'].includes(b.status) ? b.status : 'completed'; }
 
-
-        //  [0m// [31m [0m: [32m [0m
-        // [31m (no-op)
-        // [0m 
         openModal(modal);
       } catch (e) {
         toast('載入回報資訊失敗：' + e.message, 'error');
       }
     }
-
 
     async function renderReports() {
       showOnly('view-reports');
