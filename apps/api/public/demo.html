@@ -3288,7 +3288,7 @@
           const bid = btn.getAttribute('data-id');
           const act = btn.getAttribute('data-act');
           if (act === 'evidence') await uploadEvidenceForBooking(bid);
-          if (act === 'report') await submitTeacherReport(bid);
+          if (act === 'report') await openTeacherReportModal(bid);
         });
       } catch (err) {
         card.appendChild(el('div', { class: 'error' }, '載入失敗：' + err.message));
@@ -3331,6 +3331,69 @@
         toast('提交失敗：' + e.message, 'error');
       }
     }
+    async function openTeacherReportModal(bookingId) {
+      try {
+        const b = await apiRequest(`/bookings/${bookingId}`);
+        const evid = await apiRequest(`/bookings/${bookingId}/evidence`);
+        const evidenceItems = (evid.items || []);
+        const evidenceListHtml = evidenceItems.length ? (
+          '<ul style="margin:8px 0 0 16px">' + evidenceItems.map(it => `<li>${it.mimeType||'file'} - ${it.id.slice(0,8)}${it.url?` - <a href="${it.url}" target="_blank">預覽</a>`:''}</li>`).join('') + '</ul>'
+        ) : '<div class="muted">尚未上傳任何證據</div>';
+
+        const content = `
+          <div class="form-grid" style="grid-template-columns:1fr 1fr">
+            <div>
+              <label>課程</label>
+              <div>${b.courseTitle || '自由對話'}</div>
+            </div>
+            <div>
+              <label>學生</label>
+              <div>${b.student?.name || '-'}</div>
+            </div>
+            <div>
+              <label>上課時間（您的時區）</label>
+              <div>${fmtDateWithTimezone(b.startsAt, currentTimezone)}</div>
+            </div>
+            <div>
+              <label>狀態</label>
+              <div>${getStatusText(b.status)}</div>
+            </div>
+          </div>
+          <div class="hr"></div>
+          <div>
+            <label>課後證據</label>
+            ${evidenceListHtml}
+            <div class="hint">可先在「老師後台」上傳證據，再於此提交回報。</div>
+          </div>
+          <div class="hr"></div>
+          <div>
+            <label>給學生的評語</label>
+            <textarea id="teacher-report-comment" placeholder="例如：本堂課完成了哪些目標、學生表現亮點、建議的練習重點與回家作業、下次課程安排..."></textarea>
+            <div class="hint">建議包含：本堂課重點、學生表現、建議練習方向、下次計畫</div>
+          </div>
+        `;
+
+        const modal = createModal('提交課後回報', content, [
+          { text: '取消', class: 'btn', onclick: () => closeModal() },
+          { text: '提交回報', class: 'btn primary', onclick: async () => {
+              try {
+                const comment = document.getElementById('teacher-report-comment').value.trim();
+                const payload = { rubrics: {}, commentToStudent: comment || undefined, evidenceFileIds: evidenceItems.map(it=>it.id) };
+                await apiRequest(`/post-class/${bookingId}/teacher-report`, { method: 'POST', body: JSON.stringify(payload) });
+                closeModal();
+                toast('回報已提交', 'success');
+              } catch (e) {
+                toast('提交失敗：' + e.message, 'error');
+              }
+            }
+          }
+        ]);
+        openModal(modal);
+      } catch (e) {
+        toast('載入回報資訊失敗：' + e.message, 'error');
+      }
+    }
+
 
     async function renderReports() {
       showOnly('view-reports');
