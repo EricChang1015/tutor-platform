@@ -3367,10 +3367,21 @@
           </div>
           <div class="hr"></div>
           <div>
+            <label>課後結果</label>
+            <select id="teacher-report-status">
+              <option value="completed">已完成</option>
+              <option value="noshow">未出席</option>
+              <option value="canceled">已取消</option>
+            </select>
+            <div class="hint">請選擇本堂課的結果，提交後會更新預約狀態。</div>
+          </div>
+          <div class="hr"></div>
+          <div>
             <label>給學生的評語</label>
             <textarea id="teacher-report-comment" placeholder="例如：本堂課完成了哪些目標、學生表現亮點、建議的練習重點與回家作業、下次課程安排..."></textarea>
             <div class="hint">建議包含：本堂課重點、學生表現、建議練習方向、下次計畫</div>
           </div>
+          ${b.teacherReportSubmittedAt ? `<div class="subtle" style="margin-top:10px">已於 ${fmtDateFull(b.teacherReportSubmittedAt)} 提交回報（狀態：${getStatusText(b.status)}）</div>` : ''}
         `;
 
         const modal = createModal('提交課後回報', content, [
@@ -3378,7 +3389,8 @@
           { text: '提交回報', class: 'btn primary', onclick: async () => {
               try {
                 const comment = document.getElementById('teacher-report-comment').value.trim();
-                const payload = { rubrics: {}, commentToStudent: comment || undefined, evidenceFileIds: evidenceItems.map(it=>it.id) };
+                const status = document.getElementById('teacher-report-status').value;
+                const payload = { rubrics: {}, commentToStudent: comment || undefined, evidenceFileIds: evidenceItems.map(it=>it.id), status };
                 await apiRequest(`/post-class/${bookingId}/teacher-report`, { method: 'POST', body: JSON.stringify(payload) });
                 closeModal();
                 toast('回報已提交', 'success');
@@ -3388,6 +3400,13 @@
             }
           }
         ]);
+        const sel = document.getElementById('teacher-report-status');
+        if (sel) { sel.value = ['completed','noshow','canceled'].includes(b.status) ? b.status : 'completed'; }
+
+
+        //  [0m// [31m [0m: [32m [0m
+        // [31m (no-op)
+        // [0m 
         openModal(modal);
       } catch (e) {
         toast('載入回報資訊失敗：' + e.message, 'error');

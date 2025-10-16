@@ -505,7 +505,20 @@ export class AdminService {
   }
 
   async getReports(query: any = {}) {
-    const { from, to, teacherId } = query;
+    let { from, to, teacherId, month } = query;
+
+    // 支援 month=YYYY-MM 快捷查詢
+    if (month && (!from && !to)) {
+      try {
+        const [y, m] = String(month).split('-').map((v: string) => parseInt(v, 10));
+        if (y && m) {
+          const start = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0));
+          const end = new Date(Date.UTC(m === 12 ? y + 1 : y, m === 12 ? 0 : m, 1, 0, 0, 0));
+          from = start.toISOString();
+          to = end.toISOString();
+        }
+      } catch (_) {}
+    }
 
     const qb = this.bookingRepository.createQueryBuilder('b');
     if (from) qb.andWhere('b.startsAt >= :from', { from });
@@ -522,7 +535,21 @@ export class AdminService {
     const cancellationRate = total > 0 ? (canceled / total) : 0;
     const noshowRate = total > 0 ? (noshow / total) : 0;
 
-    // Financials（簡化：無 settlement 表，先返回 0；後續可接 settlements/teacher price）
+    // 結算：統計已完成課時（分鐘/小時）
+    const whereClauses: string[] = ["status = 'completed'"];
+    const params: any[] = [];
+    if (teacherId) { whereClauses.push('teacher_id = $' + (params.length + 1)); params.push(teacherId); }
+    if (from) { whereClauses.push('starts_at >= $' + (params.length + 1)); params.push(from); }
+    if (to) { whereClauses.push('starts_at < $' + (params.length + 1)); params.push(to); }
+
+    const sql = `SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (ends_at - starts_at)) / 60), 0) AS minutes
+                 FROM bookings
+                 ${whereClauses.length ? 'WHERE ' + whereClauses.join(' AND ') : ''}`;
+    const sumRows = await this.bookingRepository.query(sql, params);
+    const completedMinutes = Math.round(parseFloat(sumRows?.[0]?.minutes || '0'));
+    const completedHours = Math.round((completedMinutes / 60) * 100) / 100; // 保留兩位小數
+
+
     const financials = {
       payableUSDReady: 0,
       payableUSDSettled: 0,
@@ -540,6 +567,14 @@ export class AdminService {
         cancelRate: cancellationRate,
         noshowRate,
         technicalCancelRate: 0,
+      },
+      settlement: {
+        completedMinutes,
+        completedHours,
+        month: month || undefined,
+        teacherId: teacherId || undefined,
+        from: from || undefined,
+        to: to || undefined,
       },
       financials,
       period: from && to ? `${from} to ${to}` : 'all',

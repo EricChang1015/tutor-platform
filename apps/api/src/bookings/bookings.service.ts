@@ -765,18 +765,31 @@ export class BookingsService {
     return { ok: true };
   }
 
-  // 老師課後回報：支持 commentToStudent 與 evidenceFileIds
+  // 老師課後回報：支持 commentToStudent / evidenceFileIds / status(completed|noshow|canceled)
   async submitTeacherReport(bookingId: string, user: any, body: any) {
     const booking = await this.bookingRepository.findOne({ where: { id: bookingId } });
     if (!booking) throw new NotFoundException('Booking not found');
     const isTeacher = user.role === 'admin' || user.sub === booking.teacherId;
     if (!isTeacher) throw new ForbiddenException('Only teacher/admin can report');
 
-    const { rubrics, commentToStudent, evidenceFileIds } = body || {};
+    const { rubrics, commentToStudent, evidenceFileIds, status } = body || {};
+
     // 更新回報欄位
     (booking as any).teacherComment = commentToStudent ?? (booking as any).teacherComment ?? null;
     (booking as any).teacherReportSubmittedAt = new Date();
     (booking as any).postClassReportStatus = 'submitted';
+
+    // 若有帶入課後結果狀態，更新預約狀態
+    const statusMap: Record<string, BookingStatus> = {
+      completed: BookingStatus.COMPLETED,
+      noshow: BookingStatus.NOSHOW,
+      canceled: BookingStatus.CANCELED,
+    };
+    const normalized = typeof status === 'string' ? status.toLowerCase() : undefined;
+    if (normalized && statusMap[normalized]) {
+      booking.status = statusMap[normalized];
+    }
+
     await this.bookingRepository.save(booking);
 
     // 綁定證據
@@ -794,6 +807,7 @@ export class BookingsService {
     // 回傳簡化
     return {
       id: booking.id,
+      status: booking.status,
       postClass: {
         teacherReportSubmittedAt: (booking as any).teacherReportSubmittedAt,
         teacherComment: (booking as any).teacherComment || null,
