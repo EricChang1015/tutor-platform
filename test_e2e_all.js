@@ -250,8 +250,8 @@ async function run() {
     log.step('Uploads: avatar + my files');
     try {
       const fd = new FormData();
-      const avatarPath = path.join(__dirname, 'test_avatar.png');
-      fd.append('file', fs.createReadStream(avatarPath), 'avatar.png');
+      const avatarPath = path.join(__dirname, 'docs/media/teacher1.jpg');
+      fd.append('file', fs.createReadStream(avatarPath), 'avatar.jpg');
       await api(`/users/${teacher.me.id}/avatar`, { token: teacher.token, method: 'POST', formData: fd });
       const myFiles = await api('/uploads/my-files?category=avatar', { token: teacher.token });
       log.ok(`Uploads (avatar) files: ${(myFiles.items || []).length}`);
