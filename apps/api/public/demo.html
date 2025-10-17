@@ -3188,7 +3188,7 @@
 
           // 載入 14 天現有可用時段
           async function loadInitialAvailability(){
-            const tz = profile.timezone || currentTimezone;
+            const tz = (me?.timezone) || currentTimezone;
             try{
               await Promise.all(days.map(async(d)=>{
                 const k = dayKey(d);
