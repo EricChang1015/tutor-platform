@@ -189,10 +189,32 @@ export class TeacherAvailabilityService {
       };
     });
 
-    await this.availabilityRepository.upsert(availabilityRecords, {
-      conflictPaths: ['teacherId', 'date', 'timeSlot'],
-      skipUpdateIfNoValuesChanged: true
-    });
+    // 1) Upsert 當日提交的 slots 為指定狀態（預設 available）
+    if (availabilityRecords.length > 0) {
+      await this.availabilityRepository.upsert(availabilityRecords, {
+        conflictPaths: ['teacherId', 'date', 'timeSlot'],
+        skipUpdateIfNoValuesChanged: true
+      });
+    }
+
+    // 2) 覆蓋寫入語意：移除當日未包含在提交清單中的 slot（保留已預約 BOOKED）
+    if (timeSlots.length === 0) {
+      // 清空當日（除了已預約）
+      await this.availabilityRepository.manager.query(
+        `DELETE FROM teacher_availability
+         WHERE teacher_id = $1 AND date = $2 AND status != $3`,
+        [teacherId, date, AvailabilityStatus.BOOKED]
+      );
+      return;
+    }
+
+    // 使用 ANY($3::int[]) 以安全帶入陣列
+    await this.availabilityRepository.manager.query(
+      `DELETE FROM teacher_availability
+       WHERE teacher_id = $1 AND date = $2 AND status != $4
+         AND NOT (time_slot = ANY($3))`,
+      [teacherId, date, timeSlots, AvailabilityStatus.BOOKED]
+    );
   }
 
   /**

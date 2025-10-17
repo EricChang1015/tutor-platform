@@ -3177,11 +3177,38 @@
               el('button',{class:'btn small', onclick:()=>{ perDay[dateStr]=new Set(); renderRight(); }},'清空當日'),
               el('button',{class:'btn small', onclick:()=>{ perDay[dateStr]=new Set(defaultSelected); renderRight(); }},'套用預設'),
               el('button',{class:'btn success small', onclick: async ()=>{
-                try{ const slots=[...perDay[dateStr]].sort((a,b)=>a-b); await apiRequest('/teacher-availability/set-availability',{ method:'POST', body: JSON.stringify({ teacherId: me.id, date: dateStr, timeSlots: slots }) }); toast(`已保存 ${dateStr}`,'success'); }
-                catch(e){ toast('保存失敗：'+e.message,'error'); }
+                try{
+                  const slots=[...perDay[dateStr]].sort((a,b)=>a-b);
+                  await apiRequest('/teacher-availability/set-availability',{ method:'POST', body: JSON.stringify({ teacherId: me.id, date: dateStr, timeSlots: slots }) });
+                  toast(`已保存 ${dateStr}`,'success');
+                }catch(e){ toast('保存失敗：'+e.message,'error'); }
               }},'儲存當日')
             ));
           }
+
+          // 載入 14 天現有可用時段
+          async function loadInitialAvailability(){
+            const tz = profile.timezone || currentTimezone;
+            try{
+              await Promise.all(days.map(async(d)=>{
+                const k = dayKey(d);
+                try{
+                  const resp = await apiRequest(`/teacher-availability/teacher-timetable?teacherId=${me.id}&date=${k}&timezone=${encodeURIComponent(tz)}`);
+                  const arr = (resp && (resp.data || resp.items || resp)) || [];
+                  const set = new Set();
+                  arr.forEach(s=>{
+                    // 以 canReserve=1 或 status=available 或 isOnline=1 視為可用
+                    const ok = (s && (s.canReserve===1 || s.status==='available' || s.isOnline===1));
+                    const idx = (s && (typeof s.timeSlot==='number' ? s.timeSlot : (()=>{ const t=(s.time||'').toString(); const [hh,mm]=t.split(':'); return isNaN(hh)?null:(parseInt(hh)*2 + ((mm||'').startsWith('3')?1:0)); })()));
+                    if (ok && typeof idx==='number' && idx>=0 && idx<48) set.add(idx);
+                  });
+                  perDay[k] = set; // 覆蓋該日集合
+                }catch(e){ /* 忽略單日錯誤，保留預設空集合 */ }
+              }));
+            }catch(e){ console.warn('初始化可用時段失敗：', e); }
+          }
+
+          await loadInitialAvailability();
           renderLeft(); renderRight();
 
           const bulkApply = el('button',{class:'btn primary small', onclick: async ()=>{
