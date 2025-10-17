@@ -198,6 +198,25 @@ POST /bookings
 {
   "teacherId": "{TEACHER_ID}",
   "startsAt": "2025-10-06T14:00:00+08:00",
+
+## 🧑‍🏫 教師可用時段設定（Demo 頁）
+- 進入 demo.html > 教師 Profile 頁右側：
+  - 「預設可約時間」：以 48 個半小時 slot 選擇器設定偏好，點「儲存預設」將寫入 users.settings.slots（PATCH /users/{id}）
+  - 「未來 14 天可用時段設定」：左側日期、右側 slot 選擇
+    - 「清空當日」：清除該日選擇
+    - 「套用預設」：以預設 slots 填入
+    - 「儲存當日」：POST /teacher-availability/set-availability
+    - 「一鍵套用到未來14天」：將預設或每日選擇批次套用 14 天
+
+### API 範例（set-availability）
+```bash
+curl -X 'POST' \
+  'http://localhost:3001/teacher-availability/set-availability' \
+  -H "Content-Type: application/json" \
+  -H 'Authorization: Bearer xxx' \
+  -d '{"teacherId":"xxx","date":"2025-10-06","timeSlots":[18,19,20,21,22,23,24,25,26,27,28,29,30,31]}'
+```
+
   "durationMinutes": 30,
   "timezone": "Asia/Taipei",
   "courseTitle": "English Conversation"
