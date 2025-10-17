@@ -921,6 +921,20 @@
                     }
                 },
                 {
+                    id: 'set_availability',
+                    name: '設定可用時段 (POST)',
+                    method: 'POST',
+                    endpoint: '/teacher-availability/set-availability',
+                    requireAuth: true,
+                    expectedStatus: 200,
+                    expectedFields: ['code', 'msg', 'data'],
+                    data: () => ({
+                        // teacherId 可省略，後端會使用當前登入者
+                        date: '2025-10-06',
+                        timeSlots: [18,19,20,21,22,23,24,25,26,27,28,29,30,31]
+                    })
+                },
+
                     id: 'all_time_slots',
                     name: '所有時間槽',
                     method: 'GET',

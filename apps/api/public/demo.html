@@ -639,6 +639,18 @@
       };
       return new Date(d).toLocaleString('zh-TW', options);
     };
+    // 時段工具：slot index <-> label
+    function slotIndexToLabel(i){ const h=Math.floor(i/2); const m=i%2?'30':'00'; return String(h).padStart(2,'0')+':'+m; }
+    function renderSlots(container, selectedSet, onToggle){
+      container.innerHTML='';
+      const grid = el('div',{class:'slots',style:'grid-template-columns:repeat(4,1fr)'});
+      for(let i=0;i<48;i++){
+        const btn = el('button',{class:'slot'+(selectedSet.has(i)?' selected':''), title: slotIndexToLabel(i), onclick:()=>onToggle(i)}, slotIndexToLabel(i));
+        grid.appendChild(btn);
+      }
+      container.appendChild(grid);
+    }
+
     const toast = (msg, type = 'info')=>{
       const t=$("#toastHost");
       t.textContent=msg;
@@ -3020,6 +3032,7 @@
               el('div', {}, `${profile.rating || 0} 分 (${profile.ratingsCount || 0} 評價)`)
             )
           ),
+
           profile.introduction ? el('div', {style: 'margin-top:16px'},
             el('label', {}, '自我介紹'),
             el('div', {style: 'margin-top:4px; padding:12px; background:#f9fafb; border-radius:8px'},
@@ -3115,7 +3128,78 @@
 
         wrap.appendChild(galleryCard);
 
+
+        // 預設可約時間設定 + 未來14天設定
+        try {
+          const me = await apiRequest('/auth/me');
+          let defaultSelected = new Set(Array.isArray(me?.settings?.slots) ? me.settings.slots : []);
+
+          const defaultCard = el('div',{class:'card'},
+            el('div',{class:'row wrap'},
+              el('h2',{style:'margin:0'},'預設可約時間'),
+              el('div',{class:'spacer'}),
+              el('span',{class:'hint'},'僅作為未來批次套用模板，不等於實際可預約')
+            ),
+            el('div',{class:'hr'}),
+            (()=>{ const box=el('div'); const rer=(i)=>{ if(defaultSelected.has(i)) defaultSelected.delete(i); else defaultSelected.add(i); renderSlots(box, defaultSelected, rer); }; renderSlots(box, defaultSelected, rer); return box; })(),
+            el('div',{class:'row wrap',style:'margin-top:12px; gap:8px'},
+              el('button',{class:'btn primary small', onclick: async ()=>{
+                try{ const slots=[...defaultSelected].sort((a,b)=>a-b); await apiRequest(`/users/${me.id}`,{method:'PATCH', body: JSON.stringify({ settings:{ slots } })}); toast('已保存預設可約時段','success'); }
+                catch(e){ toast('保存失敗：'+e.message,'error'); }
+              }},'儲存預設'),
+              el('button',{class:'btn small', onclick: ()=>{ defaultSelected=new Set(); const c=defaultCard.querySelector('.slots')?.parentElement; if(c){ const rer=(i)=>{ if(defaultSelected.has(i)) defaultSelected.delete(i); else defaultSelected.add(i); renderSlots(c, defaultSelected, rer); }; renderSlots(c, defaultSelected, rer); } }},'清空')
+            )
+          );
+          wrap.appendChild(defaultCard);
+
+          const days = Array.from({length:14}, (_,i)=>{ const d=new Date(); d.setDate(d.getDate()+i); return d; });
+          const dayKey = (d)=> d.toISOString().slice(0,10);
+          const perDay = Object.fromEntries(days.map(d=>[dayKey(d), new Set()]));
+          let activeIdx = 0;
+          const setActive = (idx)=>{ activeIdx = idx; renderLeft(); renderRight(); };
+
+          const leftCol = el('div',{style:'min-width:180px'});
+          function renderLeft(){ leftCol.innerHTML=''; days.forEach((d,idx)=>{ const isActive = idx===activeIdx; leftCol.appendChild(el('div',{class:'date-pill'+(isActive?' active':''), onclick:()=>setActive(idx)}, d.toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit',weekday:'short'}))); }); }
+
+          const rightCol = el('div',{});
+          function renderRight(){
+            rightCol.innerHTML='';
+            const dateStr = dayKey(days[activeIdx]);
+            const selected = perDay[dateStr];
+            const slotsBox = el('div');
+            const rer=(i)=>{ if(selected.has(i)) selected.delete(i); else selected.add(i); renderSlots(slotsBox, selected, rer); };
+            renderSlots(slotsBox, selected, rer);
+            rightCol.appendChild(slotsBox);
+            rightCol.appendChild(el('div',{class:'row wrap',style:'margin-top:12px; gap:8px'},
+              el('button',{class:'btn small', onclick:()=>{ perDay[dateStr]=new Set(); renderRight(); }},'清空當日'),
+              el('button',{class:'btn small', onclick:()=>{ perDay[dateStr]=new Set(defaultSelected); renderRight(); }},'套用預設'),
+              el('button',{class:'btn success small', onclick: async ()=>{
+                try{ const slots=[...perDay[dateStr]].sort((a,b)=>a-b); await apiRequest('/teacher-availability/set-availability',{ method:'POST', body: JSON.stringify({ teacherId: me.id, date: dateStr, timeSlots: slots }) }); toast(`已保存 ${dateStr}`,'success'); }
+                catch(e){ toast('保存失敗：'+e.message,'error'); }
+              }},'儲存當日')
+            ));
+          }
+          renderLeft(); renderRight();
+
+          const bulkApply = el('button',{class:'btn primary small', onclick: async ()=>{
+            try{
+              for(const d of days){ const k=dayKey(d); const slots=[...(perDay[k].size?perDay[k]:defaultSelected)].sort((a,b)=>a-b); await apiRequest('/teacher-availability/set-availability',{ method:'POST', body: JSON.stringify({ teacherId: me.id, date: k, timeSlots: slots }) }); }
+              toast('已套用至未來14天','success');
+            }catch(e){ toast('批次套用失敗：'+e.message,'error'); }
+          }},'一鍵套用到未來14天');
+
+          const availCard = el('div',{class:'card'},
+            el('div',{class:'row wrap'}, el('h2',{style:'margin:0'},'未來 14 天可用時段設定'), el('div',{class:'spacer'}), bulkApply),
+            el('div',{class:'hr'}),
+            el('div',{class:'row wrap', style:'gap:12px'}, leftCol, rightCol)
+          );
+          wrap.appendChild(availCard);
+        } catch(e) { console.warn('無法載入 me/settings：', e); }
+
       } catch (error) {
+
+
+
         console.error('載入相簿失敗:', error);
       }
     }
