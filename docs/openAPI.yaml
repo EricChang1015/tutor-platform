@@ -675,6 +675,21 @@ paths:
     post:
       tags: [Availability]
       summary: 設定教師可用時間
+      description: |-
+        設定教師在指定日期的可用時間槽（每 30 分鐘一個 slot）。
+        - timeSlots 採用 0..47 表示當日 48 個半小時時段：
+          - 0 = 00:00–00:30
+          - 1 = 00:30–01:00
+          - 2 = 01:00–01:30
+          - ...
+          - 47 = 23:30–24:00
+
+        範例 curl：
+        curl -X 'POST' \
+          'http://localhost:3001/teacher-availability/set-availability' \
+          -H "Content-Type: application/json" \
+          -H 'Authorization: Bearer xxx' \
+          -d '{"teacherId":"xxx","date":"2025-10-06","timeSlots":[18,19,20,21,22,23,24,25,26,27,28,29,30,31]}'
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -684,9 +699,13 @@ paths:
               type: object
               required: [teacherId, date, timeSlots]
               properties:
-                teacherId: { type: string }
+                teacherId: { type: string, description: '教師ID（教師本人可省略）' }
                 date: { type: string, format: date, example: "2025-10-06" }
                 timeSlots: { type: array, items: { type: integer, minimum: 0, maximum: 47 } }
+            example:
+              teacherId: "xxx"
+              date: "2025-10-06"
+              timeSlots: [18,19,20,21,22,23,24,25,26,27,28,29,30,31]
       responses:
         '200':
           description: OK
@@ -697,7 +716,7 @@ paths:
                 properties:
                   code: { type: integer, example: 0 }
                   msg: { type: string, example: "ok" }
-                  data: { type: object, properties: { updated: { type: boolean } } }
+                  data: { type: object, properties: { updated: { type: boolean, example: true } } }
 
   /teacher-availability/set-weekly-schedule:
     post:

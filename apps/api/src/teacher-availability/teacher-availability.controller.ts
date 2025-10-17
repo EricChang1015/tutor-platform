@@ -8,11 +8,14 @@ import {
   UseGuards,
   Request,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { TeacherAvailabilityService, SearchTeachersQuery, TeacherTimetableQuery } from './teacher-availability.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TimeSlotUtil } from '../common/time-slots.util';
+import { SetAvailabilityDto } from './dto/set-availability.dto';
+import { UserRole } from '../entities/user.entity';
 
 @ApiTags('Teacher Availability')
 @Controller('teacher-availability')
@@ -187,25 +190,33 @@ export class TeacherAvailabilityController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '設定教師可用時間' })
-  @ApiResponse({ status: 201, description: '設定成功' })
-  async setAvailability(@Body() body: any, @Request() req) {
+  @ApiResponse({ status: 200, description: 'OK' })
+  async setAvailability(@Body() body: SetAvailabilityDto, @Request() req) {
     try {
-      const { teacherId, date, timeSlots, status } = body;
-      
-      // 如果是教師自己設定，使用當前用戶 ID
-      const targetTeacherId = teacherId || req.user.sub;
-      
+      const { teacherId, date, timeSlots } = body;
+
+      // 權限：teacher 只能改自己的；admin 可改任意老師
+      const isAdmin = req.user?.role === UserRole.ADMIN;
+      const currentUserId = req.user?.sub;
+      const targetTeacherId = teacherId || currentUserId;
+
+      if (!isAdmin && req.user?.role !== UserRole.TEACHER) {
+        throw new ForbiddenException('Only teacher/admin can set availability');
+      }
+      if (req.user?.role === UserRole.TEACHER && teacherId && teacherId !== currentUserId) {
+        throw new ForbiddenException('Teacher can only set own availability');
+      }
+
       await this.teacherAvailabilityService.setTeacherAvailability(
         targetTeacherId,
         date,
-        timeSlots,
-        status
+        timeSlots
       );
-      
+
       return {
         code: 0,
         msg: 'ok',
-        data: null
+        data: { updated: true }
       };
     } catch (error) {
       return {

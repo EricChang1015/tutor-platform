@@ -40,8 +40,13 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    // 更新用戶資料
-    Object.assign(user, updateUserDto);
+    // 特殊處理 settings：與既有設定合併（淺合併）
+    const { settings, ...rest } = updateUserDto as any;
+    Object.assign(user, rest);
+    if (settings && typeof settings === 'object') {
+      user.settings = { ...(user.settings || {}), ...settings };
+    }
+
     await this.userRepository.save(user);
 
     // 返回更新後的公開資料
