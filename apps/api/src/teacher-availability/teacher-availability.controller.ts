@@ -8,6 +8,8 @@ import {
   UseGuards,
   Request,
   BadRequestException,
+  HttpCode,
+
   ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
@@ -29,7 +31,7 @@ export class TeacherAvailabilityController {
   @ApiQuery({ name: 'toTime', description: '結束時間 (HH:MM)', example: '23:30' })
   @ApiQuery({ name: 'timezone', description: 'IANA 時區名稱', example: 'Asia/Taipei', required: false })
   @ApiResponse({
-    status: 200, 
+    status: 200,
     description: '可用教師 IDs',
     schema: {
       type: 'object',
@@ -47,7 +49,7 @@ export class TeacherAvailabilityController {
   async searchTeachers(@Query() query: SearchTeachersQuery) {
     try {
       const { date, fromTime, toTime } = query;
-      
+
       // 驗證參數
       if (!date || !fromTime || !toTime) {
         throw new BadRequestException('Missing required parameters: date, fromTime, toTime');
@@ -64,7 +66,7 @@ export class TeacherAvailabilityController {
       }
 
       const teacherIds = await this.teacherAvailabilityService.searchAvailableTeachers(query);
-      
+
       return {
         code: 0,
         msg: 'ok',
@@ -85,7 +87,7 @@ export class TeacherAvailabilityController {
   @ApiQuery({ name: 'date', description: '日期 (YYYY-MM-DD)', example: '2025-10-01' })
   @ApiQuery({ name: 'timezone', description: 'IANA 時區名稱', example: 'Asia/Taipei', required: false })
   @ApiResponse({
-    status: 200, 
+    status: 200,
     description: '教師時間表',
     schema: {
       type: 'object',
@@ -114,7 +116,7 @@ export class TeacherAvailabilityController {
   async getTeacherTimetable(@Query() query: TeacherTimetableQuery) {
     try {
       const { teacherId, date } = query;
-      
+
       // 驗證參數
       if (!teacherId || !date) {
         throw new BadRequestException('Missing required parameters: teacherId, date');
@@ -126,7 +128,7 @@ export class TeacherAvailabilityController {
       }
 
       const timetable = await this.teacherAvailabilityService.getTeacherTimetable(query);
-      
+
       return {
         code: 0,
         msg: 'ok',
@@ -143,8 +145,8 @@ export class TeacherAvailabilityController {
 
   @Get('time-slot/:id')
   @ApiOperation({ summary: '取得時間槽詳細資訊' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: '時間槽詳細資訊',
     schema: {
       type: 'object',
@@ -171,7 +173,7 @@ export class TeacherAvailabilityController {
   async getTimeSlotInfo(@Param('id') id: string) {
     try {
       const timeSlotInfo = await this.teacherAvailabilityService.getTimeSlotInfo(id);
-      
+
       return {
         code: 0,
         msg: 'ok',
@@ -191,6 +193,7 @@ export class TeacherAvailabilityController {
   @ApiBearerAuth()
   @ApiOperation({ summary: '設定教師可用時間' })
   @ApiResponse({ status: 200, description: 'OK' })
+  @HttpCode(200)
   async setAvailability(@Body() body: SetAvailabilityDto, @Request() req) {
     try {
       const { teacherId, date, timeSlots } = body;
@@ -235,16 +238,16 @@ export class TeacherAvailabilityController {
   async setWeeklyAvailability(@Body() body: any, @Request() req) {
     try {
       const { teacherId, startDate, weeklySchedule } = body;
-      
+
       // 如果是教師自己設定，使用當前用戶 ID
       const targetTeacherId = teacherId || req.user.sub;
-      
+
       await this.teacherAvailabilityService.setWeeklyAvailability(
         targetTeacherId,
         startDate,
         weeklySchedule
       );
-      
+
       return {
         code: 0,
         msg: 'ok',
@@ -261,8 +264,8 @@ export class TeacherAvailabilityController {
 
   @Get('time-slots')
   @ApiOperation({ summary: '取得所有時間槽列表' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: '時間槽列表',
     schema: {
       type: 'object',
@@ -293,7 +296,7 @@ export class TeacherAvailabilityController {
   private isValidDateFormat(date: string): boolean {
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(date)) return false;
-    
+
     const dateObj = new Date(date);
     return dateObj.toISOString().split('T')[0] === date;
   }
