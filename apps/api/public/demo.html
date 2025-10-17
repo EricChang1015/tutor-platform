@@ -596,11 +596,14 @@
         else if(k.startsWith('on') && typeof v==='function') node.addEventListener(k.substring(2), v);
         else if(v!==undefined) node.setAttribute(k,v);
       });
-      children.forEach(c=>{
-        if(c==null) return;
-        if(typeof c==='string') node.appendChild(document.createTextNode(c));
-        else node.appendChild(c);
-      });
+      const appendChildSafe = (child)=>{
+        if (child==null || child===false) return;
+        if (Array.isArray(child)) { child.forEach(appendChildSafe); return; }
+        if (typeof child==='string' || typeof child==='number') { node.appendChild(document.createTextNode(String(child))); return; }
+        if (child instanceof Node || (child && typeof child==='object' && 'nodeType' in child)) { node.appendChild(child); return; }
+        // ignore other types (e.g., boolean true, functions, plain objects)
+      };
+      children.forEach(appendChildSafe);
       return node;
     };
     const toArray = (value) => {
