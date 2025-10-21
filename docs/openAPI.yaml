@@ -161,31 +161,6 @@ components:
           properties:
             mode: { type: string, enum: [zoom_personal, custom_each_time], default: zoom_personal }
             defaultUrl: { type: string, format: uri, nullable: true }
-    Slot:
-      type: object
-      properties:
-        start: { type: string, format: date-time }
-        end: { type: string, format: date-time }
-        status: { type: string, enum: [available, booked, blocked] }
-        capacity: { type: integer, default: 1 }
-    AvailabilityRule:
-      type: object
-      properties:
-        id: { type: string, nullable: true }
-        dow: { type: integer, minimum: 0, maximum: 6, description: 0=Sunday ... 6=Saturday }
-        startTime: { type: string, pattern: '^\\d{2}:\\d{2}$', example: '09:00' }
-        endTime: { type: string, pattern: '^\\d{2}:\\d{2}$', example: '12:00' }
-        capacity: { type: integer, default: 1 }
-        active: { type: boolean, default: true }
-    AvailabilityOverride:
-      type: object
-      properties:
-        id: { type: string, nullable: true }
-        dateLocal: { type: string, format: date, example: '2025-01-15' }
-        startTime: { type: string, pattern: '^\\d{2}:\\d{2}$', nullable: true }
-        endTime: { type: string, pattern: '^\\d{2}:\\d{2}$', nullable: true }
-        isOpen: { type: boolean }
-        note: { type: string, nullable: true }
     LibraryNode:
       type: object
       properties:
@@ -1305,8 +1280,12 @@ paths:
   /post-class/{id}/teacher-report:
     post:
       tags: [Post-Class]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
       summary: 老師課後回報與上傳證明
       security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Confirmed
 
   /bookings/{id}/evidence:
     get:
@@ -1374,39 +1353,8 @@ paths:
         - { name: id, in: path, required: true, schema: { type: string } }
         - { name: fileId, in: path, required: true, schema: { type: string } }
       responses:
-        '204': { description: No Content }
-
-      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [rubrics]
-              properties:
-                rubrics:
-                  type: object
-                  properties:
-                    assignment: { type: string, nullable: true }
-                    vocabulary: { type: string, nullable: true }
-                    grammar: { type: string, nullable: true }
-                    pronunciation: { type: string, nullable: true }
-                    coherence: { type: string, nullable: true }
-                    performance: { type: string, nullable: true }
-                evidenceUrls:
-                  type: array
-                  items: { type: string, format: uri }
-      responses:
         '200':
-          description: OK（回報完成才可進入結算）
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  bookingId: { type: string }
-                  settlementStatus: { type: string, enum: [ready] }
+          description: Confirmed
 
   /post-class/{id}/student-goal:
     post:
