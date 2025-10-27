@@ -116,7 +116,7 @@ components:
         - type: object
           properties:
             email: { type: string, format: email, nullable: true }
-            settings: { type: object, additionalProperties: true }
+            settings: { type: object, nullable: true }
             timezone: { type: string, nullable: true }
             locale: { type: string, nullable: true }
     TeacherCard:
@@ -367,8 +367,8 @@ paths:
               type: object
               required: [username, password]
               properties:
-                username: { type: string }
-                password: { type: string }
+                username: { type: string, example: admin@example.com }
+                password: { type: string, example: password}
       responses:
         '200':
           description: OK
