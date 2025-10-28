@@ -5,6 +5,7 @@ import { TeacherAvailability, AvailabilityStatus } from '../entities/teacher-ava
 import { User, UserRole } from '../entities/user.entity';
 import { TimeSlotUtil } from '../common/time-slots.util';
 import { TimezoneUtil } from '../utils/timezone';
+import { LoggerService } from '../common/logger.service';
 
 export interface SearchTeachersQuery {
   date: string; // YYYY-MM-DD
@@ -21,6 +22,8 @@ export interface TeacherTimetableQuery {
 
 @Injectable()
 export class TeacherAvailabilityService {
+  private readonly logger = new LoggerService('TeacherAvailabilityService');
+
   constructor(
     @InjectRepository(TeacherAvailability)
     private availabilityRepository: Repository<TeacherAvailability>,
@@ -35,9 +38,11 @@ export class TeacherAvailabilityService {
    */
   async searchAvailableTeachers(searchQuery: SearchTeachersQuery): Promise<string[]> {
     const { date, fromTime, toTime, timezone = 'Asia/Taipei' } = searchQuery;
+    this.logger.logMethodCall('searchAvailableTeachers', { date, fromTime, toTime, timezone });
 
     // 驗證時區
     if (!TimezoneUtil.isValidTimezone(timezone)) {
+      this.logger.warn(`Invalid timezone: ${timezone}`);
       throw new ConflictException(`Invalid timezone: ${timezone}`);
     }
 
@@ -68,7 +73,9 @@ export class TeacherAvailabilityService {
       AvailabilityStatus.AVAILABLE
     ]);
 
-    return result.map(row => row.teacher_id);
+    const ids = result.map(row => row.teacher_id);
+    this.logger.logMethodResult('searchAvailableTeachers', { count: ids.length });
+    return ids;
   }
 
   /**
@@ -78,9 +85,11 @@ export class TeacherAvailabilityService {
    */
   async getTeacherTimetable(query: TeacherTimetableQuery) {
     const { teacherId, date, timezone = 'Asia/Taipei' } = query;
+    this.logger.logMethodCall('getTeacherTimetable', { teacherId, date, timezone });
 
     // 驗證時區
     if (!TimezoneUtil.isValidTimezone(timezone)) {
+      this.logger.warn(`Invalid timezone: ${timezone}`);
       throw new ConflictException(`Invalid timezone: ${timezone}`);
     }
 
@@ -90,6 +99,7 @@ export class TeacherAvailabilityService {
     });
 
     if (!teacher) {
+      this.logger.warn(`Teacher not found: ${teacherId}`);
       throw new NotFoundException('Teacher not found');
     }
 
@@ -109,7 +119,7 @@ export class TeacherAvailabilityService {
     });
 
     // 轉換為 API 回應格式，包含 UTC 時間和用戶時區時間
-    return availability.map(slot => {
+    const items = availability.map(slot => {
       let localTime = null;
       let localTimeFormatted = null;
       let userDate = slot.date;
@@ -143,6 +153,8 @@ export class TeacherAvailabilityService {
         reason: slot.reason || (slot.status === AvailabilityStatus.BOOKED ? '已被约' : null)
       };
     });
+    this.logger.logMethodResult('getTeacherTimetable', { items: items.length });
+    return items;
   }
 
   /**
@@ -155,12 +167,14 @@ export class TeacherAvailabilityService {
     timeSlots: number[],
     status: AvailabilityStatus = AvailabilityStatus.AVAILABLE
   ): Promise<void> {
+    this.logger.logMethodCall('setTeacherAvailability', { teacherId, date, timeSlotsCount: timeSlots?.length ?? 0, status });
     // 驗證教師存在並獲取時區
     const teacher = await this.userRepository.findOne({
       where: { id: teacherId, role: UserRole.TEACHER, active: true }
     });
 
     if (!teacher) {
+      this.logger.warn(`Teacher not found: ${teacherId}`);
       throw new NotFoundException('Teacher not found');
     }
 
@@ -169,6 +183,7 @@ export class TeacherAvailabilityService {
     // 驗證時間槽
     const invalidSlots = timeSlots.filter(slot => !TimeSlotUtil.isValidSlot(slot));
     if (invalidSlots.length > 0) {
+      this.logger.warn(`Invalid time slots: ${invalidSlots.join(', ')}`);
       throw new ConflictException(`Invalid time slots: ${invalidSlots.join(', ')}`);
     }
 
@@ -205,6 +220,7 @@ export class TeacherAvailabilityService {
          WHERE teacher_id = $1 AND date = $2 AND status != $3`,
         [teacherId, date, AvailabilityStatus.BOOKED]
       );
+      this.logger.logMethodResult('setTeacherAvailability', { teacherId, date, cleared: true });
       return;
     }
 
@@ -215,6 +231,7 @@ export class TeacherAvailabilityService {
          AND NOT (time_slot = ANY($3))`,
       [teacherId, date, timeSlots, AvailabilityStatus.BOOKED]
     );
+    this.logger.logMethodResult('setTeacherAvailability', { teacherId, date, updated: availabilityRecords.length });
   }
 
   /**
@@ -226,6 +243,7 @@ export class TeacherAvailabilityService {
     startTimeUtc: Date,
     endTimeUtc: Date
   ): Promise<boolean> {
+    this.logger.logMethodCall('checkAvailabilityByUtc', { teacherId, startTimeUtc, endTimeUtc });
     // 使用SQL查詢檢查完全包含在時間範圍內的可用時間槽
     const query = `
       SELECT COUNT(*) as count
@@ -249,7 +267,9 @@ export class TeacherAvailabilityService {
     const durationMinutes = (endTimeUtc.getTime() - startTimeUtc.getTime()) / (1000 * 60);
     const requiredSlots = Math.ceil(durationMinutes / 30);
 
-    return availableSlots >= requiredSlots;
+    const ok = availableSlots >= requiredSlots;
+    this.logger.logMethodResult('checkAvailabilityByUtc', { ok, availableSlots, requiredSlots });
+    return ok;
   }
 
   /**
@@ -260,6 +280,7 @@ export class TeacherAvailabilityService {
     date: string,
     timeSlots: number[]
   ): Promise<boolean> {
+    this.logger.logMethodCall('checkAvailability', { teacherId, date, timeSlotsCount: timeSlots?.length ?? 0 });
     const availableSlots = await this.availabilityRepository.count({
       where: {
         teacherId,
@@ -269,7 +290,9 @@ export class TeacherAvailabilityService {
       }
     });
 
-    return availableSlots === timeSlots.length;
+    const ok = availableSlots === timeSlots.length;
+    this.logger.logMethodResult('checkAvailability', { ok, availableSlots, required: timeSlots.length });
+    return ok;
   }
 
   /**
@@ -282,6 +305,7 @@ export class TeacherAvailabilityService {
     endTimeUtc: Date,
     bookingId: string
   ): Promise<void> {
+    this.logger.logMethodCall('markAsBookedByUtc', { teacherId, startTimeUtc, endTimeUtc, bookingId });
     // 使用正確的時間重疊邏輯：只標記完全包含在預約時間範圍內的時間槽
     // start_time_utc >= startTimeUtc AND end_time_utc <= endTimeUtc
     const query = `
@@ -301,6 +325,7 @@ export class TeacherAvailabilityService {
       endTimeUtc,
       AvailabilityStatus.AVAILABLE
     ]);
+    this.logger.logMethodResult('markAsBookedByUtc', { teacherId, updated: true });
   }
 
   /**
@@ -312,6 +337,7 @@ export class TeacherAvailabilityService {
     timeSlots: number[],
     bookingId: string
   ): Promise<void> {
+    this.logger.logMethodCall('markAsBooked', { teacherId, date, timeSlotsCount: timeSlots?.length ?? 0, bookingId });
     await this.availabilityRepository.update(
       {
         teacherId,
@@ -324,6 +350,7 @@ export class TeacherAvailabilityService {
         bookingId
       }
     );
+    this.logger.logMethodResult('markAsBooked', { teacherId, date, updated: timeSlots?.length ?? 0 });
   }
 
   /**
@@ -334,6 +361,7 @@ export class TeacherAvailabilityService {
     date: string,
     timeSlots: number[]
   ): Promise<void> {
+    this.logger.logMethodCall('releaseBookedSlots', { teacherId, date, timeSlotsCount: timeSlots?.length ?? 0 });
     await this.availabilityRepository.update(
       {
         teacherId,
@@ -346,6 +374,7 @@ export class TeacherAvailabilityService {
         reason: null
       }
     );
+    this.logger.logMethodResult('releaseBookedSlots', { teacherId, date, updated: timeSlots?.length ?? 0 });
   }
 
   /**
@@ -356,6 +385,7 @@ export class TeacherAvailabilityService {
     startTimeUtc: Date,
     endTimeUtc: Date
   ): Promise<void> {
+    this.logger.logMethodCall('releaseBookedSlot', { teacherId, startTimeUtc, endTimeUtc });
     const query = `
       UPDATE teacher_availability
       SET status = $1, booking_id = NULL, reason = NULL
@@ -372,33 +402,38 @@ export class TeacherAvailabilityService {
       endTimeUtc,
       AvailabilityStatus.BOOKED
     ]);
+    this.logger.logMethodResult('releaseBookedSlot', { teacherId, updated: true });
   }
 
   /**
    * 取得教師指定時間槽的詳細資訊
    */
   async getTimeSlotInfo(id: string) {
+    this.logger.logMethodCall('getTimeSlotInfo', { id });
     const availability = await this.availabilityRepository.findOne({
       where: { id },
       relations: ['teacher']
     });
 
     if (!availability) {
+      this.logger.warn(`Time slot not found: ${id}`);
       throw new NotFoundException('Time slot not found');
     }
 
-    return {
+    const result = {
       id: availability.id,
       uid: availability.teacher.id,
       storeId: 5608, // 模擬原 API 的 storeId
       tname: availability.teacher.name,
       date: availability.date,
       time: availability.timeString,
-      isOnline: availability.status === AvailabilityStatus.AVAILABLE ? 1 : 
+      isOnline: availability.status === AvailabilityStatus.AVAILABLE ? 1 :
                 availability.status === AvailabilityStatus.BOOKED ? 2 : 0,
       canReserve: availability.canReserve ? 1 : 0,
       reason: availability.reason || (availability.status === AvailabilityStatus.BOOKED ? '已被约' : null)
     };
+    this.logger.logMethodResult('getTimeSlotInfo', { id: result.id, status: availability.status });
+    return result;
   }
 
   /**
@@ -409,6 +444,7 @@ export class TeacherAvailabilityService {
     startDate: string,
     weeklySchedule: { [dayOfWeek: number]: number[] } // 0=Sunday, 1=Monday, etc.
   ): Promise<void> {
+    this.logger.logMethodCall('setWeeklyAvailability', { teacherId, startDate });
     const startDateObj = new Date(startDate);
     const promises: Promise<void>[] = [];
 
@@ -427,5 +463,6 @@ export class TeacherAvailabilityService {
     }
 
     await Promise.all(promises);
+    this.logger.logMethodResult('setWeeklyAvailability', { teacherId, days: Object.keys(weeklySchedule).length });
   }
 }

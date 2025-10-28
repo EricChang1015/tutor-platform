@@ -11,6 +11,7 @@ import { TimezoneUtil } from '../utils/timezone';
 import { DateTime } from 'luxon';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { CancelBookingDto, CancelCause } from './dto/cancel-booking.dto';
+import { LoggerService } from '../common/logger.service';
 
 import { Upload } from '../entities/upload.entity';
 import { BookingEvidence } from '../entities/booking-evidence.entity';
@@ -18,6 +19,8 @@ import { UploadsService } from '../uploads/uploads.service';
 import { FileCategory } from '../uploads/upload.config';
 @Injectable()
 export class BookingsService {
+  private readonly logger = new LoggerService('BookingsService');
+
   constructor(
     @InjectRepository(Booking)
     private bookingRepository: Repository<Booking>,
@@ -36,6 +39,7 @@ export class BookingsService {
 
   async findUserBookings(userId: string, query: any = {}) {
     const { page = 1, pageSize = 20, roleView, from, to, status, sort, timezone = 'Asia/Taipei' } = query;
+    this.logger.logMethodCall('findUserBookings', { userId, page, pageSize, roleView, from, to, status, sort, timezone });
 
     const queryBuilder = this.bookingRepository
       .createQueryBuilder('booking')
@@ -100,31 +104,37 @@ export class BookingsService {
 
     const [items, total] = await queryBuilder.getManyAndCount();
 
-    return {
+    const result = {
       items: items.map(booking => this.formatBookingSummary(booking, timezone)),
       page,
       pageSize,
       total,
       timezone,
     };
+    this.logger.logMethodResult('findUserBookings', { total, page, pageSize });
+    return result;
   }
 
   async createBooking(createBookingDto: CreateBookingDto, userId: string) {
     const { teacherId, startsAt, durationMinutes = 30, timezone = 'Asia/Taipei' } = createBookingDto;
+    this.logger.logMethodCall('createBooking', { userId, teacherId, startsAt, durationMinutes, timezone });
 
     // 驗證時區
     if (!TimezoneUtil.isValidTimezone(timezone)) {
+      this.logger.warn(`Invalid timezone: ${timezone}`);
       throw new BadRequestException(`Invalid timezone: ${timezone}`);
     }
 
     // 驗證必要參數
     if (!teacherId || !startsAt) {
+      this.logger.warn('Missing required parameters: teacherId, startsAt');
       throw new BadRequestException('Missing required parameters: teacherId, startsAt');
     }
 
     // 使用時區工具驗證預約時間
     const validation = TimezoneUtil.validateBookingTime(startsAt, durationMinutes);
     if (!validation.valid) {
+      this.logger.warn(`Invalid booking time: ${validation.error}`);
       throw new BadRequestException(validation.error);
     }
 
@@ -135,6 +145,7 @@ export class BookingsService {
     // 驗證時間槽對齊 - 必須從整點或半點開始
     const startMinutes = startDate.getUTCMinutes();
     if (startMinutes !== 0 && startMinutes !== 30) {
+      this.logger.warn('Booking must start at :00 or :30 minutes');
       throw new BadRequestException('Booking must start at :00 or :30 minutes');
     }
 
@@ -143,6 +154,7 @@ export class BookingsService {
       where: { id: teacherId, role: UserRole.TEACHER, active: true }
     });
     if (!teacher) {
+      this.logger.warn(`Teacher not found: ${teacherId}`);
       throw new NotFoundException('Teacher not found');
     }
 
@@ -164,6 +176,7 @@ export class BookingsService {
     // 驗證時間槽有效性
     const invalidSlots = timeSlots.filter(slot => !TimeSlotUtil.isValidSlot(slot));
     if (invalidSlots.length > 0) {
+      this.logger.warn(`Invalid time slots: ${invalidSlots.join(',')}`);
       throw new BadRequestException('Invalid time slots');
     }
 
@@ -174,6 +187,7 @@ export class BookingsService {
       endDate
     );
     if (!isAvailable) {
+      this.logger.warn('Teacher is not available at the requested time');
       throw new ConflictException('Teacher is not available at the requested time');
     }
 
@@ -196,6 +210,7 @@ export class BookingsService {
       .getMany();
 
     if (conflictingBookings.length > 0) {
+      this.logger.warn('Time slot conflicts with existing booking');
       throw new ConflictException('Time slot conflicts with existing booking');
     }
 
@@ -236,25 +251,31 @@ export class BookingsService {
 
       // TODO: 發送通知邏輯
 
+      this.logger.logMethodResult('createBooking', { id: savedBooking.id, teacherId, studentId: createBookingDto.studentId || userId });
       return this.findById(savedBooking.id);
     } catch (error) {
       // 如果扣卡失敗，刪除已創建的預約
       await this.bookingRepository.remove(savedBooking);
+      this.logger.logError('createBooking', error);
       throw error;
     }
   }
 
   async findById(id: string) {
+    this.logger.logMethodCall('findById', { id });
     const booking = await this.bookingRepository.findOne({
       where: { id },
       relations: ['student', 'teacher'],
     });
 
     if (!booking) {
+      this.logger.warn(`Booking not found: ${id}`);
       throw new Error('Booking not found');
     }
 
-    return this.formatBookingDetail(booking);
+    const result = this.formatBookingDetail(booking);
+    this.logger.logMethodResult('findById', { id: booking.id, status: booking.status });
+    return result;
   }
 
   private formatBookingSummary(booking: Booking, userTimezone: string = 'Asia/Taipei') {
@@ -326,6 +347,7 @@ export class BookingsService {
   }
 
   async cancelBooking(bookingId: string, cancelBookingDto: CancelBookingDto, user: any) {
+    this.logger.logMethodCall('cancelBooking', { bookingId, userId: user?.sub, role: user?.role, cause: cancelBookingDto?.cause, waivePolicy: cancelBookingDto?.waivePolicy });
     // 查找預約
     const booking = await this.bookingRepository.findOne({
       where: { id: bookingId },
@@ -333,6 +355,7 @@ export class BookingsService {
     });
 
     if (!booking) {
+      this.logger.warn(`Booking not found: ${bookingId}`);
       throw new NotFoundException('Booking not found');
     }
 
@@ -342,16 +365,19 @@ export class BookingsService {
     const isAdmin = user.role === 'admin';
 
     if (!isStudent && !isTeacher && !isAdmin) {
+      this.logger.warn(`No permission to cancel booking ${bookingId}`);
       throw new ForbiddenException('No permission to cancel this booking');
     }
 
     // 檢查預約狀態
     if (booking.status !== BookingStatus.SCHEDULED) {
+      this.logger.warn(`Only scheduled bookings can be canceled. Current status: ${booking.status}`);
       throw new BadRequestException('Only scheduled bookings can be canceled');
     }
 
     // 檢查是否已過期
     if (booking.startsAt <= new Date()) {
+      this.logger.warn('Cannot cancel past bookings');
       throw new BadRequestException('Cannot cancel past bookings');
     }
 
@@ -371,6 +397,7 @@ export class BookingsService {
 
     // 檢查是否允許取消
     if (!refundInfo.allowed && !isAdmin) {
+      this.logger.warn('Cancellation not allowed within 2 hours of class time');
       throw new BadRequestException('Cancellation not allowed within 2 hours of class time');
     }
 
@@ -414,7 +441,7 @@ export class BookingsService {
           actualRefund.cancelCardsConsumed = cancelResult.consumed;
         } catch (error) {
           // 如果沒有足夠的取消卡，記錄但不阻止取消
-          console.warn(`Insufficient cancel cards for booking ${booking.id}:`, error.message);
+          this.logger.warn(`Insufficient cancel cards for booking ${booking.id}: ${error.message}`);
           actualRefund.cancelCardsConsumed = 0;
         }
       }
@@ -424,12 +451,12 @@ export class BookingsService {
         actualRefund.compensationGranted = refundInfo.compensationGranted;
       }
     } catch (error) {
-      console.error('Error processing card refund/consumption:', error);
+      this.logger.error('Error processing card refund/consumption', error?.stack);
     }
 
     // TODO: 發送通知
 
-    return {
+    const result = {
       id: booking.id,
       status: booking.status,
       refund: {
@@ -439,6 +466,8 @@ export class BookingsService {
         notes: refundInfo.notes,
       },
     };
+    this.logger.logMethodResult('cancelBooking', { id: result.id, status: result.status, refund: result.refund });
+    return result;
   }
 
   private calculateCancelRefund(hoursUntilClass: number, cause: CancelCause, waivePolicy: boolean = false) {
@@ -527,6 +556,7 @@ export class BookingsService {
   }
 
   async checkAndGrantCancelCards(studentId: string) {
+    this.logger.logMethodCall('checkAndGrantCancelCards', { studentId });
     // 計算學生已完成的課程數量
     const completedBookings = await this.bookingRepository.count({
       where: {
@@ -583,23 +613,28 @@ export class BookingsService {
 
       await this.purchaseRepository.save(cancelCardPurchase);
 
-      return {
+      const result = {
         granted: cardsToGrant,
         totalCompleted: completedBookings,
         totalCancelCards: expectedCancelCards,
       };
+      this.logger.logMethodResult('checkAndGrantCancelCards', result);
+      return result;
     }
 
+    this.logger.logMethodResult('checkAndGrantCancelCards', { granted: 0, totalCompleted: completedBookings, totalCancelCards: expectedCancelCards });
     return null; // 沒有需要發放的卡片
   }
 
   // 課程完成時調用此方法
   async completeBooking(bookingId: string) {
+    this.logger.logMethodCall('completeBooking', { bookingId });
     const booking = await this.bookingRepository.findOne({
       where: { id: bookingId },
     });
 
     if (!booking) {
+      this.logger.warn(`Booking not found: ${bookingId}`);
       throw new NotFoundException('Booking not found');
     }
 
@@ -609,36 +644,42 @@ export class BookingsService {
     // 檢查並發放取消卡
     await this.checkAndGrantCancelCards(booking.studentId);
 
-    return this.formatBookingDetail(booking);
+    const result = this.formatBookingDetail(booking);
+    this.logger.logMethodResult('completeBooking', { id: booking.id, status: booking.status });
+    return result;
   }
 
   async addMessage(bookingId: string, senderId: string, text: string) {
+    this.logger.logMethodCall('addMessage', { bookingId, senderId });
     // 簡化：不持久化，直接回傳訊息物件（與 OpenAPI 相容）
     const booking = await this.bookingRepository.findOne({ where: { id: bookingId } });
-    if (!booking) throw new NotFoundException('Booking not found');
+    if (!booking) { this.logger.warn(`Booking not found: ${bookingId}`); throw new NotFoundException('Booking not found'); }
     const msg = {
       id: `${bookingId}-${Date.now()}`,
       senderId,
       text,
       createdAt: new Date().toISOString(),
     };
+    this.logger.logMethodResult('addMessage', { bookingId, messageId: msg.id });
     return msg;
   }
 
   async reschedule(bookingId: string, user: any, newStartsAt: string, durationMinutes: number = 30) {
+    this.logger.logMethodCall('reschedule', { bookingId, userId: user?.sub, role: user?.role, newStartsAt, durationMinutes });
     const booking = await this.bookingRepository.findOne({ where: { id: bookingId } });
-    if (!booking) throw new NotFoundException('Booking not found');
+    if (!booking) { this.logger.warn(`Booking not found: ${bookingId}`); throw new NotFoundException('Booking not found'); }
 
     // 權限：學生或教師或管理員其中之一
     const allowed = user.sub === booking.studentId || user.sub === booking.teacherId || user.role === 'admin';
-    if (!allowed) throw new ForbiddenException('No permission to reschedule');
+    if (!allowed) { this.logger.warn(`No permission to reschedule booking ${bookingId}`); throw new ForbiddenException('No permission to reschedule'); }
 
     // 僅可改期未開始課程
-    if (!this.canReschedule(booking)) throw new BadRequestException('Cannot reschedule');
+    if (!this.canReschedule(booking)) { this.logger.warn('Cannot reschedule'); throw new BadRequestException('Cannot reschedule'); }
 
     // 驗證時間
     const validation = TimezoneUtil.validateBookingTime(newStartsAt, durationMinutes);
     if (!validation.valid) {
+      this.logger.warn(`Invalid new time: ${validation.error}`);
       throw new BadRequestException(validation.error);
     }
 
@@ -648,7 +689,7 @@ export class BookingsService {
     // 檢查教師可用性與衝突
     const teacherId = booking.teacherId;
     const isAvailable = await this.teacherAvailabilityService.checkAvailabilityByUtc(teacherId, newStart, newEnd);
-    if (!isAvailable) throw new ConflictException('Teacher not available');
+    if (!isAvailable) { this.logger.warn('Teacher not available'); throw new ConflictException('Teacher not available'); }
 
     const conflicts = await this.bookingRepository
       .createQueryBuilder('b')
@@ -657,7 +698,7 @@ export class BookingsService {
       .andWhere('b.startsAt < :end AND b.endsAt > :start', { start: newStart, end: newEnd })
       .andWhere('b.status = :status', { status: BookingStatus.SCHEDULED })
       .getCount();
-    if (conflicts > 0) throw new ConflictException('Time slot conflicts');
+    if (conflicts > 0) { this.logger.warn('Time slot conflicts'); throw new ConflictException('Time slot conflicts'); }
 
     // 釋放舊時段、標記新時段
     await this.teacherAvailabilityService.releaseBookedSlot(teacherId, booking.startsAt, booking.endsAt);
@@ -669,18 +710,21 @@ export class BookingsService {
     booking.status = BookingStatus.PENDING_TEACHER;
     await this.bookingRepository.save(booking);
 
-    return {
+    const result = {
       id: booking.id,
       status: booking.status,
       startsAt: booking.startsAt,
       endsAt: booking.endsAt,
     };
+    this.logger.logMethodResult('reschedule', { id: result.id, status: result.status, startsAt: result.startsAt, endsAt: result.endsAt });
+    return result;
   }
 
   async getIcs(bookingId: string, requesterId: string) {
+    this.logger.logMethodCall('getIcs', { bookingId, requesterId });
     const booking = await this.bookingRepository.findOne({ where: { id: bookingId }, relations: ['teacher', 'student'] });
-    if (!booking) throw new NotFoundException('Booking not found');
-    if (![booking.studentId, booking.teacherId].includes(requesterId)) throw new ForbiddenException('No access');
+    if (!booking) { this.logger.warn(`Booking not found: ${bookingId}`); throw new NotFoundException('Booking not found'); }
+    if (![booking.studentId, booking.teacherId].includes(requesterId)) { this.logger.warn('No access to ICS'); throw new ForbiddenException('No access'); }
 
     const dtStart = booking.startsAt.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
     const dtEnd = booking.endsAt.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
@@ -688,31 +732,36 @@ export class BookingsService {
     const summary = booking.courseTitle || 'Lesson';
 
     const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Tutor Platform//EN\nBEGIN:VEVENT\nUID:${uid}\nDTSTAMP:${dtStart}\nDTSTART:${dtStart}\nDTEND:${dtEnd}\nSUMMARY:${summary}\nEND:VEVENT\nEND:VCALENDAR`;
+    this.logger.logMethodResult('getIcs', { id: booking.id });
     // Nest 會以字串回傳。若需 header，可在 controller 設定 Response。
     return ics;
   }
 
   async confirm(bookingId: string, user: any) {
+    this.logger.logMethodCall('confirm', { bookingId, userId: user?.sub, role: user?.role });
     const booking = await this.bookingRepository.findOne({ where: { id: bookingId } });
-    if (!booking) throw new NotFoundException('Booking not found');
+    if (!booking) { this.logger.warn(`Booking not found: ${bookingId}`); throw new NotFoundException('Booking not found'); }
     const isTeacher = user.sub === booking.teacherId;
     const isAdmin = user.role === 'admin';
-    if (!isTeacher && !isAdmin) throw new ForbiddenException('Only teacher/admin can confirm');
+    if (!isTeacher && !isAdmin) { this.logger.warn('Only teacher/admin can confirm'); throw new ForbiddenException('Only teacher/admin can confirm'); }
     booking.status = BookingStatus.SCHEDULED;
     await this.bookingRepository.save(booking);
-    return { id: booking.id, status: booking.status };
+    const result = { id: booking.id, status: booking.status };
+    this.logger.logMethodResult('confirm', result);
+    return result;
   }
 
   // 課後證據：列出
   // 課後證據：列出
   async listEvidence(bookingId: string, user: any) {
+    this.logger.logMethodCall('listEvidence', { bookingId, userId: user?.sub, role: user?.role });
     const booking = await this.bookingRepository.findOne({ where: { id: bookingId } });
-    if (!booking) throw new NotFoundException('Booking not found');
+    if (!booking) { this.logger.warn(`Booking not found: ${bookingId}`); throw new NotFoundException('Booking not found'); }
     const canRead = user.role === 'admin' || user.sub === booking.teacherId || user.sub === booking.studentId;
-    if (!canRead) throw new ForbiddenException('No access');
+    if (!canRead) { this.logger.warn('No access to list evidence'); throw new ForbiddenException('No access'); }
 
     const rows = await this.evidenceRepository.find({ where: { bookingId }, order: { createdAt: 'DESC' } as any });
-    if (!rows || rows.length === 0) return { items: [] };
+    if (!rows || rows.length === 0) { this.logger.logMethodResult('listEvidence', { count: 0 }); return { items: [] }; }
 
     // 取 uploads 基本資訊
     const fileIds = rows.map(r => r.fileId);
@@ -730,47 +779,56 @@ export class BookingsService {
         uploadedBy: { id: r.uploadedBy }
       };
     });
-    return { items };
+    const result = { items };
+    this.logger.logMethodResult('listEvidence', { count: items.length });
+    return result;
   }
 
   // 課後證據：上傳並綁定 booking（category=class_recording）
   async uploadEvidence(bookingId: string, user: any, file: any) {
+    this.logger.logMethodCall('uploadEvidence', { bookingId, userId: user?.sub, role: user?.role, hasFile: !!file });
     const booking = await this.bookingRepository.findOne({ where: { id: bookingId } });
-    if (!booking) throw new NotFoundException('Booking not found');
+    if (!booking) { this.logger.warn(`Booking not found: ${bookingId}`); throw new NotFoundException('Booking not found'); }
     const isTeacher = user?.role === 'admin' || user?.sub === booking.teacherId;
-    if (!isTeacher) throw new ForbiddenException('Only teacher/admin can upload');
-    if (!file) throw new BadRequestException('No file');
+    if (!isTeacher) { this.logger.warn('Only teacher/admin can upload'); throw new ForbiddenException('Only teacher/admin can upload'); }
+    if (!file) { this.logger.warn('No file provided'); throw new BadRequestException('No file'); }
 
     const uploaded = await this.uploadsService.uploadFile(user.sub, file, FileCategory.CLASS_RECORDING as any);
     const link = this.evidenceRepository.create({ bookingId, fileId: uploaded.id, uploadedBy: user.sub } as any);
     const saved = await this.evidenceRepository.save(link);
 
-    return {
+    const result = {
       id: uploaded.id,
       url: uploaded.publicUrl || null,
       mimeType: uploaded.mimeType,
       size: uploaded.fileSize,
       uploadedAt: (saved as any).createdAt || new Date(),
     };
+    this.logger.logMethodResult('uploadEvidence', { bookingId, fileId: result.id });
+    return result;
   }
 
   // 課後證據：刪除連結（僅老師/管理員）
   async deleteEvidence(bookingId: string, fileId: string, user: any) {
+    this.logger.logMethodCall('deleteEvidence', { bookingId, fileId, userId: user?.sub, role: user?.role });
     const booking = await this.bookingRepository.findOne({ where: { id: bookingId } });
-    if (!booking) throw new NotFoundException('Booking not found');
+    if (!booking) { this.logger.warn(`Booking not found: ${bookingId}`); throw new NotFoundException('Booking not found'); }
     const canDelete = user.role === 'admin' || user.sub === booking.teacherId;
-    if (!canDelete) throw new ForbiddenException('Only teacher/admin can delete');
+    if (!canDelete) { this.logger.warn('Only teacher/admin can delete'); throw new ForbiddenException('Only teacher/admin can delete'); }
 
     await this.evidenceRepository.delete({ bookingId, fileId } as any);
-    return { ok: true };
+    const result = { ok: true };
+    this.logger.logMethodResult('deleteEvidence', result);
+    return result;
   }
 
   // 老師課後回報：支持 commentToStudent / evidenceFileIds / status(completed|noshow|canceled)
   async submitTeacherReport(bookingId: string, user: any, body: any) {
+    this.logger.logMethodCall('submitTeacherReport', { bookingId, userId: user?.sub, role: user?.role });
     const booking = await this.bookingRepository.findOne({ where: { id: bookingId } });
-    if (!booking) throw new NotFoundException('Booking not found');
+    if (!booking) { this.logger.warn(`Booking not found: ${bookingId}`); throw new NotFoundException('Booking not found'); }
     const isTeacher = user.role === 'admin' || user.sub === booking.teacherId;
-    if (!isTeacher) throw new ForbiddenException('Only teacher/admin can report');
+    if (!isTeacher) { this.logger.warn('Only teacher/admin can report'); throw new ForbiddenException('Only teacher/admin can report'); }
 
     const { rubrics, commentToStudent, evidenceFileIds, status } = body || {};
 
@@ -805,7 +863,7 @@ export class BookingsService {
     }
 
     // 回傳簡化
-    return {
+    const result = {
       id: booking.id,
       status: booking.status,
       postClass: {
@@ -814,6 +872,8 @@ export class BookingsService {
         reportStatus: (booking as any).postClassReportStatus || 'submitted',
       }
     };
+    this.logger.logMethodResult('submitTeacherReport', { id: result.id, status: result.status });
+    return result;
   }
 
 

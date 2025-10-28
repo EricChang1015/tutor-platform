@@ -3,9 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Review, ReviewStatus } from '../entities/review.entity';
 import { Booking } from '../entities/booking.entity';
+import { LoggerService } from '../common/logger.service';
 
 @Injectable()
 export class ReviewsService {
+  private readonly logger = new LoggerService('ReviewsService');
+
   constructor(
     @InjectRepository(Review)
     private reviewRepository: Repository<Review>,
@@ -14,6 +17,7 @@ export class ReviewsService {
   ) {}
 
   async findAll(query: any = {}) {
+    this.logger.logMethodCall('findAll', query);
     const {
       teacherId,
       studentId,
@@ -49,16 +53,19 @@ export class ReviewsService {
 
     const [items, total] = await queryBuilder.getManyAndCount();
 
-    return {
+    const result = {
       items,
       page: parseInt(page),
       pageSize: parseInt(pageSize),
       total,
     };
+    this.logger.logMethodResult('findAll', { total, page, pageSize });
+    return result;
   }
 
   async create(createReviewDto: any, studentId: string) {
     const { bookingId, teacherId, rating, comment } = createReviewDto;
+    this.logger.logMethodCall('create', { studentId, bookingId, teacherId, rating });
 
     // 檢查 booking 是否存在且屬於該學生
     const booking = await this.bookingRepository.findOne({
@@ -67,11 +74,13 @@ export class ReviewsService {
     });
 
     if (!booking) {
+      this.logger.warn(`Booking not found or not belongs to user: bookingId=${bookingId}, studentId=${studentId}`);
       throw new UnprocessableEntityException('Booking not found or not belongs to you');
     }
 
     // 檢查 booking 是否已完成
     if (booking.status !== 'completed') {
+      this.logger.warn(`Attempt to create review for non-completed booking: ${bookingId} (status=${booking.status})`);
       throw new UnprocessableEntityException('Can only review completed bookings');
     }
 
@@ -81,6 +90,7 @@ export class ReviewsService {
     });
 
     if (existingReview) {
+      this.logger.warn(`Booking already reviewed: ${bookingId}`);
       throw new ConflictException('This booking has already been reviewed');
     }
 
@@ -94,35 +104,45 @@ export class ReviewsService {
       status: ReviewStatus.PENDING, // 需要審核
     });
 
-    return this.reviewRepository.save(review);
+    const saved = await this.reviewRepository.save(review);
+    this.logger.logMethodResult('create', { id: saved.id, bookingId });
+    return saved;
   }
 
   async approve(reviewId: string) {
+    this.logger.logMethodCall('approve', { reviewId });
     const review = await this.reviewRepository.findOne({
       where: { id: reviewId },
     });
 
     if (!review) {
+      this.logger.warn(`Review not found: ${reviewId}`);
       throw new NotFoundException('Review not found');
     }
 
     review.status = ReviewStatus.APPROVED;
 
-    return this.reviewRepository.save(review);
+    const saved = await this.reviewRepository.save(review);
+    this.logger.logMethodResult('approve', { id: saved.id, status: saved.status });
+    return saved;
   }
 
   async reject(reviewId: string, reason: string) {
+    this.logger.logMethodCall('reject', { reviewId });
     const review = await this.reviewRepository.findOne({
       where: { id: reviewId },
     });
 
     if (!review) {
+      this.logger.warn(`Review not found: ${reviewId}`);
       throw new NotFoundException('Review not found');
     }
 
     review.status = ReviewStatus.REJECTED;
     review.reason = reason;
 
-    return this.reviewRepository.save(review);
+    const saved = await this.reviewRepository.save(review);
+    this.logger.logMethodResult('reject', { id: saved.id, status: saved.status });
+    return saved;
   }
 }

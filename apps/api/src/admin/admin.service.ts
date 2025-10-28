@@ -15,9 +15,12 @@ import { FileCategory } from '../uploads/upload.config';
 import { CreateUserDto, CreateTeacherDto } from './dto/create-user.dto';
 import { UpdateUserDto, UpdateTeacherProfileDto, ResetPasswordDto } from './dto/update-user.dto';
 import { UserQueryDto } from './dto/user-query.dto';
+import { LoggerService } from '../common/logger.service';
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new LoggerService('AdminService');
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -42,6 +45,7 @@ export class AdminService {
 
   async getUsers(query: UserQueryDto) {
     const { page, pageSize, role, active, search, sortBy, sortOrder } = query;
+    this.logger.logMethodCall('getUsers', { page, pageSize, role, active, search, sortBy, sortOrder });
 
     const queryBuilder = this.userRepository.createQueryBuilder('user')
       .leftJoinAndSelect('user.teacherProfile', 'profile')
@@ -91,16 +95,19 @@ export class AdminService {
       .take(pageSize)
       .getMany();
 
-    return {
+    const result = {
       items,
       total,
       page,
       pageSize,
       totalPages: Math.ceil(total / pageSize)
     };
+    this.logger.logMethodResult('getUsers', { total, page, pageSize });
+    return result;
   }
 
   async getUserById(id: string) {
+    this.logger.logMethodCall('getUserById', { id });
     const user = await this.userRepository.findOne({
       where: { id },
       relations: ['teacherProfile'],
@@ -111,19 +118,23 @@ export class AdminService {
     });
 
     if (!user) {
+      this.logger.warn(`User not found: ${id}`);
       throw new NotFoundException('User not found');
     }
 
+    this.logger.logMethodResult('getUserById', { id: user.id, role: user.role });
     return user;
   }
 
   async createUser(createUserDto: CreateUserDto) {
+    this.logger.logMethodCall('createUser', { email: createUserDto?.email, role: createUserDto?.role });
     // 檢查email是否已存在
     const existingUser = await this.userRepository.findOne({
       where: { email: createUserDto.email }
     });
 
     if (existingUser) {
+      this.logger.warn(`Email already exists: ${createUserDto.email}`);
       throw new BadRequestException('Email already exists');
     }
 
@@ -138,17 +149,20 @@ export class AdminService {
     const savedUser = await this.userRepository.save(user);
 
     // 返回時不包含密碼
-    const { passwordHash, ...result } = savedUser;
+    const { passwordHash, ...result } = savedUser as any;
+    this.logger.logMethodResult('createUser', { id: (savedUser as any).id, email: (savedUser as any).email });
     return result;
   }
 
   async createTeacherWithProfile(createTeacherDto: CreateTeacherDto) {
+    this.logger.logMethodCall('createTeacherWithProfile', { email: createTeacherDto?.email, name: createTeacherDto?.name });
     // 檢查email是否已存在
     const existingUser = await this.userRepository.findOne({
       where: { email: createTeacherDto.email }
     });
 
     if (existingUser) {
+      this.logger.warn(`Email already exists: ${createTeacherDto.email}`);
       throw new BadRequestException('Email already exists');
     }
 
@@ -185,7 +199,7 @@ export class AdminService {
 
     await this.teacherProfileRepository.save(teacherProfile);
 
-    return {
+    const result = {
       id: savedUser.id,
       email: savedUser.email,
       name: savedUser.name,
@@ -193,9 +207,12 @@ export class AdminService {
       active: savedUser.active,
       profile: teacherProfile,
     };
+    this.logger.logMethodResult('createTeacherWithProfile', { id: result.id });
+    return result;
   }
 
   async createTeacher(createTeacherDto: any) {
+    this.logger.logMethodCall('createTeacher', { email: createTeacherDto?.email, name: createTeacherDto?.name });
     // 建立用戶帳號
     const password = createTeacherDto.password || 'password';
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -223,7 +240,7 @@ export class AdminService {
 
     await this.teacherProfileRepository.save(teacherProfile);
 
-    return {
+    const result = {
       id: savedUser.id,
       email: savedUser.email,
       name: savedUser.name,
@@ -231,9 +248,12 @@ export class AdminService {
       active: savedUser.active,
       profile: teacherProfile,
     };
+    this.logger.logMethodResult('createTeacher', { id: result.id });
+    return result;
   }
 
   async createStudent(createStudentDto: any) {
+    this.logger.logMethodCall('createStudent', { email: createStudentDto?.email, name: createStudentDto?.name });
     const password = createStudentDto.password || 'password';
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -247,17 +267,20 @@ export class AdminService {
 
     const savedUser = await this.userRepository.save(user);
 
-    return {
+    const result = {
       id: savedUser.id,
       email: savedUser.email,
       name: savedUser.name,
       role: savedUser.role,
       active: savedUser.active,
     };
+    this.logger.logMethodResult('createStudent', { id: result.id });
+    return result;
   }
 
   async grantCards(grantCardsDto: any) {
     const { studentId, packageName, quantity, type, notes } = grantCardsDto;
+    this.logger.logMethodCall('grantCards', { studentId, packageName, quantity, type });
 
     // 檢查學生是否存在
     const student = await this.userRepository.findOne({
@@ -265,6 +288,7 @@ export class AdminService {
     });
 
     if (!student) {
+      this.logger.warn(`Student not found: ${studentId}`);
       throw new Error('Student not found');
     }
 
@@ -282,7 +306,7 @@ export class AdminService {
 
     const savedPurchase = await this.purchaseRepository.save(purchase);
 
-    return {
+    const result = {
       id: savedPurchase.id,
       studentId: savedPurchase.studentId,
       packageName: savedPurchase.packageName,
@@ -292,12 +316,16 @@ export class AdminService {
       status: savedPurchase.status,
       purchasedAt: savedPurchase.purchasedAt,
     };
+    this.logger.logMethodResult('grantCards', { id: result.id, studentId: result.studentId });
+    return result;
   }
 
   async updateUser(id: string, updateUserDto: UpdateUserDto) {
+    this.logger.logMethodCall('updateUser', { id });
     const user = await this.userRepository.findOne({ where: { id } });
 
     if (!user) {
+      this.logger.warn(`User not found: ${id}`);
       throw new NotFoundException('User not found');
     }
 
@@ -306,17 +334,20 @@ export class AdminService {
     await this.userRepository.save(user);
 
     // 返回更新後的用戶資料（不包含密碼）
-    const { passwordHash, ...result } = user;
+    const { passwordHash, ...result } = user as any;
+    this.logger.logMethodResult('updateUser', { id: user.id });
     return result;
   }
 
   async updateTeacherProfile(teacherId: string, updateProfileDto: UpdateTeacherProfileDto) {
+    this.logger.logMethodCall('updateTeacherProfile', { teacherId });
     // 檢查教師是否存在
     const teacher = await this.userRepository.findOne({
       where: { id: teacherId, role: UserRole.TEACHER }
     });
 
     if (!teacher) {
+      this.logger.warn(`Teacher not found: ${teacherId}`);
       throw new NotFoundException('Teacher not found');
     }
 
@@ -335,13 +366,16 @@ export class AdminService {
     }
 
     await this.teacherProfileRepository.save(profile);
+    this.logger.logMethodResult('updateTeacherProfile', { teacherId, hasProfile: !!profile?.id });
     return profile;
   }
 
   async resetUserPassword(id: string, resetPasswordDto: ResetPasswordDto) {
+    this.logger.logMethodCall('resetUserPassword', { id, forceChangeOnNextLogin: resetPasswordDto?.forceChangeOnNextLogin });
     const user = await this.userRepository.findOne({ where: { id } });
 
     if (!user) {
+      this.logger.warn(`User not found: ${id}`);
       throw new NotFoundException('User not found');
     }
 
@@ -352,19 +386,23 @@ export class AdminService {
       // 可以添加強制修改密碼的邏輯
     });
 
-    return {
+    const result = {
       message: 'Password reset successfully',
       forceChangeOnNextLogin: resetPasswordDto.forceChangeOnNextLogin || false
     };
+    this.logger.logMethodResult('resetUserPassword', { id });
+    return result;
   }
 
   async uploadTeacherGalleryFile(teacherId: string, file: any) {
+    this.logger.logMethodCall('uploadTeacherGalleryFile', { teacherId, mime: file?.mimetype, size: file?.size });
     // 檢查教師是否存在
     const teacher = await this.userRepository.findOne({
       where: { id: teacherId, role: UserRole.TEACHER }
     });
 
     if (!teacher) {
+      this.logger.warn(`Teacher not found: ${teacherId}`);
       throw new NotFoundException('Teacher not found');
     }
 
@@ -398,21 +436,25 @@ export class AdminService {
 
     await this.teacherGalleryRepository.save(galleryItem);
 
-    return {
+    const result = {
       id: galleryItem.id,
       title: galleryItem.title,
       mediaType: galleryItem.mediaType,
       url: galleryItem.url,
       uploadedAt: galleryItem.createdAt
     };
+    this.logger.logMethodResult('uploadTeacherGalleryFile', { id: result.id, mediaType: result.mediaType });
+    return result;
   }
 
   async deleteTeacherGalleryFile(teacherId: string, fileId: string) {
+    this.logger.logMethodCall('deleteTeacherGalleryFile', { teacherId, fileId });
     const galleryItem = await this.teacherGalleryRepository.findOne({
       where: { id: fileId, teacherId }
     });
 
     if (!galleryItem) {
+      this.logger.warn(`Gallery file not found: ${fileId} for teacher ${teacherId}`);
       throw new NotFoundException('Gallery file not found');
     }
 
@@ -422,24 +464,31 @@ export class AdminService {
     // 可以選擇是否同時刪除實際檔案
     // await this.uploadsService.deleteFile(galleryItem.uploadId, teacherId, 'admin');
 
-    return { message: 'Gallery file deleted successfully' };
+    const result = { message: 'Gallery file deleted successfully' };
+    this.logger.logMethodResult('deleteTeacherGalleryFile', { fileId });
+    return result;
   }
 
   async deleteUser(id: string) {
+    this.logger.logMethodCall('deleteUser', { id });
     const user = await this.userRepository.findOne({ where: { id } });
 
     if (!user) {
+      this.logger.warn(`User not found: ${id}`);
       throw new NotFoundException('User not found');
     }
 
     // 軟刪除：設置為非活躍狀態
     await this.userRepository.update(id, { active: false });
 
-    return { message: 'User deactivated successfully' };
+    const result = { message: 'User deactivated successfully' };
+    this.logger.logMethodResult('deleteUser', { id });
+    return result;
   }
 
   async listAdminBookings(query: any = {}) {
     const { page = 1, pageSize = 20, from, to, teacherId, studentId, statusExact, hasReport, hasEvidence } = query;
+    this.logger.logMethodCall('listAdminBookings', { page, pageSize, from, to, teacherId, studentId, statusExact, hasReport, hasEvidence });
     const qb = this.bookingRepository
       .createQueryBuilder('b')
       .leftJoinAndSelect('b.student', 'student')
@@ -487,25 +536,31 @@ export class AdminService {
       };
     }));
 
-    return { items: mapped, page, pageSize, total };
+    const result = { items: mapped, page, pageSize, total };
+    this.logger.logMethodResult('listAdminBookings', { total, page, pageSize });
+    return result;
   }
 
   async getBookingsStats() {
+    this.logger.logMethodCall('getBookingsStats', {});
     const totalBookings = await this.bookingRepository.count();
     const completedBookings = await this.bookingRepository.count({ where: { status: BookingStatus.COMPLETED } });
     const scheduledBookings = await this.bookingRepository.count({ where: { status: BookingStatus.SCHEDULED } });
     const canceledBookings = await this.bookingRepository.count({ where: { status: BookingStatus.CANCELED } });
 
-    return {
+    const result = {
       total: totalBookings,
       completed: completedBookings,
       scheduled: scheduledBookings,
       canceled: canceledBookings
     };
+    this.logger.logMethodResult('getBookingsStats', result);
+    return result;
   }
 
   async getReports(query: any = {}) {
     let { from, to, teacherId, month } = query;
+    this.logger.logMethodCall('getReports', { from, to, teacherId, month });
 
     // 支援 month=YYYY-MM 快捷查詢
     if (month && (!from && !to)) {
@@ -556,7 +611,7 @@ export class AdminService {
       outstandingUSD: 0,
     };
 
-    return {
+    const result = {
       bookings: {
         total,
         completed,
@@ -580,38 +635,50 @@ export class AdminService {
       period: from && to ? `${from} to ${to}` : 'all',
       teacherId: teacherId || null,
     };
+    this.logger.logMethodResult('getReports', { total, completed, canceled, noshow, completedMinutes, teacherId, month });
+    return result;
   }
 
   private getSuggestedLabel(type: string): string {
+    this.logger.logMethodCall('getSuggestedLabel', { type });
+    let label = '';
     switch (type) {
       case 'trial_card':
-        return '新簽體驗課程';
+        label = '新簽體驗課程';
+        break;
       case 'lesson_card':
-        return '建議升級';
+        label = '建議升級';
+        break;
       case 'compensation_card':
-        return 'feedback課程補償';
+        label = 'feedback課程補償';
+        break;
       case 'cancel_card':
-        return '取消約課次卡';
+        label = '取消約課次卡';
+        break;
       default:
-        return '';
+        label = '';
     }
+    this.logger.logMethodResult('getSuggestedLabel', { type, label });
+    return label;
   }
 
   async resetSystemData(): Promise<void> {
+    this.logger.logMethodCall('resetSystemData', {});
     // 清除所有動態資料，保留基本設定
     await this.clearDynamicData();
     // 重新建立預設資料（僅在資料庫為空時）
     await this.createDefaultDataIfNeeded();
-    console.log('System data has been reset to initial state');
+    this.logger.logMethodResult('resetSystemData', { ok: true });
   }
 
   private async clearDynamicData(): Promise<void> {
+    this.logger.logMethodCall('clearDynamicData', {});
     // 清除資料，忽略不存在的表
     const clearTable = async (repository: any, tableName: string) => {
       try {
         await repository.createQueryBuilder().delete().execute();
       } catch (error) {
-        console.log(`Table ${tableName} does not exist, skipping...`);
+        this.logger.warn(`Table ${tableName} does not exist, skipping...`);
       }
     };
 
@@ -628,11 +695,13 @@ export class AdminService {
       await this.userRepository.delete({ role: UserRole.TEACHER });
       await this.userRepository.delete({ role: UserRole.STUDENT });
     } catch (error) {
-      console.log('Error deleting users:', error.message);
+      this.logger.warn(`Error deleting users: ${error.message}`);
     }
+    this.logger.logMethodResult('clearDynamicData', { ok: true });
   }
 
   private async createDefaultDataIfNeeded(): Promise<void> {
+    this.logger.logMethodCall('createDefaultDataIfNeeded', {});
     // 檢查是否已有預設資料（除了admin用戶）
     const existingUsers = await this.userRepository.count({
       where: [
@@ -642,11 +711,11 @@ export class AdminService {
     });
 
     if (existingUsers > 0) {
-      console.log('Default data already exists, skipping creation');
+      this.logger.debug('Default data already exists, skipping creation');
       return;
     }
 
-    console.log('Creating default data...');
+    this.logger.debug('Creating default data...');
 
     // 建立預設教師
     const teacherUser = await this.createTeacher({
@@ -703,10 +772,12 @@ export class AdminService {
 
     // 建立預設教材
     await this.createDefaultMaterials();
+    this.logger.logMethodResult('createDefaultDataIfNeeded', { createdTeachers: 2, createdStudents: 2 });
   }
 
   private async createTeacherAvailability(teacherId: string): Promise<void> {
-    const availabilityRecords = [];
+    this.logger.logMethodCall('createTeacherAvailability', { teacherId });
+    const availabilityRecords = [] as any[];
 
     // 為未來7天建立可用時間
     for (let day = 1; day <= 7; day++) {
@@ -726,9 +797,11 @@ export class AdminService {
     }
 
     await this.teacherAvailabilityRepository.save(availabilityRecords);
+    this.logger.logMethodResult('createTeacherAvailability', { teacherId, created: availabilityRecords.length });
   }
 
   private async createDefaultMaterials(): Promise<void> {
+    this.logger.logMethodCall('createDefaultMaterials', {});
     const materials = [
       {
         title: 'Free Talking',
@@ -757,5 +830,6 @@ export class AdminService {
     ];
 
     await this.materialRepository.save(materials);
+    this.logger.logMethodResult('createDefaultMaterials', { count: materials.length });
   }
 }

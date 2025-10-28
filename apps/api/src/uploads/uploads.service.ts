@@ -4,17 +4,20 @@ import { Repository } from 'typeorm';
 import { Upload } from '../entities/upload.entity';
 import { User, UserRole } from '../entities/user.entity';
 import { MinioService } from './minio.service';
-import { 
-  UPLOAD_CONFIG, 
-  FileCategory, 
-  FileVisibility, 
-  FILE_VISIBILITY_MAP 
+import {
+  UPLOAD_CONFIG,
+  FileCategory,
+  FileVisibility,
+  FILE_VISIBILITY_MAP
 } from './upload.config';
+import { LoggerService } from '../common/logger.service';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class UploadsService {
+  private readonly logger = new LoggerService('UploadsService');
+
   constructor(
     @InjectRepository(Upload)
     private uploadRepository: Repository<Upload>,
@@ -29,6 +32,7 @@ export class UploadsService {
     category: FileCategory,
     metadata?: Record<string, any>
   ): Promise<Upload> {
+    this.logger.logMethodCall('uploadFile', { userId, category, originalName: file?.originalname, size: file?.size });
     // 驗證文件類型和大小
     this.validateFile(file, category);
 
@@ -39,8 +43,8 @@ export class UploadsService {
     const fileExtension = path.extname(file.originalname);
     const fileName = `${uuidv4()}${fileExtension}`;
     const visibility = FILE_VISIBILITY_MAP[category];
-    const bucketName = visibility === FileVisibility.PUBLIC 
-      ? this.minioService.getPublicBucket() 
+    const bucketName = visibility === FileVisibility.PUBLIC
+      ? this.minioService.getPublicBucket()
       : this.minioService.getPrivateBucket();
 
     // 構建文件路徑
@@ -84,47 +88,60 @@ export class UploadsService {
       metadata,
     });
 
-    return await this.uploadRepository.save(upload);
+    const saved = await this.uploadRepository.save(upload);
+    this.logger.logMethodResult('uploadFile', { id: saved.id, bucket: saved.minioBucket, key: saved.minioKey });
+    return saved;
   }
 
   async getFile(fileId: string, userId: string, userRole: UserRole): Promise<Upload> {
+    this.logger.logMethodCall('getFile', { fileId, userId, userRole });
     const upload = await this.uploadRepository.findOne({
       where: { id: fileId },
       relations: ['user'],
     });
 
     if (!upload) {
+      this.logger.warn(`File not found: ${fileId}`);
       throw new NotFoundException('File not found');
     }
 
     // 檢查訪問權限
     await this.checkFileAccess(upload, userId, userRole);
 
+    this.logger.logMethodResult('getFile', { id: upload.id, category: upload.category, visibility: upload.visibility });
     return upload;
   }
 
   async getFileUrl(fileId: string, userId: string, userRole: UserRole): Promise<string> {
+    this.logger.logMethodCall('getFileUrl', { fileId, userId, userRole });
     const upload = await this.getFile(fileId, userId, userRole);
 
     if (upload.visibility === FileVisibility.PUBLIC && upload.publicUrl) {
-      return upload.cdnUrl || upload.publicUrl;
+      const url = upload.cdnUrl || upload.publicUrl;
+      this.logger.logMethodResult('getFileUrl', { id: upload.id, public: true });
+      return url;
     }
 
     // 私有文件生成臨時 URL
-    return await this.minioService.getFileUrl(upload.minioBucket, upload.minioKey);
+    const signed = await this.minioService.getFileUrl(upload.minioBucket, upload.minioKey);
+    this.logger.logMethodResult('getFileUrl', { id: upload.id, public: false });
+    return signed;
   }
 
   async deleteFile(fileId: string, userId: string, userRole: UserRole): Promise<void> {
+    this.logger.logMethodCall('deleteFile', { fileId, userId, userRole });
     const upload = await this.uploadRepository.findOne({
       where: { id: fileId },
     });
 
     if (!upload) {
+      this.logger.warn(`File not found: ${fileId}`);
       throw new NotFoundException('File not found');
     }
 
     // 檢查刪除權限
     if (upload.userId !== userId && userRole !== UserRole.ADMIN) {
+      this.logger.warn(`Delete denied. fileId=${fileId}, owner=${upload.userId}, caller=${userId}`);
       throw new ForbiddenException('No permission to delete this file');
     }
 
@@ -133,14 +150,16 @@ export class UploadsService {
 
     // 從數據庫刪除
     await this.uploadRepository.remove(upload);
+    this.logger.logMethodResult('deleteFile', { fileId, deleted: true });
   }
 
   async getUserFiles(
-    userId: string, 
+    userId: string,
     category?: FileCategory,
     page: number = 1,
     pageSize: number = 20
   ): Promise<{ items: Upload[]; total: number; page: number; pageSize: number }> {
+    this.logger.logMethodCall('getUserFiles', { userId, category, page, pageSize });
     const queryBuilder = this.uploadRepository.createQueryBuilder('upload')
       .where('upload.userId = :userId', { userId })
       .orderBy('upload.createdAt', 'DESC');
@@ -155,7 +174,9 @@ export class UploadsService {
       .take(pageSize)
       .getMany();
 
-    return { items, total, page, pageSize };
+    const result = { items, total, page, pageSize };
+    this.logger.logMethodResult('getUserFiles', { total: result.total, page: result.page, pageSize: result.pageSize });
+    return result;
   }
 
   private validateFile(file: any, category: FileCategory): void {

@@ -2,15 +2,19 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Notification } from '../entities/notification.entity';
+import { LoggerService } from '../common/logger.service';
 
 @Injectable()
 export class NotificationsService {
+  private readonly logger = new LoggerService('NotificationsService');
+
   constructor(
     @InjectRepository(Notification)
     private notificationRepository: Repository<Notification>,
   ) {}
 
   async findUserNotifications(userId: string, query: any = {}) {
+    this.logger.logMethodCall('findUserNotifications', { userId, ...query });
     const {
       unreadOnly = false,
       page = 1,
@@ -34,20 +38,24 @@ export class NotificationsService {
 
     const [items, total] = await queryBuilder.getManyAndCount();
 
-    return {
+    const result = {
       items,
       page: parseInt(page),
       pageSize: parseInt(pageSize),
       total,
     };
+    this.logger.logMethodResult('findUserNotifications', { userId, total, page, pageSize });
+    return result;
   }
 
   async markAsRead(notificationId: string, userId: string) {
+    this.logger.logMethodCall('markAsRead', { notificationId, userId });
     const notification = await this.notificationRepository.findOne({
       where: { id: notificationId, userId },
     });
 
     if (!notification) {
+      this.logger.warn(`Notification not found: ${notificationId} (user=${userId})`);
       throw new NotFoundException('Notification not found');
     }
 
@@ -56,6 +64,7 @@ export class NotificationsService {
       await this.notificationRepository.save(notification);
     }
 
+    this.logger.logMethodResult('markAsRead', { id: notification.id, readAt: notification.readAt });
     return {
       id: notification.id,
       readAt: notification.readAt,
@@ -63,6 +72,7 @@ export class NotificationsService {
   }
 
   async markMultipleAsRead(notificationIds: string[], userId: string) {
+    this.logger.logMethodCall('markMultipleAsRead', { count: notificationIds?.length || 0, userId });
     const result = await this.notificationRepository.update(
       {
         id: In(notificationIds),
@@ -74,6 +84,7 @@ export class NotificationsService {
       }
     );
 
+    this.logger.logMethodResult('markMultipleAsRead', { updated: result.affected || 0 });
     return {
       updated: result.affected || 0,
     };
@@ -86,7 +97,10 @@ export class NotificationsService {
     message: string;
     data?: any;
   }) {
+    this.logger.logMethodCall('createNotification', { userId: data.userId, type: data.type });
     const notification = this.notificationRepository.create(data);
-    return this.notificationRepository.save(notification);
+    const saved = await this.notificationRepository.save(notification);
+    this.logger.logMethodResult('createNotification', { id: saved.id, userId: saved.userId });
+    return saved;
   }
 }

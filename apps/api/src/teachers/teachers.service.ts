@@ -7,9 +7,12 @@ import { TeacherGallery, MediaType } from '../entities/teacher-gallery.entity';
 import { UpdateTeacherProfileDto } from './dto/update-teacher-profile.dto';
 import { UploadsService } from '../uploads/uploads.service';
 import { FileCategory } from '../uploads/upload.config';
+import { LoggerService } from '../common/logger.service';
 
 @Injectable()
 export class TeachersService {
+  private readonly logger = new LoggerService('TeachersService');
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -21,8 +24,10 @@ export class TeachersService {
   ) {}
 
   async findAll(query: any = {}) {
+    this.logger.debug(`Finding all teachers with query: ${JSON.stringify(query)}`);
+
     const { page = 1, pageSize = 20, domain, region, q, sort } = query;
-    
+
     const queryBuilder = this.userRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.teacherProfile', 'profile')
@@ -66,6 +71,8 @@ export class TeachersService {
 
     const [items, total] = await queryBuilder.getManyAndCount();
 
+    this.logger.log(`Found ${total} teachers (page ${page}, pageSize ${pageSize})`);
+
     return {
       items: items.map(user => this.formatTeacherCard(user)),
       page,
@@ -75,15 +82,19 @@ export class TeachersService {
   }
 
   async findById(id: string) {
+    this.logger.debug(`Finding teacher by ID: ${id}`);
+
     const user = await this.userRepository.findOne({
       where: { id, role: UserRole.TEACHER, active: true },
       relations: ['teacherProfile'],
     });
 
     if (!user || !user.teacherProfile) {
+      this.logger.warn(`Teacher not found: ${id}`);
       throw new Error('Teacher not found');
     }
 
+    this.logger.log(`Teacher found: ${user.name} (${id})`);
     return this.formatTeacherDetail(user);
   }
 

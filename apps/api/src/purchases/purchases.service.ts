@@ -6,9 +6,12 @@ import { User, UserRole } from '../entities/user.entity';
 import { CreatePurchaseDto } from './dto/create-purchase.dto';
 import { UpdatePurchaseDto } from './dto/update-purchase.dto';
 import { ActivatePurchaseDto } from './dto/activate-purchase.dto';
+import { LoggerService } from '../common/logger.service';
 
 @Injectable()
 export class PurchasesService {
+  private readonly logger = new LoggerService('PurchasesService');
+
   constructor(
     @InjectRepository(Purchase)
     private purchaseRepository: Repository<Purchase>,
@@ -17,10 +20,12 @@ export class PurchasesService {
   ) {}
 
   async findUserPurchases(userId: string, query: any = {}, callerRole: UserRole | string = UserRole.STUDENT) {
+    this.logger.logMethodCall('findUserPurchases', { userId, callerRole, ...query });
     const { page = 1, pageSize = 20, studentId, sort } = query;
 
     // Server-side 權限檢查：如果呼叫者不是 admin，但試圖查詢其他 student's 資料，直接拒絕
     if (studentId && studentId !== userId && callerRole !== UserRole.ADMIN && callerRole !== 'admin') {
+      this.logger.warn(`Forbidden purchases query by non-admin: caller=${userId}, target=${studentId}`);
       throw new ForbiddenException('Admin access required to view other users\' purchases');
     }
 
@@ -45,21 +50,25 @@ export class PurchasesService {
 
     const [items, total] = await queryBuilder.getManyAndCount();
 
-    return {
+    const result = {
       items: items.map(purchase => this.formatPurchaseItem(purchase)),
       page,
       pageSize,
       total,
     };
+    this.logger.logMethodResult('findUserPurchases', { targetUserId, total, page, pageSize });
+    return result;
   }
 
   async createPurchase(createPurchaseDto: CreatePurchaseDto, _adminUserId: string) {
+    this.logger.logMethodCall('createPurchase', { adminUserId: _adminUserId, studentId: createPurchaseDto.studentId, type: createPurchaseDto.type, quantity: createPurchaseDto.quantity });
     // 檢查學生是否存在
     const student = await this.userRepository.findOne({
       where: { id: createPurchaseDto.studentId, role: UserRole.STUDENT },
     });
 
     if (!student) {
+      this.logger.warn(`Student not found: ${createPurchaseDto.studentId}`);
       throw new NotFoundException('Student not found');
     }
 
@@ -76,13 +85,17 @@ export class PurchasesService {
     });
 
     const savedPurchase = await this.purchaseRepository.save(purchase);
-    return this.formatPurchaseItem(savedPurchase);
+    const formatted = this.formatPurchaseItem(savedPurchase);
+    this.logger.logMethodResult('createPurchase', { id: formatted.id, studentId: formatted.studentId, type: formatted.type });
+    return formatted;
   }
 
   async updatePurchase(id: string, updatePurchaseDto: UpdatePurchaseDto) {
+    this.logger.logMethodCall('updatePurchase', { id, ...updatePurchaseDto });
     const purchase = await this.purchaseRepository.findOne({ where: { id } });
 
     if (!purchase) {
+      this.logger.warn(`Purchase not found: ${id}`);
       throw new NotFoundException('Purchase not found');
     }
 
@@ -107,31 +120,39 @@ export class PurchasesService {
     }
 
     const savedPurchase = await this.purchaseRepository.save(purchase);
-    return this.formatPurchaseItem(savedPurchase);
+    const formatted = this.formatPurchaseItem(savedPurchase);
+    this.logger.logMethodResult('updatePurchase', { id: formatted.id, status: formatted.status, remaining: formatted.remaining });
+    return formatted;
   }
 
   async deletePurchase(id: string) {
+    this.logger.logMethodCall('deletePurchase', { id });
     const purchase = await this.purchaseRepository.findOne({ where: { id } });
 
     if (!purchase) {
+      this.logger.warn(`Purchase not found: ${id}`);
       throw new NotFoundException('Purchase not found');
     }
 
     await this.purchaseRepository.remove(purchase);
+    this.logger.logMethodResult('deletePurchase', { id, deleted: true });
     return { message: 'Purchase deleted successfully' };
   }
 
   async activatePurchase(id: string, userId: string, activateDto?: ActivatePurchaseDto, isAdmin: boolean = false) {
+    this.logger.logMethodCall('activatePurchase', { id, userId, isAdmin, customExpireDays: activateDto?.customExpireDays });
     const whereCondition = isAdmin ? { id } : { id, studentId: userId };
     const purchase = await this.purchaseRepository.findOne({
       where: whereCondition,
     });
 
     if (!purchase) {
+      this.logger.warn(`Purchase not found: ${id}`);
       throw new NotFoundException('Purchase not found');
     }
 
     if (purchase.status !== PurchaseStatus.DRAFT) {
+      this.logger.warn(`Purchase already activated: ${id} (status=${purchase.status})`);
       throw new BadRequestException('Purchase already activated');
     }
 
@@ -151,23 +172,30 @@ export class PurchasesService {
     purchase.expiresAt = new Date(Date.now() + expireDays * 24 * 60 * 60 * 1000);
 
     const savedPurchase = await this.purchaseRepository.save(purchase);
-    return this.formatPurchaseItem(savedPurchase);
+    const formatted = this.formatPurchaseItem(savedPurchase);
+    this.logger.logMethodResult('activatePurchase', { id: formatted.id, expiresAt: formatted.expiresAt });
+    return formatted;
   }
 
   async extendPurchase(id: string, newExpiresAt: Date) {
+    this.logger.logMethodCall('extendPurchase', { id, newExpiresAt });
     const purchase = await this.purchaseRepository.findOne({ where: { id } });
 
     if (!purchase) {
+      this.logger.warn(`Purchase not found: ${id}`);
       throw new Error('Purchase not found');
     }
 
     purchase.expiresAt = newExpiresAt;
     await this.purchaseRepository.save(purchase);
 
-    return this.formatPurchaseItem(purchase);
+    const formatted = this.formatPurchaseItem(purchase);
+    this.logger.logMethodResult('extendPurchase', { id: formatted.id, expiresAt: formatted.expiresAt });
+    return formatted;
   }
 
   async consumeCards(studentId: string, slotsNeeded: number, bookingId: string, cardTypes?: PurchaseType[]) {
+    this.logger.logMethodCall('consumeCards', { studentId, slotsNeeded, bookingId, cardTypes });
     // 預設使用課卡類型
     const defaultCardTypes = [PurchaseType.LESSON_CARD, PurchaseType.TRIAL_CARD, PurchaseType.COMPENSATION_CARD];
     const targetCardTypes = cardTypes || defaultCardTypes;
@@ -186,12 +214,13 @@ export class PurchasesService {
     let totalAvailable = availableCards.reduce((sum, card) => sum + card.remaining, 0);
 
     if (totalAvailable < slotsNeeded) {
+      this.logger.warn(`Insufficient cards for student=${studentId}. Need ${slotsNeeded}, available ${totalAvailable}`);
       throw new BadRequestException(`Insufficient cards. Need ${slotsNeeded}, available ${totalAvailable}`);
     }
 
     // 扣除卡片
     let remainingToConsume = slotsNeeded;
-    const consumedCards = [];
+    const consumedCards = [] as Array<{ purchaseId: string; type: PurchaseType; consumed: number; remaining: number }>;
 
     for (const card of availableCards) {
       if (remainingToConsume <= 0) break;
@@ -207,7 +236,7 @@ export class PurchasesService {
 
       consumedCards.push({
         purchaseId: card.id,
-        type: card.type,
+        type: card.type as PurchaseType,
         consumed: toConsume,
         remaining: card.remaining,
       });
@@ -215,16 +244,21 @@ export class PurchasesService {
       remainingToConsume -= toConsume;
     }
 
-    return {
+    const result = {
       consumed: slotsNeeded,
       consumedCards,
       bookingId,
     };
+    this.logger.logMethodResult('consumeCards', { consumed: result.consumed, items: consumedCards.length, bookingId });
+    return result;
   }
 
   async consumeCancelCards(studentId: string, cancelCardsNeeded: number, bookingId: string) {
+    this.logger.logMethodCall('consumeCancelCards', { studentId, cancelCardsNeeded, bookingId });
     try {
-      return await this.consumeCards(studentId, cancelCardsNeeded, bookingId, [PurchaseType.CANCEL_CARD]);
+      const res = await this.consumeCards(studentId, cancelCardsNeeded, bookingId, [PurchaseType.CANCEL_CARD]);
+      this.logger.logMethodResult('consumeCancelCards', { consumed: res.consumed, bookingId });
+      return res;
     } catch (error) {
       // 如果沒有足夠的取消卡，返回部分消耗結果
       const availableCancelCards = await this.purchaseRepository
@@ -240,15 +274,19 @@ export class PurchasesService {
       const totalAvailable = availableCancelCards.reduce((sum, card) => sum + card.remaining, 0);
 
       if (totalAvailable === 0) {
+        this.logger.warn(`No cancel cards available for student=${studentId}`);
         throw new BadRequestException('No cancel cards available');
       }
 
       // 消耗所有可用的取消卡
-      return await this.consumeCards(studentId, totalAvailable, bookingId, [PurchaseType.CANCEL_CARD]);
+      const res = await this.consumeCards(studentId, totalAvailable, bookingId, [PurchaseType.CANCEL_CARD]);
+      this.logger.logMethodResult('consumeCancelCards', { consumed: res.consumed, fallback: true, bookingId });
+      return res;
     }
   }
 
   async refundCards(studentId: string, slotsToRefund: number, originalBookingId: string) {
+    this.logger.logMethodCall('refundCards', { studentId, slotsToRefund, originalBookingId });
     // 查找最近消耗的卡片記錄（這裡簡化處理，實際應該有消耗記錄表）
     const recentCards = await this.purchaseRepository
       .createQueryBuilder('purchase')
@@ -286,25 +324,32 @@ export class PurchasesService {
       }
     }
 
-    return {
+    const result = {
       refunded: slotsToRefund - remainingToRefund,
       refundedCards,
       originalBookingId,
     };
+    this.logger.logMethodResult('refundCards', { refunded: result.refunded, items: refundedCards.length, originalBookingId });
+    return result;
   }
 
   async getPurchaseById(id: string, callerUserId: string, callerRole: UserRole | string = UserRole.STUDENT) {
+    this.logger.logMethodCall('getPurchaseById', { id, callerUserId, callerRole });
     const purchase = await this.purchaseRepository.findOne({ where: { id }, relations: ['student'] });
     if (!purchase) {
+      this.logger.warn(`Purchase not found: ${id}`);
       throw new NotFoundException('Purchase not found');
     }
 
     // 只有 admin 或是該 purchase 的擁有者可以查看
     if (callerRole !== UserRole.ADMIN && callerRole !== 'admin' && purchase.studentId !== callerUserId) {
+      this.logger.warn(`Access denied to purchase=${id} by caller=${callerUserId} role=${callerRole}`);
       throw new ForbiddenException('Access denied');
     }
 
-    return this.formatPurchaseItem(purchase);
+    const formatted = this.formatPurchaseItem(purchase);
+    this.logger.logMethodResult('getPurchaseById', { id: formatted.id, status: formatted.status });
+    return formatted;
   }
 
   private getSuggestedLabel(type: PurchaseType): string {

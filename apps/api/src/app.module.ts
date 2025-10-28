@@ -5,6 +5,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 
+import { LoggerModule } from './common/logger.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { TeachersModule } from './teachers/teachers.module';
@@ -49,6 +50,9 @@ import { ReportsModule } from './reports/reports.module';
         limit: 100, // 100 次請求
       },
     ]),
+
+    // 日誌模組
+    LoggerModule,
 
     // 功能模組
     AuthModule,
