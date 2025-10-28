@@ -115,7 +115,7 @@ async function run() {
     } catch (e) {
       log.warn(`set-availability skipped: ${e.message}`);
     }
-    const timetable = await api(`/teacher-availability/teacher-timetable?teacherId=${encodeURIComponent(teacherId)}&date=${date}&timezone=${encodeURIComponent(TZ)}`);
+    const timetable = await api(`/teacher-availability/teacher-timetable?teacherId=${encodeURIComponent(teacherId)}&date=${date}`);
     const tt = timetable.data || [];
     log.ok(`Timetable items: ${tt.length}`);
 
@@ -124,8 +124,15 @@ async function run() {
     const toISO = new Date(Date.now() + 40 * 3600 * 1000).toISOString();
     let tsItems = [];
     try {
-      const timeslots = await api(`/timeslots?teacherId=${encodeURIComponent(teacherId)}&from=${encodeURIComponent(fromISO)}&to=${encodeURIComponent(toISO)}&tz=${encodeURIComponent(TZ)}&duration=30`);
-      tsItems = timeslots.items || [];
+      // 使用 teacher-availability/search-teachers 替代已移除的 timeslots 端點
+      const searchDate = new Date(fromISO).toISOString().split('T')[0];
+      const fromTime = new Date(fromISO).toTimeString().slice(0, 5);
+      const toTime = new Date(toISO).toTimeString().slice(0, 5);
+      const timeslots = await api(`/teacher-availability/search-teachers?date=${searchDate}&fromTime=${fromTime}&toTime=${toTime}`);
+
+      // 轉換為原本 timeslots 的格式（教師 ID 陣列）
+      const teacherIds = Array.isArray(timeslots) ? timeslots : (timeslots.data || []);
+      tsItems = teacherIds || [];
       log.ok(`Timeslots: ${tsItems.length}`);
     } catch (e) {
       log.warn(`Timeslots endpoint unavailable: ${e.message}`);
@@ -188,7 +195,6 @@ async function run() {
           teacherId,
           startsAt: startsAtISO,
           durationMinutes: 30,
-          timezone: TZ,
           courseTitle: 'E2E Test Lesson',
           message: 'E2E booking test'
         }

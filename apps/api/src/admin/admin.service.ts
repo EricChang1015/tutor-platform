@@ -57,7 +57,6 @@ export class AdminService {
         'user.phone',
         'user.bio',
         'user.avatarUrl',
-        'user.timezone',
         'user.active',
         'user.createdAt',
         'user.updatedAt',

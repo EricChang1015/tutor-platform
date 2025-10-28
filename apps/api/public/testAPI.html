@@ -603,7 +603,6 @@
         running: false
     };
     let requestLogs = []; // 新增：儲存所有請求日誌
-     // 新增：當前選擇的時區
 	
 	const today = new Date();
 	const tomorrow = new Date();
@@ -621,17 +620,25 @@
 
     
 
-    ;
+    // 更新時區顯示
+    function updateCurrentTimeDisplay() {
+        const timeSpan = document.getElementById('current-time');
+        if (timeSpan) {
+            const now = new Date();
+            const options = {
+                timeZone: 'Asia/Taipei',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            };
             const localTime = now.toLocaleString('zh-TW', options);
             timeSpan.textContent = `當前時間: ${localTime}`;
         }
     }
 
     // 初始化時區顯示
-    
-
+    function initializeTimezone() {
         updateCurrentTimeDisplay();
-
         // 每秒更新時間顯示
         setInterval(updateCurrentTimeDisplay, 1000);
     }
@@ -1532,7 +1539,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         initializeTestSuites();
         updateRoleCredentials();
-        
+        initializeTimezone();
 
         // 角色切換事件
         document.getElementById('userRole').addEventListener('change', updateRoleCredentials);
