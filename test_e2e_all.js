@@ -140,9 +140,7 @@ async function run() {
 
     // Pick a start time
     let startsAtISO;
-    if (tsItems.length > 0) {
-      startsAtISO = tsItems[0].start;
-    } else if (tt.length > 0 && tt[0].startTimeUtc) {
+    if (tt.length > 0 && tt[0].startTimeUtc) {
       startsAtISO = tt[0].startTimeUtc;
     } else {
       // fallback: tomorrow at 09:00 +08:00
