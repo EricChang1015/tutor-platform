@@ -18,10 +18,7 @@ export class UpdateUserDto {
   @IsString()
   bio?: string;
 
-  @ApiProperty({ description: '時區', required: false })
-  @IsOptional()
-  @IsString()
-  timezone?: string;
+
 
   @ApiProperty({ description: '帳號是否啟用', required: false })
   @IsOptional()

@@ -6,33 +6,29 @@ import { DateTime } from 'luxon';
  */
 export class TimezoneUtil {
   /**
-   * 驗證時區是否有效
-   * @param timezone IANA 時區名稱，例如 'Asia/Taipei'
+   * 驗證時區是否有效（統一使用 Asia/Taipei）
+   * @param timezone IANA 時區名稱
    * @returns 是否有效
    */
   static isValidTimezone(timezone: string): boolean {
-    try {
-      DateTime.now().setZone(timezone);
-      return DateTime.now().setZone(timezone).isValid;
-    } catch {
-      return false;
-    }
+    // 統一使用 Asia/Taipei 時區，不再驗證其他時區
+    return timezone === 'Asia/Taipei';
   }
 
   /**
-   * 將日期和時間槽轉換為 UTC DateTime
+   * 將日期和時間槽轉換為 UTC DateTime（統一使用 Asia/Taipei）
    * @param date 日期字串 (YYYY-MM-DD)
    * @param timeSlot 時間槽 (0-47)
-   * @param timezone IANA 時區名稱
+   * @param timezone IANA 時區名稱（忽略，統一使用 Asia/Taipei）
    * @returns UTC DateTime 物件
    */
-  static slotToUtc(date: string, timeSlot: number, timezone: string): DateTime {
+  static slotToUtc(date: string, timeSlot: number, timezone: string = 'Asia/Taipei'): DateTime {
     const hours = Math.floor(timeSlot / 2);
     const minutes = (timeSlot % 2) * 30;
     
-    // 在指定時區創建 DateTime
+    // 在 Asia/Taipei 時區創建 DateTime
     const localDateTime = DateTime.fromISO(`${date}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`, {
-      zone: timezone
+      zone: 'Asia/Taipei'
     });
 
     // 轉換為 UTC
@@ -40,13 +36,13 @@ export class TimezoneUtil {
   }
 
   /**
-   * 將 UTC DateTime 轉換為指定時區的日期和時間槽
+   * 將 UTC DateTime 轉換為 Asia/Taipei 時區的日期和時間槽
    * @param utcDateTime UTC DateTime 物件
-   * @param timezone IANA 時區名稱
+   * @param timezone IANA 時區名稱（忽略，統一使用 Asia/Taipei）
    * @returns { date: string, timeSlot: number }
    */
-  static utcToSlot(utcDateTime: DateTime, timezone: string): { date: string; timeSlot: number } {
-    const localDateTime = utcDateTime.setZone(timezone);
+  static utcToSlot(utcDateTime: DateTime, timezone: string = 'Asia/Taipei'): { date: string; timeSlot: number } {
+    const localDateTime = utcDateTime.setZone('Asia/Taipei');
     const hours = localDateTime.hour;
     const minutes = localDateTime.minute;
     const timeSlot = hours * 2 + (minutes >= 30 ? 1 : 0);
@@ -100,16 +96,16 @@ export class TimezoneUtil {
   }
 
   /**
-   * 計算預約佔用的時間槽
+   * 計算預約佔用的時間槽（統一使用 Asia/Taipei）
    * @param startsAt 開始時間 (ISO 8601 字串或 Date)
    * @param durationMinutes 持續時間（分鐘）
-   * @param timezone IANA 時區名稱
+   * @param timezone IANA 時區名稱（忽略，統一使用 Asia/Taipei）
    * @returns 時間槽陣列
    */
   static calculateOccupiedSlots(
     startsAt: string | Date,
     durationMinutes: number,
-    timezone: string
+    timezone: string = 'Asia/Taipei'
   ): number[] {
     let startDateTime: DateTime;
 
@@ -119,8 +115,8 @@ export class TimezoneUtil {
       startDateTime = DateTime.fromJSDate(startsAt);
     }
 
-    // 轉換到指定時區
-    const localDateTime = startDateTime.setZone(timezone);
+    // 轉換到 Asia/Taipei 時區
+    const localDateTime = startDateTime.setZone('Asia/Taipei');
     const startHour = localDateTime.hour;
     const startMinute = localDateTime.minute;
     const startSlot = startHour * 2 + (startMinute >= 30 ? 1 : 0);
@@ -147,26 +143,26 @@ export class TimezoneUtil {
   }
 
   /**
-   * 將 Date 轉換為指定時區的 ISO 8601 字串
+   * 將 Date 轉換為 Asia/Taipei 時區的 ISO 8601 字串
    * @param date Date 物件
-   * @param timezone IANA 時區名稱
+   * @param timezone IANA 時區名稱（忽略，統一使用 Asia/Taipei）
    * @returns ISO 8601 字串
    */
-  static dateToIsoInTimezone(date: Date, timezone: string): string {
-    const dateTime = DateTime.fromJSDate(date).setZone(timezone);
+  static dateToIsoInTimezone(date: Date, timezone: string = 'Asia/Taipei'): string {
+    const dateTime = DateTime.fromJSDate(date).setZone('Asia/Taipei');
     return dateTime.toISO() || '';
   }
 
   /**
-   * 格式化時間為易讀格式
+   * 格式化時間為易讀格式（統一使用 Asia/Taipei）
    * @param date Date 物件或 ISO 字串
-   * @param timezone IANA 時區名稱
+   * @param timezone IANA 時區名稱（忽略，統一使用 Asia/Taipei）
    * @param format 格式字串（Luxon 格式）
    * @returns 格式化後的字串
    */
   static formatTime(
     date: Date | string,
-    timezone: string,
+    timezone: string = 'Asia/Taipei',
     format: string = 'yyyy-MM-dd HH:mm:ss'
   ): string {
     let dateTime: DateTime;
@@ -177,7 +173,7 @@ export class TimezoneUtil {
       dateTime = DateTime.fromJSDate(date);
     }
 
-    return dateTime.setZone(timezone).toFormat(format);
+    return dateTime.setZone('Asia/Taipei').toFormat(format);
   }
 
   /**
@@ -189,12 +185,12 @@ export class TimezoneUtil {
   }
 
   /**
-   * 獲取指定時區的當前時間
-   * @param timezone IANA 時區名稱
+   * 獲取 Asia/Taipei 時區的當前時間
+   * @param timezone IANA 時區名稱（忽略，統一使用 Asia/Taipei）
    * @returns Date 物件
    */
-  static nowInTimezone(timezone: string): Date {
-    return DateTime.now().setZone(timezone).toJSDate();
+  static nowInTimezone(timezone: string = 'Asia/Taipei'): Date {
+    return DateTime.now().setZone('Asia/Taipei').toJSDate();
   }
 
   /**
@@ -260,48 +256,48 @@ export class TimezoneUtil {
   }
 
   /**
-   * 將本地時間字串轉換為 UTC
+   * 將 Asia/Taipei 時間字串轉換為 UTC
    * @param localTimeString 本地時間字串 (YYYY-MM-DD HH:MM:SS)
-   * @param timezone IANA 時區名稱
+   * @param timezone IANA 時區名稱（忽略，統一使用 Asia/Taipei）
    * @returns UTC Date 物件
    */
-  static localToUtc(localTimeString: string, timezone: string): Date {
+  static localToUtc(localTimeString: string, timezone: string = 'Asia/Taipei'): Date {
     const dateTime = DateTime.fromFormat(localTimeString, 'yyyy-MM-dd HH:mm:ss', {
-      zone: timezone
+      zone: 'Asia/Taipei'
     });
     return dateTime.toUTC().toJSDate();
   }
 
   /**
-   * 將 UTC 時間轉換為本地時間字串
+   * 將 UTC 時間轉換為 Asia/Taipei 時間字串
    * @param utcDate UTC Date 物件
-   * @param timezone IANA 時區名稱
+   * @param timezone IANA 時區名稱（忽略，統一使用 Asia/Taipei）
    * @returns 本地時間字串 (YYYY-MM-DD HH:MM:SS)
    */
-  static utcToLocal(utcDate: Date, timezone: string): string {
-    const dateTime = DateTime.fromJSDate(utcDate).setZone(timezone);
+  static utcToLocal(utcDate: Date, timezone: string = 'Asia/Taipei'): string {
+    const dateTime = DateTime.fromJSDate(utcDate).setZone('Asia/Taipei');
     return dateTime.toFormat('yyyy-MM-dd HH:mm:ss');
   }
 
   /**
-   * 將 UTC Date 轉換為指定時區的 DateTime 物件
+   * 將 UTC Date 轉換為 Asia/Taipei 時區的 DateTime 物件
    * @param utcDate UTC Date 物件
-   * @param timezone IANA 時區名稱
+   * @param timezone IANA 時區名稱（忽略，統一使用 Asia/Taipei）
    * @returns Luxon DateTime 物件
    */
-  static utcToDateTime(utcDate: Date, timezone: string): DateTime {
-    return DateTime.fromJSDate(utcDate).setZone(timezone);
+  static utcToDateTime(utcDate: Date, timezone: string = 'Asia/Taipei'): DateTime {
+    return DateTime.fromJSDate(utcDate).setZone('Asia/Taipei');
   }
 
   /**
-   * 將本地日期時間字串轉換為 UTC Date
+   * 將 Asia/Taipei 日期時間字串轉換為 UTC Date
    * @param localDateTimeString 本地日期時間字串 (YYYY-MM-DD HH:MM:SS)
-   * @param timezone IANA 時區名稱
+   * @param timezone IANA 時區名稱（忽略，統一使用 Asia/Taipei）
    * @returns UTC Date 物件
    */
-  static dateToUtc(localDateTimeString: string, timezone: string): Date {
+  static dateToUtc(localDateTimeString: string, timezone: string = 'Asia/Taipei'): Date {
     const dateTime = DateTime.fromFormat(localDateTimeString, 'yyyy-MM-dd HH:mm:ss', {
-      zone: timezone
+      zone: 'Asia/Taipei'
     });
     return dateTime.toUTC().toJSDate();
   }

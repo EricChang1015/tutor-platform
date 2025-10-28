@@ -44,28 +44,11 @@
             opacity: 0.9;
         }
 
-        .timezone-selector {
-            margin: 20px 0;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            text-align: center;
-        }
+        
 
-        .timezone-selector label {
-            color: white;
-            font-weight: bold;
-            margin-right: 10px;
-        }
+        
 
-        .timezone-selector select {
-            padding: 8px 12px;
-            border-radius: 5px;
-            border: none;
-            background: white;
-            color: #333;
-            font-size: 14px;
-        }
+        
 
         .main-content {
             display: flex;
@@ -528,21 +511,8 @@
 <div class="container">
     <div class="header">
         <h1>🎓 家教平台 API 完整測試工具</h1>
-        <p>自動化測試所有 API 端點，驗證功能和權限 - 支援時區功能</p>
-        <div class="timezone-selector">
-            <label for="timezone-select">🌍 測試時區：</label>
-            <select id="timezone-select" onchange="updateTimezone()">
-                <option value="Asia/Taipei">台北 (Asia/Taipei)</option>
-                <option value="America/New_York">紐約 (America/New_York)</option>
-                <option value="America/Los_Angeles">洛杉磯 (America/Los_Angeles)</option>
-                <option value="Europe/London">倫敦 (Europe/London)</option>
-                <option value="Europe/Paris">巴黎 (Europe/Paris)</option>
-                <option value="Asia/Tokyo">東京 (Asia/Tokyo)</option>
-                <option value="Asia/Shanghai">上海 (Asia/Shanghai)</option>
-                <option value="UTC">UTC</option>
-            </select>
-            <span id="current-time" style="margin-left: 20px; color: rgba(255,255,255,0.8);"></span>
-        </div>
+        <p>自動化測試所有 API 端點，驗證功能和權限</p>
+        
     </div>
 
     <div class="main-content">
@@ -633,7 +603,7 @@
         running: false
     };
     let requestLogs = []; // 新增：儲存所有請求日誌
-    let currentTimezone = 'Asia/Taipei'; // 新增：當前選擇的時區
+     // 新增：當前選擇的時區
 	
 	const today = new Date();
 	const tomorrow = new Date();
@@ -647,49 +617,18 @@
     const API_BASE = window.location.origin;
 
     // 時區相關函數
-    function getCurrentTimezone() {
-        return currentTimezone;
-    }
+    
 
-    function updateTimezone() {
-        const select = document.getElementById('timezone-select');
-        currentTimezone = select.value;
-        updateCurrentTimeDisplay();
-        console.log('時區已更新為:', currentTimezone);
-    }
+    
 
-    function updateCurrentTimeDisplay() {
-        const timeSpan = document.getElementById('current-time');
-        if (timeSpan) {
-            const now = new Date();
-            const options = {
-                timeZone: currentTimezone,
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false
-            };
+    ;
             const localTime = now.toLocaleString('zh-TW', options);
             timeSpan.textContent = `當前時間: ${localTime}`;
         }
     }
 
     // 初始化時區顯示
-    function initializeTimezone() {
-        // 嘗試檢測用戶的時區
-        const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const select = document.getElementById('timezone-select');
-
-        // 如果用戶時區在選項中，則設為預設值
-        const options = Array.from(select.options);
-        const userOption = options.find(option => option.value === userTimezone);
-        if (userOption) {
-            select.value = userTimezone;
-            currentTimezone = userTimezone;
-        }
+    
 
         updateCurrentTimeDisplay();
 
@@ -850,48 +789,24 @@
             tests: [
                 {
                     id: 'search_teachers',
-                    name: '搜尋可用教師 (台北時區)',
+                    name: '搜尋可用教師',
                     method: 'GET',
-                    endpoint: () => `/teacher-availability/search-teachers?date=${tomorrowString}&fromTime=14:00&toTime=15:00&timezone=${getCurrentTimezone()}`,
+                    endpoint: () => `/teacher-availability/search-teachers?date=${tomorrowString}&fromTime=14:00&toTime=15:00&`,
                     requireAuth: false,
                     expectedStatus: 200,
                     expectedFields: ['code', 'msg', 'data']
-                },
-                {
-                    id: 'search_teachers_cross_timezone',
-                    name: '搜尋可用教師 (跨時區測試)',
-                    method: 'GET',
-                    endpoint: `/teacher-availability/search-teachers?date=${tomorrowString}&fromTime=02:00&toTime=03:00&timezone=America/New_York`,
-                    requireAuth: false,
-                    expectedStatus: 200,
-                    expectedFields: ['code', 'msg', 'data']
+                }&fromTime=02:00&toTime=03:00'code', 'msg', 'data']
                 },
                 {
                     id: 'teacher_timetable',
-                    name: '教師時間表 (當前時區)',
+                    name: '教師時間表',
                     method: 'GET',
-                    endpoint: () => `/teacher-availability/teacher-timetable?teacherId=3ac75e02-e751-440d-a21a-ffe8f6f1b79b&date=${tomorrowString}&timezone=${getCurrentTimezone()}`,
+                    endpoint: () => `/teacher-availability/teacher-timetable?teacherId=3ac75e02-e751-440d-a21a-ffe8f6f1b79b&date=${tomorrowString}&`,
                     requireAuth: false,
                     expectedStatus: 200,
                     expectedFields: ['code', 'msg', 'data']
-                },
-                {
-                    id: 'teacher_timetable_cross_timezone',
-                    name: '教師時間表 (跨時區)',
-                    method: 'GET',
-                    endpoint: `/teacher-availability/teacher-timetable?teacherId=3ac75e02-e751-440d-a21a-ffe8f6f1b79b&date=${tomorrowString}&timezone=Europe/London`,
-                    requireAuth: false,
-                    expectedStatus: 200,
-                    expectedFields: ['code', 'msg', 'data']
-                },
-                {
-                    id: 'teacher_timetable_timezone_validation',
-                    name: '時區修復驗證 (上海vs台北)',
-                    method: 'GET',
-                    endpoint: `/teacher-availability/teacher-timetable?teacherId=3ac75e02-e751-440d-a21a-ffe8f6f1b79b&date=${tomorrowString}&timezone=Asia/Shanghai`,
-                    requireAuth: false,
-                    expectedStatus: 200,
-                    expectedFields: ['code', 'msg', 'data'],
+                }'code', 'msg', 'data']
+                }'code', 'msg', 'data'],
                     customValidation: (response) => {
                         if (response.data && response.data.length > 0) {
                             const firstSlot = response.data[0];
@@ -911,10 +826,7 @@
                     id: 'teacher_timetable_newyork_validation',
                     name: '時區修復驗證 (紐約時區)',
                     method: 'GET',
-                    endpoint: `/teacher-availability/teacher-timetable?teacherId=3ac75e02-e751-440d-a21a-ffe8f6f1b79b&date=${tomorrowString}&timezone=America/New_York`,
-                    requireAuth: false,
-                    expectedStatus: 200,
-                    expectedFields: ['code', 'msg', 'data'],
+                    endpoint: `/teacher-availability/teacher-timetable?teacherId=3ac75e02-e751-440d-a21a-ffe8f6f1b79b&date=${tomorrowString}'code', 'msg', 'data'],
                     customValidation: (response) => {
                         if (response.data && response.data.length > 0) {
                             const firstSlot = response.data[0];
@@ -961,25 +873,16 @@
             tests: [
                 {
                     id: 'bookings_list',
-                    name: '預約清單 (當前時區)',
+                    name: '預約清單',
                     method: 'GET',
-                    endpoint: () => `/bookings?timezone=${getCurrentTimezone()}`,
-                    requireAuth: true,
-                    expectedStatus: 200,
-                    expectedFields: ['items']
-                },
-                {
-                    id: 'bookings_list_cross_timezone',
-                    name: '預約清單 (跨時區)',
-                    method: 'GET',
-                    endpoint: '/bookings?timezone=America/New_York',
+                    endpoint: () => `/bookings?`,
                     requireAuth: true,
                     expectedStatus: 200,
                     expectedFields: ['items']
                 },
                 {
                     id: 'bookings_create',
-                    name: '建立預約 (台北時區)',
+                    name: '建立預約',
                     method: 'POST',
                     endpoint: '/bookings',
                     requireAuth: true,
@@ -990,26 +893,14 @@
                             teacherId: '3ac75e02-e751-440d-a21a-ffe8f6f1b79b',
                             startsAt: `${tomorrowString}T16:00:00+08:00`, // 台北時間下午4點
                             durationMinutes: 30,
-                            timezone: 'Asia/Taipei',
+                            
                             courseTitle: '時區測試課程 - 台北時間',
                             message: '測試台北時區預約功能'
                         };
                     }
-                },
-                {
-                    id: 'bookings_create_cross_timezone',
-                    name: '建立預約 (跨時區 - 紐約)',
-                    method: 'POST',
-                    endpoint: '/bookings',
-                    requireAuth: true,
-                    expectedStatus: 201,
-                    data: () => {
-                        // 紐約時間早上4點 = 台北時間下午5點
-                        return {
-                            teacherId: '3ac75e02-e751-440d-a21a-ffe8f6f1b79b',
-                            startsAt: `${tomorrowString}T04:00:00-05:00`, // 紐約時間早上4點
+                }T04:00:00-05:00`, // 紐約時間早上4點
                             durationMinutes: 30,
-                            timezone: 'America/New_York',
+                            
                             courseTitle: '時區測試課程 - 紐約時間',
                             message: '測試跨時區預約功能'
                         };
@@ -1641,7 +1532,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         initializeTestSuites();
         updateRoleCredentials();
-        initializeTimezone(); // 初始化時區功能
+        
 
         // 角色切換事件
         document.getElementById('userRole').addEventListener('change', updateRoleCredentials);

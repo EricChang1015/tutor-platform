@@ -85,7 +85,7 @@ export class TeacherAvailabilityController {
   @ApiOperation({ summary: '取得教師時間表' })
   @ApiQuery({ name: 'teacherId', description: '教師 ID' })
   @ApiQuery({ name: 'date', description: '日期 (YYYY-MM-DD)', example: '2025-10-01' })
-  @ApiQuery({ name: 'timezone', description: 'IANA 時區名稱', example: 'Asia/Taipei', required: false })
+
   @ApiResponse({
     status: 200,
     description: '教師時間表',

@@ -38,7 +38,8 @@ export class BookingsService {
   ) {}
 
   async findUserBookings(userId: string, query: any = {}) {
-    const { page = 1, pageSize = 20, roleView, from, to, status, sort, timezone = 'Asia/Taipei' } = query;
+    const { page = 1, pageSize = 20, roleView, from, to, status, sort } = query;
+    const timezone = 'Asia/Taipei'; // 統一使用單一時區
     this.logger.logMethodCall('findUserBookings', { userId, page, pageSize, roleView, from, to, status, sort, timezone });
 
     const queryBuilder = this.bookingRepository
@@ -116,14 +117,9 @@ export class BookingsService {
   }
 
   async createBooking(createBookingDto: CreateBookingDto, userId: string) {
-    const { teacherId, startsAt, durationMinutes = 30, timezone = 'Asia/Taipei' } = createBookingDto;
+    const { teacherId, startsAt, durationMinutes = 30 } = createBookingDto;
+    const timezone = 'Asia/Taipei'; // 統一使用單一時區
     this.logger.logMethodCall('createBooking', { userId, teacherId, startsAt, durationMinutes, timezone });
-
-    // 驗證時區
-    if (!TimezoneUtil.isValidTimezone(timezone)) {
-      this.logger.warn(`Invalid timezone: ${timezone}`);
-      throw new BadRequestException(`Invalid timezone: ${timezone}`);
-    }
 
     // 驗證必要參數
     if (!teacherId || !startsAt) {
@@ -158,8 +154,8 @@ export class BookingsService {
       throw new NotFoundException('Teacher not found');
     }
 
-    // 獲取教師的時區
-    const teacherTimezone = teacher.timezone || 'Asia/Taipei';
+    // 統一使用 Asia/Taipei 時區
+    const teacherTimezone = 'Asia/Taipei';
 
     // 將用戶時間轉換為教師時區，然後計算時間槽
     const utcDateTime = DateTime.fromISO(startsAt);
@@ -279,8 +275,8 @@ export class BookingsService {
   }
 
   private formatBookingSummary(booking: Booking, userTimezone: string = 'Asia/Taipei') {
-    // 獲取教師時區
-    const teacherTimezone = booking.teacher?.timezone || 'Asia/Taipei';
+    // 統一使用 Asia/Taipei 時區
+    const teacherTimezone = 'Asia/Taipei';
 
     return {
       id: booking.id,

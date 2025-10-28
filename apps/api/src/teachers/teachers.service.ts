@@ -142,7 +142,7 @@ export class TeachersService {
     const user = await this.userRepository.findOne({
       where: { id: teacherId, role: UserRole.TEACHER },
       relations: ['teacherProfile'],
-      select: ['id', 'email', 'name', 'phone', 'bio', 'avatarUrl', 'timezone', 'role', 'createdAt']
+      select: ['id', 'email', 'name', 'phone', 'bio', 'avatarUrl', 'role', 'createdAt']
     });
 
     if (!user) {
@@ -161,7 +161,7 @@ export class TeachersService {
       phone: user.phone,
       bio: user.bio,
       avatarUrl: user.avatarUrl,
-      timezone: user.timezone,
+
       role: user.role,
       createdAt: user.createdAt,
 

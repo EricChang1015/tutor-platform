@@ -48,7 +48,7 @@ export class BookingsController {
 
   @Get()
   @ApiOperation({ summary: '我的預約清單' })
-  @ApiQuery({ name: 'timezone', description: 'IANA 時區名稱', example: 'Asia/Taipei', required: false })
+
   @ApiQuery({ name: 'roleView', description: '角色視圖 (student/teacher)', required: false })
   @ApiQuery({ name: 'status', description: '狀態過濾 (upcoming/past/canceled/pending)', required: false })
   @ApiResponse({ status: 200, description: '預約清單' })

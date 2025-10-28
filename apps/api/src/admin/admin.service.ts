@@ -113,7 +113,7 @@ export class AdminService {
       relations: ['teacherProfile'],
       select: [
         'id', 'email', 'role', 'name', 'phone', 'bio', 'avatarUrl',
-        'timezone', 'locale', 'active', 'createdAt', 'updatedAt'
+        'locale', 'active', 'createdAt', 'updatedAt'
       ]
     });
 
@@ -176,7 +176,7 @@ export class AdminService {
       role: UserRole.TEACHER,
       phone: createTeacherDto.phone,
       bio: createTeacherDto.bio,
-      timezone: createTeacherDto.timezone,
+
       active: createTeacherDto.active ?? true,
       passwordHash: hashedPassword,
     });

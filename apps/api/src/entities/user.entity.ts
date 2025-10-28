@@ -49,8 +49,7 @@ export class User {
   @Column({ nullable: true })
   phone?: string;
 
-  @Column({ default: 'Asia/Taipei' })
-  timezone: string;
+
 
   @Column({ default: 'zh-TW' })
   locale: string;

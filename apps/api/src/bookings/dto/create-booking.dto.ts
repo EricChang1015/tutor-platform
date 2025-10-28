@@ -37,14 +37,7 @@ export class CreateBookingDto {
   @Max(120)
   durationMinutes?: number = 30;
 
-  @ApiProperty({
-    description: '時區 (IANA格式)',
-    example: 'Asia/Taipei',
-    default: 'Asia/Taipei',
-  })
-  @IsOptional()
-  @IsString()
-  timezone?: string = 'Asia/Taipei';
+
 
   @ApiProperty({
     description: '課程標題',

@@ -1,6 +1,6 @@
 # 家教平台 (Tutor Platform) v1.3.0
 
-一個現代化的線上家教預約平台，支援多時區、多語言，提供完整的教師管理、學生預約、課程管理、課後證據上傳與報表功能。
+一個現代化的線上家教預約平台，支援多語言，提供完整的教師管理、學生預約、課程管理、課後證據上傳與報表功能。
 
 ## 📋 最新功能（v1.3.0）
 - ✅ 課後證據上傳與綁定 booking（老師可上傳課程截圖）
@@ -14,7 +14,7 @@
 
 ### 核心功能
 - **用戶管理**: 支援學生、教師、管理員三種角色，完整的用戶檔案管理
-- **預約系統**: 智能時間槽管理，支援全球時區，相鄰時段無衝突預約
+- **預約系統**: 智能時間槽管理，使用 Asia/Taipei 時區，相鄰時段無衝突預約
 - **教師管理**: 完整的教師檔案、評價、可用時間管理、教師相簿
 - **課程管理**: 教材管理、課程記錄、評價系統
 - **檔案上傳**: 頭像上傳、教師相簿、教材檔案等完整檔案管理
@@ -23,7 +23,7 @@
 - **購買系統**: 課程包購買、消費記錄管理
 
 ### 技術特色
-- **完整時區支援**: 基於 UTC 時間的全球時區支援，自動時間轉換
+- **時區設定**: 基於 UTC 時間，統一使用 Asia/Taipei 時區
 - **響應式設計**: 支援桌面、平板、手機等多種設備
 - **RESTful API**: 標準化的 API 設計，完整的 OpenAPI 3.0 文檔
 - **檔案儲存**: MinIO 物件儲存，支援頭像、相簿等檔案管理
@@ -53,14 +53,14 @@
 - **檔案儲存**: MinIO (S3 相容) 物件儲存
 - **郵件服務**: MailHog (開發) / SMTP (生產)
 - **API 文檔**: Swagger/OpenAPI 3.0
-- **時區處理**: Luxon 時區庫
+
 - **驗證**: Class-validator + Class-transformer
 
 ### 前端技術
 - **原生 JavaScript**: 無框架依賴，輕量化實現
 - **響應式 CSS**: 現代化的 UI 設計，支援深色模式
 - **模組化架構**: 組件化的前端設計
-- **時區感知**: 自動檢測用戶時區，支援多時區切換
+
 
 ### 基礎設施
 - **容器化**: Docker + Docker Compose
@@ -167,10 +167,9 @@ GET /teacher-availability/time-slots
 # 2) 搜尋可用教師（指定日期、時間範圍）
 GET /teacher-availability/search-teachers?date=2025-10-06&fromTime=14:00&toTime=15:00
 
-# 3) 查看教師時間表（支援 timezone，可省略則預設 Asia/Taipei）
+# 3) 查看教師時間表（使用 Asia/Taipei 時區）
 GET \
-  /teacher-availability/teacher-timetable?teacherId={TEACHER_ID}&date=2025-10-06\
-  &timezone=Asia/Shanghai
+  /teacher-availability/teacher-timetable?teacherId={TEACHER_ID}&date=2025-10-06
 
 # 4) 設定教師指定日期可用時段（管理員/教師）
 POST /teacher-availability/set-availability
@@ -218,7 +217,7 @@ curl -X 'POST' \
 ```
 
   "durationMinutes": 30,
-  "timezone": "Asia/Taipei",
+
   "courseTitle": "English Conversation"
 }
 ```
@@ -229,12 +228,12 @@ curl -X 'POST' \
 ### 教師相關
 - `GET /teachers` - 教師列表 (支援分頁、排序、篩選)
 - `GET /teachers/:id` - 教師詳情
-- `GET /teacher-availability/teacher-timetable` - 教師時間表 (支援時區)
+- `GET /teacher-availability/teacher-timetable` - 教師時間表
 - `GET /teacher-availability/search-teachers` - 搜尋可用教師
 - `GET /teacher-availability/time-slots` - 獲取時間槽定義
 
 ### 預約系統
-- `POST /bookings` - 創建預約 (支援時區)
+- `POST /bookings` - 創建預約
 - `GET /bookings` - 預約列表
 - `GET /bookings/:id` - 預約詳情
 - `PUT /bookings/:id` - 更新預約
@@ -265,37 +264,7 @@ curl -X 'POST' \
 - `GET /purchases` - 購買記錄
 - `GET /admin/*` - 管理員功能
 
-### 時區支援詳解
 
-所有時間相關的 API 都支援 `timezone` 參數：
-
-```bash
-# 獲取上海時區的教師時間表
-GET /teacher-availability/teacher-timetable?teacherId=xxx&date=2025-10-06&timezone=Asia/Shanghai
-
-# 創建預約 (使用 ISO 8601 時間格式)
-POST /bookings
-{
-  "teacherId": "xxx",
-  "startsAt": "2025-10-06T14:00:00+08:00",
-  "durationMinutes": 30,
-  "timezone": "Asia/Shanghai"
-}
-```
-
-**支援的時區**:
-- `Asia/Shanghai` - 上海時間 (UTC+8)
-- `Asia/Taipei` - 台北時間 (UTC+8)
-- `America/New_York` - 紐約時間 (UTC-5/-4)
-- `America/Los_Angeles` - 洛杉磯時間 (UTC-8/-7)
-- `Europe/London` - 倫敦時間 (UTC+0/+1)
-- 所有 IANA 時區標準
-
-**時區修復特色**:
-- ✅ 不同時區用戶查詢同一日期，獲得各自時區的可用時間
-- ✅ 相鄰時段預約不再產生錯誤衝突 (09:00-09:30 + 09:30-10:00)
-- ✅ 重疊時段仍能正確檢測衝突
-- ✅ 基於 UTC 時間的精確計算，避免時間槽索引問題
 
 ## 🗄 資料庫結構
 
@@ -314,7 +283,7 @@ POST /bookings
 
 ### 資料庫特色
 - **UUID 主鍵**: 所有表使用 UUID 作為主鍵，避免 ID 猜測
-- **UTC 時間**: 所有時間戳使用 UTC，支援全球時區
+- **UTC 時間**: 所有時間戳使用 UTC，統一使用 Asia/Taipei 時區
 - **軟刪除**: 支援軟刪除機制 (`deleted_at`)
 - **自動時間戳**: 自動管理 `created_at` 和 `updated_at`
 - **JSONB 欄位**: 靈活的結構化資料儲存
@@ -393,8 +362,8 @@ curl -X POST http://localhost:3001/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"student1@example.com","password":"password"}'
 
-# 測試時區功能
-curl "http://localhost:3001/teacher-availability/teacher-timetable?teacherId=xxx&date=2025-10-06&timezone=Asia/Shanghai"
+# 測試時間表功能
+curl "http://localhost:3001/teacher-availability/teacher-timetable?teacherId=xxx&date=2025-10-06"
 ```
 
 ### 代碼結構
@@ -473,7 +442,7 @@ apps/api/src/
 
 
 ### v1.2.0 (2025-10-06)
-- ✅ **重大修復**: 時區處理邏輯完全重構
+- ✅ **重大修復**: 統一時區處理，使用 Asia/Taipei
 - ✅ **預約系統**: 修復相鄰時段衝突問題
 - ✅ **檔案上傳**: 新增頭像上傳功能
 - ✅ **收藏功能**: 完整的教師收藏系統
@@ -514,7 +483,7 @@ apps/api/src/
 
 **🎯 專案狀態**:
 - ✅ 核心功能完成
-- ✅ 時區問題已修復
+- ✅ 時區統一使用 Asia/Taipei
 - ✅ API 文檔完整
 - ✅ 測試覆蓋充足
 - 🚀 準備生產部署

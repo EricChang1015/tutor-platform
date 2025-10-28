@@ -34,10 +34,7 @@ export class UpdateUserDto {
   @IsOptional()
   phone?: string;
 
-  @ApiProperty({ description: '時區', required: false })
-  @IsString()
-  @IsOptional()
-  timezone?: string;
+
 
   @ApiProperty({ description: '設定 JSON（會與既有 settings 合併）', required: false, type: SettingsDto })
   @IsOptional()

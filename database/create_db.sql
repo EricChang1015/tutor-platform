@@ -18,7 +18,7 @@ CREATE TABLE users (
     avatar_url VARCHAR(500) NULL,
     bio TEXT NULL,
     phone VARCHAR(50) NULL,
-    timezone VARCHAR(50) NULL DEFAULT 'Asia/Taipei',
+
     locale VARCHAR(10) NULL DEFAULT 'zh-TW',
     settings JSONB NULL,
     active BOOLEAN DEFAULT TRUE,
@@ -259,30 +259,19 @@ CREATE TRIGGER trigger_update_teacher_gallery_updated_at
 CREATE OR REPLACE FUNCTION calculate_availability_utc()
 RETURNS TRIGGER AS $$
 DECLARE
-    teacher_tz VARCHAR(50);
     local_datetime TIMESTAMP;
     hours INTEGER;
     minutes INTEGER;
 BEGIN
-    -- 獲取教師的時區
-    SELECT timezone INTO teacher_tz
-    FROM users
-    WHERE id = NEW.teacher_id;
-
-    -- 如果沒有找到時區，使用預設值
-    IF teacher_tz IS NULL THEN
-        teacher_tz := 'Asia/Taipei';
-    END IF;
-
     -- 計算時間槽對應的小時和分鐘
     hours := NEW.time_slot / 2;
     minutes := (NEW.time_slot % 2) * 30;
 
-    -- 構建本地時間
+    -- 構建本地時間（統一使用 Asia/Taipei 時區）
     local_datetime := (NEW.date || ' ' || LPAD(hours::TEXT, 2, '0') || ':' || LPAD(minutes::TEXT, 2, '0') || ':00')::TIMESTAMP;
 
-    -- 轉換為 UTC（假設本地時間在教師時區）
-    NEW.start_time_utc := timezone('UTC', timezone(teacher_tz, local_datetime));
+    -- 轉換為 UTC（假設本地時間在 Asia/Taipei 時區）
+    NEW.start_time_utc := timezone('UTC', timezone('Asia/Taipei', local_datetime));
 
     -- 結束時間是開始時間 + 30 分鐘
     NEW.end_time_utc := NEW.start_time_utc + INTERVAL '30 minutes';
@@ -350,12 +339,12 @@ CREATE INDEX idx_notifications_type ON notifications(type);
 CREATE INDEX idx_notifications_read_at ON notifications(read_at);
 
 -- 插入預設資料
-INSERT INTO users (id, email, password_hash, role, name, timezone, locale) VALUES
-('11111111-1111-1111-1111-111111111111', 'admin@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'System Admin', 'Asia/Taipei', 'zh-TW'),
-('22222222-2222-2222-2222-222222222222', 'teacher1@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher', 'Teacher One', 'Asia/Taipei', 'zh-TW'),
-('44444444-4444-4444-4444-444444444444', 'teacher2@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher', 'Teacher Two', 'Asia/Taipei', 'zh-TW'),
-('33333333-3333-3333-3333-333333333333', 'student1@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'Student One', 'Asia/Taipei', 'zh-TW'),
-('55555555-5555-5555-5555-555555555555', 'student2@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'Student Two', 'Asia/Taipei', 'zh-TW');
+INSERT INTO users (id, email, password_hash, role, name, locale) VALUES
+('11111111-1111-1111-1111-111111111111', 'admin@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'System Admin', 'zh-TW'),
+('22222222-2222-2222-2222-222222222222', 'teacher1@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher', 'Teacher One', 'zh-TW'),
+('44444444-4444-4444-4444-444444444444', 'teacher2@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher', 'Teacher Two', 'zh-TW'),
+('33333333-3333-3333-3333-333333333333', 'student1@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'Student One', 'zh-TW'),
+('55555555-5555-5555-5555-555555555555', 'student2@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'Student Two', 'zh-TW');
 
 -- 插入教師詳細資料
 INSERT INTO teacher_profiles (user_id, intro, experience_years, experience_since, domains, regions, unit_price_usd) VALUES
@@ -390,7 +379,7 @@ WHERE u.role = 'teacher' AND u.active = true
 ON CONFLICT (teacher_id, date, time_slot) DO NOTHING;
 
 -- 添加註釋說明重要欄位
-COMMENT ON COLUMN users.timezone IS 'IANA 時區名稱，例如 Asia/Taipei, America/New_York';
+
 COMMENT ON COLUMN teacher_profiles.experience_since IS 'Year when teacher started teaching (e.g., 2020)';
 COMMENT ON COLUMN teacher_availability.start_time_utc IS 'UTC 開始時間，由觸發器自動計算';
 COMMENT ON COLUMN teacher_availability.end_time_utc IS 'UTC 結束時間，由觸發器自動計算';

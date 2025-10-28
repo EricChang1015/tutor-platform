@@ -11,13 +11,11 @@ export interface SearchTeachersQuery {
   date: string; // YYYY-MM-DD
   fromTime: string; // HH:MM
   toTime: string; // HH:MM
-  timezone?: string; // IANA timezone, default: Asia/Taipei
 }
 
 export interface TeacherTimetableQuery {
   teacherId: string;
   date: string; // YYYY-MM-DD
-  timezone?: string; // IANA timezone, default: Asia/Taipei
 }
 
 @Injectable()
@@ -33,18 +31,12 @@ export class TeacherAvailabilityService {
 
   /**
    * 搜尋指定時間段內可用的教師 IDs
-   * 支援時區參數，預設為 Asia/Taipei
-   * 修改為基於UTC時間查詢，而非timeslot
+   * 統一使用 Asia/Taipei 時區
    */
   async searchAvailableTeachers(searchQuery: SearchTeachersQuery): Promise<string[]> {
-    const { date, fromTime, toTime, timezone = 'Asia/Taipei' } = searchQuery;
+    const { date, fromTime, toTime } = searchQuery;
+    const timezone = 'Asia/Taipei'; // 統一使用單一時區
     this.logger.logMethodCall('searchAvailableTeachers', { date, fromTime, toTime, timezone });
-
-    // 驗證時區
-    if (!TimezoneUtil.isValidTimezone(timezone)) {
-      this.logger.warn(`Invalid timezone: ${timezone}`);
-      throw new ConflictException(`Invalid timezone: ${timezone}`);
-    }
 
     // 計算用戶時區的開始和結束時間的UTC時間
     const startDateTime = TimezoneUtil.dateToUtc(`${date} ${fromTime}:00`, timezone);
@@ -80,20 +72,14 @@ export class TeacherAvailabilityService {
 
   /**
    * 取得教師在指定日期的時間表
-   * 支援時區參數，返回本地時間和 UTC 時間
-   * 修改為基於UTC時間查詢，而非timeslot
+   * 統一使用 Asia/Taipei 時區
    */
   async getTeacherTimetable(query: TeacherTimetableQuery) {
-    const { teacherId, date, timezone = 'Asia/Taipei' } = query;
+    const { teacherId, date } = query;
+    const timezone = 'Asia/Taipei'; // 統一使用單一時區
     this.logger.logMethodCall('getTeacherTimetable', { teacherId, date, timezone });
 
-    // 驗證時區
-    if (!TimezoneUtil.isValidTimezone(timezone)) {
-      this.logger.warn(`Invalid timezone: ${timezone}`);
-      throw new ConflictException(`Invalid timezone: ${timezone}`);
-    }
-
-    // 驗證教師存在並獲取教師時區
+    // 驗證教師存在
     const teacher = await this.userRepository.findOne({
       where: { id: teacherId, role: UserRole.TEACHER, active: true }
     });
@@ -102,8 +88,6 @@ export class TeacherAvailabilityService {
       this.logger.warn(`Teacher not found: ${teacherId}`);
       throw new NotFoundException('Teacher not found');
     }
-
-    const teacherTimezone = teacher.timezone || 'Asia/Taipei';
 
     // 計算用戶時區指定日期的UTC時間範圍
     const userDateStart = TimezoneUtil.dateToUtc(`${date} 00:00:00`, timezone);
@@ -144,7 +128,7 @@ export class TeacherAvailabilityService {
         localTimeFormatted: localTimeFormatted,
         startTimeUtc: slot.startTimeUtc ? slot.startTimeUtc.toISOString() : null,
         endTimeUtc: slot.endTimeUtc ? slot.endTimeUtc.toISOString() : null,
-        teacherTimezone: teacherTimezone,
+        teacherTimezone: timezone,
         userTimezone: timezone,
         isOnline: slot.status === AvailabilityStatus.AVAILABLE ? 1 :
                   slot.status === AvailabilityStatus.BOOKED ? 2 : 0,
@@ -159,7 +143,7 @@ export class TeacherAvailabilityService {
 
   /**
    * 設定教師可用時間
-   * 會自動根據教師時區計算 UTC 時間
+   * 統一使用 Asia/Taipei 時區計算 UTC 時間
    */
   async setTeacherAvailability(
     teacherId: string,
@@ -168,7 +152,7 @@ export class TeacherAvailabilityService {
     status: AvailabilityStatus = AvailabilityStatus.AVAILABLE
   ): Promise<void> {
     this.logger.logMethodCall('setTeacherAvailability', { teacherId, date, timeSlotsCount: timeSlots?.length ?? 0, status });
-    // 驗證教師存在並獲取時區
+    // 驗證教師存在
     const teacher = await this.userRepository.findOne({
       where: { id: teacherId, role: UserRole.TEACHER, active: true }
     });
@@ -178,7 +162,7 @@ export class TeacherAvailabilityService {
       throw new NotFoundException('Teacher not found');
     }
 
-    const teacherTimezone = teacher.timezone || 'Asia/Taipei';
+    const teacherTimezone = 'Asia/Taipei'; // 統一使用單一時區
 
     // 驗證時間槽
     const invalidSlots = timeSlots.filter(slot => !TimeSlotUtil.isValidSlot(slot));

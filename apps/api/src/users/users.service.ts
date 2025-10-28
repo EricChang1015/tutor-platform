@@ -143,7 +143,7 @@ export class UsersService {
   async getUserProfile(userId: string): Promise<any> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      select: ['id', 'email', 'name', 'phone', 'bio', 'avatarUrl', 'timezone', 'role', 'createdAt']
+      select: ['id', 'email', 'name', 'phone', 'bio', 'avatarUrl', 'role', 'createdAt']
     });
 
     if (!user) {
