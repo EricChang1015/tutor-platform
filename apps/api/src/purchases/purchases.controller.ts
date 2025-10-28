@@ -11,7 +11,7 @@ import {
   Request,
   ForbiddenException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 
 import { PurchasesService } from './purchases.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -89,6 +89,7 @@ export class PurchasesController {
 
   @Post(':id/activate')
   @ApiOperation({ summary: '啟動卡片' })
+  @ApiConsumes('application/json')
   @ApiBody({ type: ActivatePurchaseDto, required: false })
   @ApiResponse({ status: 200, description: '啟動成功' })
   async activatePurchase(
