@@ -16,12 +16,16 @@ export class PurchasesService {
     private userRepository: Repository<User>,
   ) {}
 
-  async findUserPurchases(userId: string, query: any = {}) {
+  async findUserPurchases(userId: string, query: any = {}, callerRole: UserRole | string = UserRole.STUDENT) {
     const { page = 1, pageSize = 20, studentId, sort } = query;
-    
-    // 如果指定了 studentId，檢查權限（只有管理員可以查看其他用戶的購買記錄）
+
+    // Server-side 權限檢查：如果呼叫者不是 admin，但試圖查詢其他 student's 資料，直接拒絕
+    if (studentId && studentId !== userId && callerRole !== UserRole.ADMIN && callerRole !== 'admin') {
+      throw new ForbiddenException('Admin access required to view other users\' purchases');
+    }
+
     const targetUserId = studentId || userId;
-    
+
     const queryBuilder = this.purchaseRepository
       .createQueryBuilder('purchase')
       .leftJoinAndSelect('purchase.student', 'student')
@@ -49,7 +53,7 @@ export class PurchasesService {
     };
   }
 
-  async createPurchase(createPurchaseDto: CreatePurchaseDto, adminUserId: string) {
+  async createPurchase(createPurchaseDto: CreatePurchaseDto, _adminUserId: string) {
     // 檢查學生是否存在
     const student = await this.userRepository.findOne({
       where: { id: createPurchaseDto.studentId, role: UserRole.STUDENT },
@@ -287,6 +291,20 @@ export class PurchasesService {
       refundedCards,
       originalBookingId,
     };
+  }
+
+  async getPurchaseById(id: string, callerUserId: string, callerRole: UserRole | string = UserRole.STUDENT) {
+    const purchase = await this.purchaseRepository.findOne({ where: { id }, relations: ['student'] });
+    if (!purchase) {
+      throw new NotFoundException('Purchase not found');
+    }
+
+    // 只有 admin 或是該 purchase 的擁有者可以查看
+    if (callerRole !== UserRole.ADMIN && callerRole !== 'admin' && purchase.studentId !== callerUserId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    return this.formatPurchaseItem(purchase);
   }
 
   private getSuggestedLabel(type: PurchaseType): string {

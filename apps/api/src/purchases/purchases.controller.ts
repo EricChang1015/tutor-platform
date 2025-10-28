@@ -11,13 +11,14 @@ import {
   Request,
   ForbiddenException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiQuery } from '@nestjs/swagger';
 
 import { PurchasesService } from './purchases.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreatePurchaseDto } from './dto/create-purchase.dto';
 import { UpdatePurchaseDto } from './dto/update-purchase.dto';
 import { ActivatePurchaseDto } from './dto/activate-purchase.dto';
+import { GetPurchasesQueryDto } from './dto/get-purchases-query.dto';
 
 @ApiTags('Purchases')
 @Controller('purchases')
@@ -27,14 +28,26 @@ export class PurchasesController {
   constructor(private purchasesService: PurchasesService) {}
 
   @Get()
+  @ApiQuery({ name: 'studentId', required: false, type: String, description: '管理員可指定 studentId 來查看該學生的購買紀錄' })
   @ApiOperation({ summary: '查看購買項目列表' })
   @ApiResponse({ status: 200, description: '購買項目列表' })
-  async getPurchases(@Query() query: any, @Request() req) {
+  async getPurchases(@Query() query: GetPurchasesQueryDto, @Request() req) {
     // 管理員可以查看指定學生的購買記錄
     if (req.user.role === 'admin' && query.studentId) {
-      return this.purchasesService.findUserPurchases(query.studentId, query);
+      return this.purchasesService.findUserPurchases(query.studentId, query, req.user.role);
     }
-    return this.purchasesService.findUserPurchases(req.user.sub, query);
+
+    // 非管理員：如果請求裡包含 studentId，且非該使用者本人，則拒絕（明確阻止越權）
+    if (query.studentId && query.studentId !== req.user.sub) {
+      throw new ForbiddenException('Admin access required to view other users\' purchases');
+    }
+
+    // 否則只回傳目前使用者的購買記錄
+    const safeQuery = { ...query };
+    if ('studentId' in safeQuery) {
+      delete safeQuery.studentId;
+    }
+    return this.purchasesService.findUserPurchases(req.user.sub, safeQuery, req.user.role);
   }
 
   @Post()
@@ -50,11 +63,7 @@ export class PurchasesController {
   @ApiOperation({ summary: '查看購買項目詳情' })
   @ApiResponse({ status: 200, description: '購買項目詳情' })
   async getPurchase(@Param('id') id: string, @Request() req) {
-    const purchases = await this.purchasesService.findUserPurchases(req.user.sub, { purchaseId: id });
-    if (purchases.items.length === 0) {
-      throw new ForbiddenException('Purchase not found or access denied');
-    }
-    return purchases.items[0];
+    return this.purchasesService.getPurchaseById(id, req.user.sub, req.user.role);
   }
 
   @Put(':id')
