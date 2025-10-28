@@ -798,22 +798,19 @@
                     id: 'search_teachers',
                     name: '搜尋可用教師',
                     method: 'GET',
-                    endpoint: () => `/teacher-availability/search-teachers?date=${tomorrowString}&fromTime=14:00&toTime=15:00&`,
+                    endpoint: () => `/teacher-availability/search-teachers?date=${tomorrowString}&fromTime=14:00&toTime=15:00`,
                     requireAuth: false,
                     expectedStatus: 200,
                     expectedFields: ['code', 'msg', 'data']
-                }&fromTime=02:00&toTime=03:00'code', 'msg', 'data']
                 },
                 {
                     id: 'teacher_timetable',
                     name: '教師時間表',
                     method: 'GET',
-                    endpoint: () => `/teacher-availability/teacher-timetable?teacherId=3ac75e02-e751-440d-a21a-ffe8f6f1b79b&date=${tomorrowString}&`,
+                    endpoint: () => `/teacher-availability/teacher-timetable?teacherId=3ac75e02-e751-440d-a21a-ffe8f6f1b79b&date=${tomorrowString}`,
                     requireAuth: false,
                     expectedStatus: 200,
-                    expectedFields: ['code', 'msg', 'data']
-                }'code', 'msg', 'data']
-                }'code', 'msg', 'data'],
+                    expectedFields: ['code', 'msg', 'data'],
                     customValidation: (response) => {
                         if (response.data && response.data.length > 0) {
                             const firstSlot = response.data[0];
@@ -833,7 +830,10 @@
                     id: 'teacher_timetable_newyork_validation',
                     name: '時區修復驗證 (紐約時區)',
                     method: 'GET',
-                    endpoint: `/teacher-availability/teacher-timetable?teacherId=3ac75e02-e751-440d-a21a-ffe8f6f1b79b&date=${tomorrowString}'code', 'msg', 'data'],
+                    endpoint: `/teacher-availability/teacher-timetable?teacherId=3ac75e02-e751-440d-a21a-ffe8f6f1b79b&date=${tomorrowString}`,
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['code', 'msg', 'data'],
                     customValidation: (response) => {
                         if (response.data && response.data.length > 0) {
                             const firstSlot = response.data[0];
@@ -900,16 +900,8 @@
                             teacherId: '3ac75e02-e751-440d-a21a-ffe8f6f1b79b',
                             startsAt: `${tomorrowString}T16:00:00+08:00`, // 台北時間下午4點
                             durationMinutes: 30,
-                            
                             courseTitle: '時區測試課程 - 台北時間',
                             message: '測試台北時區預約功能'
-                        };
-                    }
-                }T04:00:00-05:00`, // 紐約時間早上4點
-                            durationMinutes: 30,
-                            
-                            courseTitle: '時區測試課程 - 紐約時間',
-                            message: '測試跨時區預約功能'
                         };
                     }
                 },

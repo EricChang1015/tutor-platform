@@ -2626,8 +2626,8 @@
         const updateData = {
           name: $("#editName").value,
           bio: $("#editBio").value,
-          phone: $("#editPhone").value,
-          timezone: 
+          phone: $("#editPhone").value
+        };
 
         await apiRequest(`/users/${userId}`, {
           method: 'PATCH',
