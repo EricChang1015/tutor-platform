@@ -27,13 +27,13 @@ export class BookingsController {
   constructor(private bookingsService: BookingsService) {}
 
   @Get(':id/evidence')
-  @ApiOperation({ summary: '\u5217\u51fa\u9810\u7d04\u7684\u8ab2\u5f8c\u8b49\u64da' })
+  @ApiOperation({ summary: '列出預約的課後證據' })
   async listEvidence(@Param('id') id: string, @Request() req) {
     return this.bookingsService.listEvidence(id, req.user);
   }
 
   @Post(':id/evidence')
-  @ApiOperation({ summary: '\u4e0a\u50b3\u8ab2\u5f8c\u8b49\u64da\u4e26\u7d81\u5b9a\u9810\u7d04\uff08category=class_recording\uff09' })
+  @ApiOperation({ summary: '上傳課後證據並綁定預約 (category=class_recording)' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file'))
   async uploadEvidence(@Param('id') id: string, @UploadedFile() file: any, @Request() req) {
@@ -41,7 +41,7 @@ export class BookingsController {
   }
 
   @Delete(':id/evidence/:fileId')
-  @ApiOperation({ summary: '\u79fb\u9664\u8ab2\u5f8c\u8b49\u64da' })
+  @ApiOperation({ summary: '移除課後證據' })
   async deleteEvidence(@Param('id') id: string, @Param('fileId') fileId: string, @Request() req) {
     return this.bookingsService.deleteEvidence(id, fileId, req.user);
   }
