@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>教材管理前端功能測試</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { margin: 5px; padding: 8px 16px; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>教材管理前端功能測試</h1>
+    
+    <div class="test-section">
+        <h3>1. 基本 API 連接測試</h3>
+        <button onclick="testAPIConnection()">測試 API 連接</button>
+        <div id="api-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. 教材列表載入測試</h3>
+        <button onclick="testMaterialsList()">載入教材列表</button>
+        <div id="materials-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. 資料夾樹結構測試</h3>
+        <button onclick="testFolderTree()">載入資料夾樹</button>
+        <div id="tree-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>4. PDF 預覽功能測試</h3>
+        <button onclick="testPDFPreview()">測試 PDF 預覽</button>
+        <div id="pdf-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>5. 搜尋功能測試</h3>
+        <button onclick="testSearch()">測試搜尋功能</button>
+        <div id="search-result"></div>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001';
+        let testResults = [];
+
+        function log(message, type = 'info') {
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            console.log(message);
+            testResults.push(`<div class="${className}">${message}</div>`);
+            updateResults();
+        }
+
+        function updateResults() {
+            document.getElementById('results').innerHTML = '<h3>測試結果：</h3>' + testResults.join('');
+        }
+
+        async function apiRequest(endpoint, options = {}) {
+            const url = `${API_BASE}${endpoint}`;
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                },
+                ...options
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            return await response.json();
+        }
+
+        async function testAPIConnection() {
+            const resultDiv = document.getElementById('api-result');
+            try {
+                resultDiv.innerHTML = '測試中...';
+                const response = await fetch(`${API_BASE}/materials/folders`);
+                if (response.ok) {
+                    resultDiv.innerHTML = '<span class="success">✅ API 連接正常</span>';
+                    log('✅ API 連接測試通過', 'success');
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ API 連接失敗: ${error.message}</span>`;
+                log(`❌ API 連接測試失敗: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMaterialsList() {
+            const resultDiv = document.getElementById('materials-result');
+            try {
+                resultDiv.innerHTML = '載入中...';
+                const data = await apiRequest('/materials');
+                const count = data.total || data.items?.length || 0;
+                resultDiv.innerHTML = `<span class="success">✅ 成功載入 ${count} 個教材</span>`;
+                log(`✅ 教材列表載入成功，共 ${count} 個教材`, 'success');
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ 載入失敗: ${error.message}</span>`;
+                log(`❌ 教材列表載入失敗: ${error.message}`, 'error');
+            }
+        }
+
+        async function testFolderTree() {
+            const resultDiv = document.getElementById('tree-result');
+            try {
+                resultDiv.innerHTML = '載入中...';
+                const data = await apiRequest('/materials?include=all');
+                const folderCount = data.folders?.length || 0;
+                resultDiv.innerHTML = `<span class="success">✅ 成功載入資料夾樹，共 ${folderCount} 個資料夾</span>`;
+                log(`✅ 資料夾樹載入成功，共 ${folderCount} 個資料夾`, 'success');
+                
+                // 檢查樹結構
+                if (data.folders && data.folders.length > 0) {
+                    const hasChildren = data.folders.some(f => f.children && f.children.length > 0);
+                    const hasMaterials = data.folders.some(f => f.materials && f.materials.length > 0);
+                    log(`📊 樹結構分析: ${hasChildren ? '包含子資料夾' : '無子資料夾'}, ${hasMaterials ? '包含教材' : '無教材'}`, 'info');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ 載入失敗: ${error.message}</span>`;
+                log(`❌ 資料夾樹載入失敗: ${error.message}`, 'error');
+            }
+        }
+
+        async function testPDFPreview() {
+            const resultDiv = document.getElementById('pdf-result');
+            try {
+                resultDiv.innerHTML = '測試中...';
+                const data = await apiRequest('/materials?type=pdf');
+                const pdfMaterials = data.items?.filter(m => m.type === 'pdf' && m.fileUrl) || [];
+                
+                if (pdfMaterials.length > 0) {
+                    const testPDF = pdfMaterials[0];
+                    // 測試 PDF URL 是否可訪問
+                    const pdfResponse = await fetch(testPDF.fileUrl);
+                    if (pdfResponse.ok) {
+                        resultDiv.innerHTML = `<span class="success">✅ PDF 預覽功能正常，找到 ${pdfMaterials.length} 個 PDF 教材</span>`;
+                        log(`✅ PDF 預覽測試通過，共 ${pdfMaterials.length} 個 PDF 教材`, 'success');
+                        log(`📎 測試 PDF: ${testPDF.title} - ${testPDF.fileUrl}`, 'info');
+                    } else {
+                        throw new Error('PDF 文件無法訪問');
+                    }
+                } else {
+                    resultDiv.innerHTML = '<span class="info">⚠️ 沒有找到 PDF 教材</span>';
+                    log('⚠️ 沒有找到 PDF 教材進行測試', 'info');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ 測試失敗: ${error.message}</span>`;
+                log(`❌ PDF 預覽測試失敗: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSearch() {
+            const resultDiv = document.getElementById('search-result');
+            try {
+                resultDiv.innerHTML = '測試中...';
+                
+                // 測試關鍵字搜尋
+                const searchData = await apiRequest('/materials?q=測試');
+                const searchCount = searchData.total || searchData.items?.length || 0;
+                
+                // 測試類型過濾
+                const pageData = await apiRequest('/materials?type=page');
+                const pageCount = pageData.total || pageData.items?.length || 0;
+                
+                const pdfData = await apiRequest('/materials?type=pdf');
+                const pdfCount = pdfData.total || pdfData.items?.length || 0;
+                
+                resultDiv.innerHTML = `<span class="success">✅ 搜尋功能正常</span>`;
+                log(`✅ 搜尋功能測試通過`, 'success');
+                log(`🔍 關鍵字搜尋 "測試": ${searchCount} 個結果`, 'info');
+                log(`📄 頁面教材: ${pageCount} 個`, 'info');
+                log(`📎 PDF教材: ${pdfCount} 個`, 'info');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ 測試失敗: ${error.message}</span>`;
+                log(`❌ 搜尋功能測試失敗: ${error.message}`, 'error');
+            }
+        }
+
+        // 自動運行所有測試
+        window.onload = function() {
+            log('🚀 開始前端功能測試...', 'info');
+            setTimeout(() => {
+                testAPIConnection();
+                setTimeout(() => testMaterialsList(), 1000);
+                setTimeout(() => testFolderTree(), 2000);
+                setTimeout(() => testPDFPreview(), 3000);
+                setTimeout(() => testSearch(), 4000);
+            }, 500);
+        };
+    </script>
+</body>
+</html>
