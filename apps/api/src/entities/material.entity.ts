@@ -7,6 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
+import { Folder } from './folder.entity';
 
 export enum MaterialType {
   PAGE = 'page',
@@ -27,8 +28,8 @@ export class Material {
   @Column()
   title: string;
 
-  @Column({ name: 'folder_id' })
-  folderId: string;
+  @Column({ name: 'folder_id', nullable: true })
+  folderId?: string;
 
   @Column({ type: 'text', nullable: true })
   content?: string;
@@ -47,4 +48,9 @@ export class Material {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  // 關聯關係
+  @ManyToOne(() => Folder, { nullable: true })
+  @JoinColumn({ name: 'folder_id' })
+  folder?: Folder;
 }
