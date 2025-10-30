@@ -16,7 +16,7 @@
 - **用戶管理**: 支援學生、教師、管理員三種角色，完整的用戶檔案管理
 - **預約系統**: 智能時間槽管理，使用 Asia/Taipei 時區，相鄰時段無衝突預約
 - **教師管理**: 完整的教師檔案、評價、可用時間管理、教師相簿
-- **課程管理**: 教材管理、課程記錄、評價系統
+- **教材管理**: 多級資料夾結構、教材 CRUD、PDF 上傳、教材搜尋
 - **檔案上傳**: 頭像上傳、教師相簿、教材檔案等完整檔案管理
 - **收藏系統**: 學生可收藏喜愛的教師
 - **通知系統**: 即時通知功能，支援多種通知類型
@@ -259,8 +259,18 @@ curl -X 'POST' \
 - `POST /uploads/gallery` - 上傳相簿圖片
 - `GET /uploads/:filename` - 獲取檔案
 
+### 教材管理
+- `GET /materials` - 教材列表和資料夾樹
+- `POST /materials` - 建立教材（支援檔案上傳）
+- `GET /materials/:id` - 獲取教材詳情
+- `PATCH /materials/:id` - 更新教材
+- `DELETE /materials/:id` - 刪除教材
+- `GET /materials/folders` - 獲取所有資料夾
+- `POST /materials/folders` - 建立資料夾
+- `PATCH /materials/folders/:id` - 更新資料夾
+- `DELETE /materials/folders/:id` - 刪除資料夾
+
 ### 其他功能
-- `GET /materials` - 教材列表
 - `GET /purchases` - 購買記錄
 - `GET /admin/*` - 管理員功能
 
@@ -274,7 +284,8 @@ curl -X 'POST' \
 - `teacher_gallery` - 教師相簿
 - `bookings` - 預約記錄
 - `teacher_availability` - 教師可用時間 (UTC 時間)
-- `materials` - 教材管理
+- `materials` - 教材管理（支援 page/pdf 類型）
+- `folders` - 多級資料夾結構
 - `reviews` - 評價系統
 - `notifications` - 通知系統
 - `favorites` - 收藏關係

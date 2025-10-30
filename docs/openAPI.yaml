@@ -184,6 +184,16 @@ components:
         meta: { type: object, additionalProperties: true, nullable: true }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+    FolderItem:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        parentId: { type: string, nullable: true }
+        path: { type: string }
+        description: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
     UploadFile:
       type: object
       properties:
@@ -887,6 +897,66 @@ paths:
       parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
       responses:
         '204': { description: No Content }
+
+  /materials/folders:
+    get:
+      tags: [Materials]
+      summary: 獲取所有資料夾
+      description: 返回所有資料夾的扁平列表
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/FolderItem' }
+    post:
+      tags: [Materials]
+      summary: 建立資料夾
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, description: '資料夾名稱' }
+                parentId: { type: string, description: '父資料夾 ID', nullable: true }
+                description: { type: string, description: '資料夾描述', nullable: true }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/FolderItem' } } } }
+        '404': { description: Parent folder not found }
+
+  /materials/folders/{id}:
+    patch:
+      tags: [Materials]
+      summary: 更新資料夾
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, description: '資料夾名稱' }
+                description: { type: string, description: '資料夾描述' }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/FolderItem' } } } }
+        '404': { description: Folder not found }
+    delete:
+      tags: [Materials]
+      summary: 刪除資料夾
+      security: [{ bearerAuth: [] }]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '204': { description: No Content }
+        '400': { description: Folder contains children or materials }
+        '404': { description: Folder not found }
 
   /uploads/{category}:
     post:
