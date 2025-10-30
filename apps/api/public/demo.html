@@ -1960,74 +1960,58 @@
       }
     }
 
-    // Modal 功能
-    function openModal(content) {
-      const overlay = el('div', {
-        class: 'modal-overlay',
-        style: 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000',
-        onclick: (e) => {
-          if (e.target === overlay) closeModal();
-        }
-      }, content);
-
-      document.body.appendChild(overlay);
-      document.body.style.overflow = 'hidden';
-    }
-
-    function closeModal() {
-      const overlay = document.querySelector('.modal-overlay');
-      if (overlay) {
-        overlay.remove();
-        document.body.style.overflow = '';
-      }
-    }
+    // 使用現有的 modal 系統
 
     // 預覽功能
     function previewMaterial(material) {
       if (material.type === 'pdf' && material.fileUrl) {
         // PDF 預覽
-        const modal = el('div', {class: 'modal-content', style: 'max-width: 90vw; max-height: 90vh'},
-          el('div', {class: 'modal-header'},
-            el('h3', {}, `預覽 PDF: ${material.title}`),
-            el('button', {class: 'btn-close', onclick: closeModal}, '×')
-          ),
-          el('div', {class: 'modal-body', style: 'height: 70vh; overflow: hidden'},
-            el('iframe', {
-              src: material.fileUrl,
-              style: 'width: 100%; height: 100%; border: none',
-              title: material.title
-            })
-          ),
-          el('div', {class: 'modal-footer'},
-            el('a', {
-              href: material.fileUrl,
-              target: '_blank',
-              class: 'btn primary'
-            }, '在新窗口中打開'),
-            el('button', {class: 'btn', onclick: closeModal}, '關閉')
-          )
-        );
+        const contentHTML = `
+          <div style="height: 70vh; overflow: hidden">
+            <iframe
+              src="${material.fileUrl}"
+              style="width: 100%; height: 100%; border: none"
+              title="${material.title}">
+            </iframe>
+          </div>
+        `;
+
+        const buttons = [
+          {
+            text: '在新窗口中打開',
+            class: 'btn primary',
+            onclick: () => window.open(material.fileUrl, '_blank')
+          },
+          {
+            text: '關閉',
+            class: 'btn',
+            onclick: closeModal
+          }
+        ];
+
+        const modal = createModal(`預覽 PDF: ${material.title}`, contentHTML, buttons);
         openModal(modal);
       } else if (material.type === 'page') {
         // 教材頁面預覽
         const content = material.content || '暫無內容';
-        const modal = el('div', {class: 'modal-content'},
-          el('div', {class: 'modal-header'},
-            el('h3', {}, `預覽教材: ${material.title}`),
-            el('button', {class: 'btn-close', onclick: closeModal}, '×')
-          ),
-          el('div', {class: 'modal-body'},
-            el('div', {class: 'card'},
-              el('h4', {}, '教材內容'),
-              el('div', {
-                style: 'white-space: pre-wrap; line-height: 1.6; padding: 16px; background: #f8f9fa; border-radius: 4px; max-height: 400px; overflow-y: auto'
-              }, content)
-            )
-          ),
-          el('div', {class: 'modal-footer'},
-            el('button', {class: 'btn', onclick: closeModal}, '關閉')
-          )
-        );
+        const contentHTML = `
+          <div class="card">
+            <h4>教材內容</h4>
+            <div style="white-space: pre-wrap; line-height: 1.6; padding: 16px; background: #f8f9fa; border-radius: 4px; max-height: 400px; overflow-y: auto">
+              ${content}
+            </div>
+          </div>
+        `;
+
+        const buttons = [
+          {
+            text: '關閉',
+            class: 'btn',
+            onclick: closeModal
+          }
+        ];
+
+        const modal = createModal(`預覽教材: ${material.title}`, contentHTML, buttons);
         openModal(modal);
       }
     }
