@@ -144,6 +144,13 @@
     tr{border-bottom:1px solid var(--border)}
     tr:hover td{background:#fafafa}
     .hidden{display:none !important}
+    /* Material preview styles */
+    .modal-content{background:var(--surface); border:1px solid var(--border); border-radius:16px; width:min(800px,95vw); max-height:95vh; padding:0; box-shadow:var(--shadow); overflow:hidden; margin:auto}
+    .modal-header{padding:18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between}
+    .modal-body{padding:18px; overflow-y:auto}
+    .modal-footer{padding:18px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end}
+    .btn-close{background:transparent; border:none; font-size:24px; cursor:pointer; color:#6b7280; padding:4px; border-radius:4px}
+    .btn-close:hover{background:#f3f4f6}
     /* Responsive */
     @media (max-width: 900px){
       .grid.cols-3{grid-template-columns:repeat(2,1fr)}
@@ -553,6 +560,7 @@
       notifications: []
     };
     let teacherCache = [];
+    let currentSelectedMaterial = null; // 當前選中的教材或資料夾
     const teacherFilters = { tag: '', region: '', sort: 'rating', search: '' };
     let teacherSearchDebounce = null;
 
@@ -1638,6 +1646,7 @@
       if (eventTarget) {
         eventTarget.classList.add('active');
       }
+      currentSelectedMaterial = material; // 記錄當前選中的項目
       renderMaterialsContent(material);
     }
 
@@ -1655,24 +1664,75 @@
       pane.appendChild(el('div', {class: 'title'}, title));
 
       if (material.name && !material.type) {
+        // 資料夾顯示
         pane.appendChild(el('div', {class: 'muted'}, '這是一個資料夾，包含多個教材項目'));
         const childCount = (material.children?.length || 0) + (material.materials?.length || 0);
         pane.appendChild(el('div', {class: 'muted'}, `包含 ${childCount} 個項目`));
-        pane.appendChild(el('div', {class: 'row wrap'},
-          el('button', {class: 'btn', onclick: () => selectCourseContext(material)}, '選擇此課程')
-        ));
+
+        // 資料夾操作按鈕
+        const folderActions = el('div', {class: 'row wrap', style: 'gap: 8px; margin-top: 16px'});
+
+        folderActions.appendChild(el('button', {class: 'btn', onclick: () => selectCourseContext(material)}, '選擇此課程'));
+
+        if (currentUser?.role === 'admin') {
+          folderActions.appendChild(el('button', {
+            class: 'btn danger small',
+            onclick: () => deleteFolderConfirm(material)
+          }, '刪除資料夾'));
+        }
+
+        pane.appendChild(folderActions);
       } else {
+        // 教材顯示
         const content = material.content || '暫無內容描述';
         pane.appendChild(el('div', {class: 'muted'}, `類型：${material.type === 'pdf' ? 'PDF文件' : '教材頁面'}`));
         pane.appendChild(el('div', {class: 'hr'}));
-        pane.appendChild(el('div', {class: 'card'},
-          el('h4', {}, '教材內容'),
-          el('p', {}, content)
-        ));
-        pane.appendChild(el('div', {class: 'row wrap'},
-          el('button', {class: 'btn primary', onclick: () => selectCourseContext(material)}, '預約老師'),
-          el('span', {class: 'hint'}, '將帶入推薦教師頁，並於預約時自動填入教材')
-        ));
+
+        // 教材內容區域
+        const contentCard = el('div', {class: 'card'},
+          el('h4', {}, '教材內容')
+        );
+
+        if (material.type === 'pdf' && material.fileUrl) {
+          contentCard.appendChild(el('div', {class: 'row wrap', style: 'gap: 8px; margin-bottom: 12px'},
+            el('button', {
+              class: 'btn primary small',
+              onclick: () => previewMaterial(material)
+            }, '🔍 預覽 PDF'),
+            el('a', {
+              href: material.fileUrl,
+              target: '_blank',
+              class: 'btn small'
+            }, '📎 下載')
+          ));
+        }
+
+        if (material.type === 'page' && content) {
+          contentCard.appendChild(el('div', {style: 'margin-bottom: 12px'},
+            el('button', {
+              class: 'btn primary small',
+              onclick: () => previewMaterial(material)
+            }, '🔍 預覽內容')
+          ));
+        }
+
+        contentCard.appendChild(el('p', {}, content));
+        pane.appendChild(contentCard);
+
+        // 教材操作按鈕
+        const materialActions = el('div', {class: 'row wrap', style: 'gap: 8px'});
+
+        materialActions.appendChild(el('button', {class: 'btn primary', onclick: () => selectCourseContext(material)}, '預約老師'));
+
+        if (currentUser?.role === 'admin') {
+          materialActions.appendChild(el('button', {
+            class: 'btn danger small',
+            onclick: () => deleteMaterialConfirm(material)
+          }, '刪除教材'));
+        }
+
+        pane.appendChild(materialActions);
+        pane.appendChild(el('div', {class: 'hint', style: 'margin-top: 8px'}, '將帶入推薦教師頁，並於預約時自動填入教材'));
       }
     }
 
@@ -1717,7 +1777,12 @@
         const folders = await apiRequest('/materials/folders');
         const select = modal.querySelector('#parentFolder');
         folders.forEach(folder => {
-          select.appendChild(el('option', {value: folder.id}, folder.path));
+          const option = el('option', {value: folder.id}, folder.path);
+          // 如果當前選中的是資料夾，則設為預設父資料夾
+          if (currentSelectedMaterial && currentSelectedMaterial.id === folder.id && currentSelectedMaterial.name) {
+            option.selected = true;
+          }
+          select.appendChild(option);
         });
       } catch (error) {
         console.error('Failed to load folders:', error);
@@ -1790,7 +1855,12 @@
         const folders = await apiRequest('/materials/folders');
         const select = modal.querySelector('#materialFolder');
         folders.forEach(folder => {
-          select.appendChild(el('option', {value: folder.id}, folder.path));
+          const option = el('option', {value: folder.id}, folder.path);
+          // 如果當前選中的是資料夾，則設為預設所屬資料夾
+          if (currentSelectedMaterial && currentSelectedMaterial.id === folder.id && currentSelectedMaterial.name) {
+            option.selected = true;
+          }
+          select.appendChild(option);
         });
       } catch (error) {
         console.error('Failed to load folders:', error);
@@ -1844,6 +1914,121 @@
       } catch (error) {
         console.error('Failed to create material:', error);
         toast(`${type === 'page' ? '教材頁面' : 'PDF教材'}建立失敗`);
+      }
+    }
+
+    // 刪除功能
+    async function deleteFolderConfirm(folder) {
+      if (!confirm(`確定要刪除資料夾「${folder.name}」嗎？此操作不可復原。`)) {
+        return;
+      }
+
+      try {
+        await apiRequest(`/materials/folders/${folder.id}`, {
+          method: 'DELETE'
+        });
+
+        toast('資料夾刪除成功');
+        currentSelectedMaterial = null;
+        renderMaterials(); // 重新載入教材樹
+      } catch (error) {
+        console.error('Failed to delete folder:', error);
+        if (error.message.includes('400')) {
+          toast('無法刪除：資料夾包含子項目');
+        } else {
+          toast('資料夾刪除失敗');
+        }
+      }
+    }
+
+    async function deleteMaterialConfirm(material) {
+      if (!confirm(`確定要刪除教材「${material.title}」嗎？此操作不可復原。`)) {
+        return;
+      }
+
+      try {
+        await apiRequest(`/materials/${material.id}`, {
+          method: 'DELETE'
+        });
+
+        toast('教材刪除成功');
+        currentSelectedMaterial = null;
+        renderMaterials(); // 重新載入教材樹
+      } catch (error) {
+        console.error('Failed to delete material:', error);
+        toast('教材刪除失敗');
+      }
+    }
+
+    // Modal 功能
+    function openModal(content) {
+      const overlay = el('div', {
+        class: 'modal-overlay',
+        style: 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000',
+        onclick: (e) => {
+          if (e.target === overlay) closeModal();
+        }
+      }, content);
+
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      const overlay = document.querySelector('.modal-overlay');
+      if (overlay) {
+        overlay.remove();
+        document.body.style.overflow = '';
+      }
+    }
+
+    // 預覽功能
+    function previewMaterial(material) {
+      if (material.type === 'pdf' && material.fileUrl) {
+        // PDF 預覽
+        const modal = el('div', {class: 'modal-content', style: 'max-width: 90vw; max-height: 90vh'},
+          el('div', {class: 'modal-header'},
+            el('h3', {}, `預覽 PDF: ${material.title}`),
+            el('button', {class: 'btn-close', onclick: closeModal}, '×')
+          ),
+          el('div', {class: 'modal-body', style: 'height: 70vh; overflow: hidden'},
+            el('iframe', {
+              src: material.fileUrl,
+              style: 'width: 100%; height: 100%; border: none',
+              title: material.title
+            })
+          ),
+          el('div', {class: 'modal-footer'},
+            el('a', {
+              href: material.fileUrl,
+              target: '_blank',
+              class: 'btn primary'
+            }, '在新窗口中打開'),
+            el('button', {class: 'btn', onclick: closeModal}, '關閉')
+          )
+        );
+        openModal(modal);
+      } else if (material.type === 'page') {
+        // 教材頁面預覽
+        const content = material.content || '暫無內容';
+        const modal = el('div', {class: 'modal-content'},
+          el('div', {class: 'modal-header'},
+            el('h3', {}, `預覽教材: ${material.title}`),
+            el('button', {class: 'btn-close', onclick: closeModal}, '×')
+          ),
+          el('div', {class: 'modal-body'},
+            el('div', {class: 'card'},
+              el('h4', {}, '教材內容'),
+              el('div', {
+                style: 'white-space: pre-wrap; line-height: 1.6; padding: 16px; background: #f8f9fa; border-radius: 4px; max-height: 400px; overflow-y: auto'
+              }, content)
+            )
+          ),
+          el('div', {class: 'modal-footer'},
+            el('button', {class: 'btn', onclick: closeModal}, '關閉')
+          )
+        );
+        openModal(modal);
       }
     }
 
