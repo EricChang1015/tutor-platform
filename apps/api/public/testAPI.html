@@ -1122,6 +1122,29 @@
             description: '測試教材CRUD功能與資料夾樹',
             tests: [
                 {
+                    id: 'folders_list',
+                    name: '取得資料夾列表',
+                    method: 'GET',
+                    endpoint: '/materials/folders',
+                    requireAuth: false,
+                    expectedStatus: 200,
+                    expectedFields: ['0.id', '0.name', '0.path']
+                },
+                {
+                    id: 'folders_create',
+                    name: '建立資料夾',
+                    method: 'POST',
+                    endpoint: '/materials/folders',
+                    requireAuth: true,
+                    expectedStatus: 201,
+                    expectedFields: ['id', 'name', 'path'],
+                    roles: ['admin', 'teacher'],
+                    data: () => ({
+                        name: '測試資料夾',
+                        description: '這是一個測試資料夾'
+                    })
+                },
+                {
                     id: 'materials_list',
                     name: '取得教材列表',
                     method: 'GET',
@@ -1158,20 +1181,36 @@
                     expectedFields: ['items']
                 },
                 {
-                    id: 'materials_create',
-                    name: '建立教材',
+                    id: 'materials_create_page',
+                    name: '建立教材頁面',
                     method: 'POST',
                     endpoint: '/materials',
                     requireAuth: true,
                     expectedStatus: 201,
-                    expectedFields: ['id', 'title'],
+                    expectedFields: ['id', 'title', 'type'],
                     roles: ['admin', 'teacher'],
                     data: () => ({
                         type: 'page',
-                        title: '測試教材',
-                        content: '這是一個測試教材內容',
-                        folderId: null
+                        title: '測試教材頁面',
+                        content: '這是一個測試教材內容'
                     })
+                },
+                {
+                    id: 'materials_create_pdf',
+                    name: '上傳PDF教材',
+                    method: 'POST',
+                    endpoint: '/materials',
+                    requireAuth: true,
+                    expectedStatus: 201,
+                    expectedFields: ['id', 'title', 'type', 'fileUrl'],
+                    roles: ['admin', 'teacher'],
+                    isMultipart: true,
+                    data: () => ({
+                        type: 'pdf',
+                        title: '測試PDF教材'
+                    }),
+                    fileField: 'file',
+                    testFile: 'test_material.pdf'
                 }
             ]
         },

@@ -1525,6 +1525,9 @@
       showOnly('view-materials');
       $("#materials-actions").classList.toggle('hidden', currentUser?.role !== 'admin');
 
+      // 綁定按鈕事件
+      bindMaterialsActions();
+
       try {
         const response = await apiRequest('/materials?include=all');
         renderMaterialsTree(response.folders || []);
@@ -1533,6 +1536,32 @@
         console.error('Failed to load materials:', error);
         toast('載入教材失敗');
       }
+    }
+
+    function bindMaterialsActions() {
+      // 移除舊的事件監聽器
+      const actions = $("#materials-actions");
+      const newActions = actions.cloneNode(true);
+      actions.parentNode.replaceChild(newActions, actions);
+
+      // 綁定新的事件監聽器
+      newActions.addEventListener('click', async (e) => {
+        const action = e.target.getAttribute('data-mt-action');
+        if (!action) return;
+
+        e.preventDefault();
+        switch (action) {
+          case 'add-folder':
+            await showAddFolderModal();
+            break;
+          case 'add-page':
+            await showAddMaterialModal('page');
+            break;
+          case 'add-pdf':
+            await showAddMaterialModal('pdf');
+            break;
+        }
+      });
     }
 
     function renderMaterialsTree(folders) {
@@ -1652,6 +1681,170 @@
       DB.courseContext = {id: material.id, name: name};
       goto('teachers');
       toast('已帶入教材至預約流程');
+    }
+
+    // 教材管理功能
+    async function showAddFolderModal() {
+      const modal = el('div', {class: 'modal-content'},
+        el('div', {class: 'modal-header'},
+          el('h3', {}, '新增資料夾'),
+          el('button', {class: 'btn-close', onclick: closeModal}, '×')
+        ),
+        el('div', {class: 'modal-body'},
+          el('div', {class: 'form-group'},
+            el('label', {}, '資料夾名稱'),
+            el('input', {type: 'text', id: 'folderName', placeholder: '請輸入資料夾名稱'})
+          ),
+          el('div', {class: 'form-group'},
+            el('label', {}, '父資料夾'),
+            el('select', {id: 'parentFolder'},
+              el('option', {value: ''}, '無（根目錄）')
+            )
+          ),
+          el('div', {class: 'form-group'},
+            el('label', {}, '描述'),
+            el('textarea', {id: 'folderDescription', placeholder: '請輸入資料夾描述'})
+          )
+        ),
+        el('div', {class: 'modal-footer'},
+          el('button', {class: 'btn', onclick: closeModal}, '取消'),
+          el('button', {class: 'btn primary', onclick: createFolder}, '建立')
+        )
+      );
+
+      // 載入資料夾選項
+      try {
+        const folders = await apiRequest('/materials/folders');
+        const select = modal.querySelector('#parentFolder');
+        folders.forEach(folder => {
+          select.appendChild(el('option', {value: folder.id}, folder.path));
+        });
+      } catch (error) {
+        console.error('Failed to load folders:', error);
+      }
+
+      openModal(modal);
+    }
+
+    async function createFolder() {
+      const name = $('#folderName').value.trim();
+      const parentId = $('#parentFolder').value || null;
+      const description = $('#folderDescription').value.trim();
+
+      if (!name) {
+        toast('請輸入資料夾名稱');
+        return;
+      }
+
+      try {
+        await apiRequest('/materials/folders', {
+          method: 'POST',
+          body: JSON.stringify({ name, parentId, description })
+        });
+
+        toast('資料夾建立成功');
+        closeModal();
+        renderMaterials(); // 重新載入教材樹
+      } catch (error) {
+        console.error('Failed to create folder:', error);
+        toast('資料夾建立失敗');
+      }
+    }
+
+    async function showAddMaterialModal(type) {
+      const isPage = type === 'page';
+      const modal = el('div', {class: 'modal-content'},
+        el('div', {class: 'modal-header'},
+          el('h3', {}, `新增${isPage ? '教材頁面' : 'PDF教材'}`),
+          el('button', {class: 'btn-close', onclick: closeModal}, '×')
+        ),
+        el('div', {class: 'modal-body'},
+          el('div', {class: 'form-group'},
+            el('label', {}, '教材標題'),
+            el('input', {type: 'text', id: 'materialTitle', placeholder: '請輸入教材標題'})
+          ),
+          el('div', {class: 'form-group'},
+            el('label', {}, '所屬資料夾'),
+            el('select', {id: 'materialFolder'},
+              el('option', {value: ''}, '無（根目錄）')
+            )
+          ),
+          isPage ?
+            el('div', {class: 'form-group'},
+              el('label', {}, '教材內容'),
+              el('textarea', {id: 'materialContent', rows: 6, placeholder: '請輸入教材內容'})
+            ) :
+            el('div', {class: 'form-group'},
+              el('label', {}, 'PDF檔案'),
+              el('input', {type: 'file', id: 'materialFile', accept: '.pdf'})
+            )
+        ),
+        el('div', {class: 'modal-footer'},
+          el('button', {class: 'btn', onclick: closeModal}, '取消'),
+          el('button', {class: 'btn primary', onclick: () => createMaterial(type)}, '建立')
+        )
+      );
+
+      // 載入資料夾選項
+      try {
+        const folders = await apiRequest('/materials/folders');
+        const select = modal.querySelector('#materialFolder');
+        folders.forEach(folder => {
+          select.appendChild(el('option', {value: folder.id}, folder.path));
+        });
+      } catch (error) {
+        console.error('Failed to load folders:', error);
+      }
+
+      openModal(modal);
+    }
+
+    async function createMaterial(type) {
+      const title = $('#materialTitle').value.trim();
+      const folderId = $('#materialFolder').value || null;
+
+      if (!title) {
+        toast('請輸入教材標題');
+        return;
+      }
+
+      try {
+        if (type === 'page') {
+          const content = $('#materialContent').value.trim();
+          await apiRequest('/materials', {
+            method: 'POST',
+            body: JSON.stringify({ type, title, folderId, content })
+          });
+        } else {
+          // PDF 檔案上傳
+          const fileInput = $('#materialFile');
+          const file = fileInput.files[0];
+
+          if (!file) {
+            toast('請選擇PDF檔案');
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append('type', type);
+          formData.append('title', title);
+          if (folderId) formData.append('folderId', folderId);
+          formData.append('file', file);
+
+          await apiRequest('/materials', {
+            method: 'POST',
+            body: formData,
+            headers: {} // 讓瀏覽器自動設定 Content-Type
+          });
+        }
+
+        toast(`${type === 'page' ? '教材頁面' : 'PDF教材'}建立成功`);
+        closeModal();
+        renderMaterials(); // 重新載入教材樹
+      } catch (error) {
+        console.error('Failed to create material:', error);
+        toast(`${type === 'page' ? '教材頁面' : 'PDF教材'}建立失敗`);
+      }
     }
 
     // 預約列表
