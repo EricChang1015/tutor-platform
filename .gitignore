@@ -6,3 +6,5 @@ api/dist/
 web/dist/
 apps/api/dist/
 apps/web/dist/
+
+apps/web/.env
