@@ -1,6 +1,6 @@
 -- 家教平台資料庫結構 (PostgreSQL)
 -- 建立時間: 2025-09-30
--- 更新時間: 2025-10-12 (整合所有遷移)
+-- 更新時間: 2025-10-31 (整合遷移 004, 005, 006, 007；初始資料移至 init_*.sql)
 
 -- 建立擴展
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -293,23 +293,35 @@ DECLARE
     available_count INTEGER;
     required_duration_minutes INTEGER;
     required_slots INTEGER;
+    check_needed BOOLEAN := FALSE;
 BEGIN
-    -- 計算預約持續時間（分鐘）
-    required_duration_minutes := EXTRACT(EPOCH FROM (NEW.ends_at - NEW.starts_at)) / 60;
-    required_slots := CEIL(required_duration_minutes / 30.0);
+    -- 僅在 INSERT 或時間/教師變更時檢查
+    IF TG_OP = 'INSERT' THEN
+        check_needed := TRUE;
+    ELSIF TG_OP = 'UPDATE' THEN
+        IF (OLD.starts_at IS DISTINCT FROM NEW.starts_at)
+           OR (OLD.ends_at IS DISTINCT FROM NEW.ends_at)
+           OR (OLD.teacher_id IS DISTINCT FROM NEW.teacher_id) THEN
+            check_needed := TRUE;
+        END IF;
+    END IF;
 
-    -- 檢查教師在該UTC時間範圍內是否有足夠的可用時間槽
-    -- 使用正確的時間重疊邏輯：start_time_utc < end_time AND end_time_utc > start_time
-    SELECT COUNT(*) INTO available_count
-    FROM teacher_availability
-    WHERE teacher_id = NEW.teacher_id
-      AND start_time_utc < NEW.ends_at
-      AND end_time_utc > NEW.starts_at
-      AND status = 'available';
+    IF check_needed THEN
+        -- 計算預約持續時間（分鐘）
+        required_duration_minutes := EXTRACT(EPOCH FROM (NEW.ends_at - NEW.starts_at)) / 60;
+        required_slots := CEIL(required_duration_minutes / 30.0);
 
-    -- 如果可用時間槽數量不足，拋出錯誤
-    IF available_count < required_slots THEN
-        RAISE EXCEPTION 'Teacher is not available for the requested time slots. Required: %, Available: %', required_slots, available_count;
+        -- 檢查教師在該UTC時間範圍內是否有足夠的可用時間槽
+        SELECT COUNT(*) INTO available_count
+        FROM teacher_availability
+        WHERE teacher_id = NEW.teacher_id
+          AND start_time_utc < NEW.ends_at
+          AND end_time_utc > NEW.starts_at
+          AND status = 'available';
+
+        IF available_count < required_slots THEN
+            RAISE EXCEPTION 'Teacher is not available for the requested time slots. Required: %, Available: %', required_slots, available_count;
+        END IF;
     END IF;
 
     RETURN NEW;
@@ -338,45 +350,66 @@ CREATE INDEX idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX idx_notifications_type ON notifications(type);
 CREATE INDEX idx_notifications_read_at ON notifications(read_at);
 
--- 插入預設資料
-INSERT INTO users (id, email, password_hash, role, name, locale) VALUES
-('11111111-1111-1111-1111-111111111111', 'admin@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'System Admin', 'zh-TW'),
-('22222222-2222-2222-2222-222222222222', 'teacher1@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher', 'Teacher One', 'zh-TW'),
-('44444444-4444-4444-4444-444444444444', 'teacher2@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher', 'Teacher Two', 'zh-TW'),
-('33333333-3333-3333-3333-333333333333', 'student1@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'Student One', 'zh-TW'),
-('55555555-5555-5555-5555-555555555555', 'student2@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'Student Two', 'zh-TW');
+-- 課後證據（booking_evidences）與 bookings 擴充欄位
+CREATE TABLE IF NOT EXISTS booking_evidences (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  booking_id UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+  file_id UUID NOT NULL REFERENCES uploads(id) ON DELETE CASCADE,
+  uploaded_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (booking_id, file_id)
+);
 
--- 插入教師詳細資料
-INSERT INTO teacher_profiles (user_id, intro, experience_years, experience_since, domains, regions, unit_price_usd) VALUES
-('22222222-2222-2222-2222-222222222222', '經驗豐富的英語教師，專精於會話和文法教學。', 5, 2020, '["English", "Conversation"]', '["Taiwan"]', 25.00),
-('44444444-4444-4444-4444-444444444444', '母語英語教師，專精於發音和口音訓練。', 8, 2017, '["English", "Pronunciation", "IELTS"]', '["Taiwan", "Online"]', 30.00);
+CREATE INDEX IF NOT EXISTS idx_booking_evidences_booking ON booking_evidences(booking_id);
 
--- 插入教材資料
-INSERT INTO materials (title, type, folder_id, content) VALUES
-('Free Talking', 'page', NULL, 'Open conversation practice - no specific materials needed'),
-('Business English Basics', 'page', NULL, 'Introduction to business communication and professional vocabulary'),
-('IELTS Speaking Practice', 'pdf', NULL, 'IELTS speaking test preparation materials and practice questions'),
-('Grammar Fundamentals', 'page', NULL, 'Basic English grammar rules and exercises for beginners'),
-('Pronunciation Workshop', 'page', NULL, 'Improve your English pronunciation with guided exercises');
+-- 擴充 bookings 欄位（課後回報）
+ALTER TABLE bookings
+  ADD COLUMN IF NOT EXISTS teacher_comment TEXT,
+  ADD COLUMN IF NOT EXISTS teacher_report_submitted_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS post_class_report_status VARCHAR(20) CHECK (post_class_report_status IN ('none','submitted','verified')) DEFAULT 'none';
 
--- 插入學生購買項目範例
-INSERT INTO purchases (id, student_id, package_name, quantity, remaining, type, purchased_at, activated_at, expires_at, status) VALUES
-('44444444-4444-4444-4444-444444444444', '33333333-3333-3333-3333-333333333333', '體驗卡', 2, 2, 'trial_card', NOW(), NOW(), NOW() + INTERVAL '14 days', 'active'),
-('55555555-5555-5555-5555-555555555555', '33333333-3333-3333-3333-333333333333', '約課次卡', 10, 10, 'lesson_card', NOW(), NOW(), NOW() + INTERVAL '90 days', 'active'),
-('66666666-6666-6666-6666-666666666666', '55555555-5555-5555-5555-555555555555', '體驗卡', 2, 2, 'trial_card', NOW(), NOW(), NOW() + INTERVAL '14 days', 'active');
+-- 多級資料夾（folders）
+CREATE TABLE IF NOT EXISTS folders (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    parent_id UUID NULL REFERENCES folders(id) ON DELETE CASCADE,
+    path TEXT NOT NULL,
+    description TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
--- 這裡為每個教師建立未來7天的基本可用時間槽
-INSERT INTO teacher_availability (teacher_id, date, time_slot, status)
-SELECT
-    u.id as teacher_id,
-    (CURRENT_DATE + i)::date as date,
-    slot as time_slot,
-    'available' as status
-FROM users u
-    CROSS JOIN generate_series(1, 7) as i  -- 未來7天
-    CROSS JOIN generate_series(18, 47) as slot  -- 09:00 到 23:30 的時間槽
-WHERE u.role = 'teacher' AND u.active = true
-ON CONFLICT (teacher_id, date, time_slot) DO NOTHING;
+-- 索引
+CREATE INDEX IF NOT EXISTS idx_folders_parent_id ON folders(parent_id);
+CREATE INDEX IF NOT EXISTS idx_folders_path ON folders(path);
+CREATE INDEX IF NOT EXISTS idx_folders_name ON folders(name);
+
+-- 更新觸發器
+CREATE OR REPLACE FUNCTION update_folders_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER trigger_folders_updated_at
+    BEFORE UPDATE ON folders
+    FOR EACH ROW
+    EXECUTE FUNCTION update_folders_updated_at();
+
+-- materials.folder_id 外鍵
+ALTER TABLE materials
+ADD CONSTRAINT IF NOT EXISTS fk_materials_folder_id
+FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE SET NULL;
+
+-- 註釋（新欄位與表）
+COMMENT ON TABLE booking_evidences IS '課後證據：關聯 bookings 與 uploads';
+COMMENT ON COLUMN booking_evidences.uploaded_by IS '上傳者（通常為該課老師或管理員）';
+COMMENT ON COLUMN bookings.teacher_comment IS '老師給學生的課後評語';
+COMMENT ON COLUMN bookings.teacher_report_submitted_at IS '老師課後回報提交時間';
+COMMENT ON COLUMN bookings.post_class_report_status IS '課後回報狀態：none/submitted/verified';
+
 
 -- 添加註釋說明重要欄位
 

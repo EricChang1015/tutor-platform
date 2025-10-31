@@ -15,6 +15,12 @@ services:
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
       - ./database/create_db.sql:/docker-entrypoint-initdb.d/01-create_db.sql
+      - ./database/init_users.sql:/docker-entrypoint-initdb.d/02-init_users.sql
+      - ./database/init_teacher_profiles.sql:/docker-entrypoint-initdb.d/03-init_teacher_profiles.sql
+      - ./database/init_materials.sql:/docker-entrypoint-initdb.d/04-init_materials.sql
+      - ./database/init_purchases.sql:/docker-entrypoint-initdb.d/05-init_purchases.sql
+      - ./database/init_teacher_availability.sql:/docker-entrypoint-initdb.d/06-init_teacher_availability.sql
+      - ./database/init_folders.sql:/docker-entrypoint-initdb.d/07-init_folders.sql
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U tutor -d tutordb"]
