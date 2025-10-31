@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
+  import { page } from '$app/stores';
   import { auth } from '$lib/stores/auth';
   import { getTeachers } from '$lib/api/endpoints';
   import { goto } from '$app/navigation';
@@ -54,7 +55,7 @@
   {:else}
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
       {#each items as t (t.id)}
-        <TeacherCard teacher={t} />
+        <TeacherCard teacher={t} query={$page.url.search} />
       {/each}
     </div>
   {/if}

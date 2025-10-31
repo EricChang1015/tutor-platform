@@ -1,6 +1,11 @@
 import { apiFetch } from './client';
 import type { paths } from '../types/api';
 
+export async function getMaterials(params?: { include?: 'all'|'root'|'flat'; depth?: number; folderId?: string; type?: 'page'|'pdf'; q?: string; page?: number; pageSize?: number }) {
+  type Res = paths['/materials']['get']['responses'][200]['content']['application/json'];
+  return apiFetch<Res>({ path: '/materials', query: params, auth: true });
+}
+
 export async function login(username: string, password: string) {
   type Res = paths['/auth/login']['post']['responses'][200]['content']['application/json'];
   const data = await apiFetch<Res>({

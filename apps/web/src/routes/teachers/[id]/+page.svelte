@@ -3,6 +3,7 @@
   import { get } from 'svelte/store';
   import { auth } from '$lib/stores/auth';
   import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
   import { getTeacher, getTeacherTimetable, createBooking } from '$lib/api/endpoints';
   import { todayInTaipei, toTaipeiIso } from '$lib/utils/datetime';
 
@@ -14,6 +15,8 @@
   let loading = true;
   let error: string | null = null;
   let bookingMsg: string | null = null;
+  let selectedMaterialId: string | null = null;
+  let selectedCourseTitle: string | null = null;
 
   async function loadTeacher() {
     teacher = await getTeacher(params.id);
@@ -35,6 +38,8 @@
 
   onMount(() => {
     if (!get(auth).accessToken) { goto('/login'); return; }
+    selectedMaterialId = $page.url.searchParams.get('materialId');
+    selectedCourseTitle = $page.url.searchParams.get('courseTitle');
     init();
   });
 
@@ -42,7 +47,7 @@
     bookingMsg = null; error = null;
     try {
       const startsAt = toTaipeiIso(date, slot.time || slot.localTime || slot.localTimeFormatted?.slice(11,16));
-      await createBooking({ teacherId: params.id, startsAt, durationMinutes: 30, source: 'student' });
+      await createBooking({ teacherId: params.id, startsAt, durationMinutes: 30, source: 'student', courseTitle: selectedCourseTitle ?? null, materialId: selectedMaterialId ?? null });
       bookingMsg = '預約成功！';
       await loadSlots();
     } catch (e: any) {
@@ -61,6 +66,10 @@
       <img src={teacher?.avatarUrl ?? 'https://placehold.co/96?text=T'} width="96" height="96" style="border-radius:8px" />
       <div style="flex:1">
         <h2 style="margin:8px 0">{teacher?.name ?? teacher?.user?.name}</h2>
+      {#if selectedCourseTitle}
+        <div style="padding:6px 10px;border:1px solid #ddd;border-radius:16px;background:#fff8e1;color:#795548">課程：{selectedCourseTitle}</div>
+      {/if}
+
         <div style="color:#666">{teacher?.profile?.intro ?? ''}</div>
       </div>
     </div>

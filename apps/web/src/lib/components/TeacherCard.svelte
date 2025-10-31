@@ -1,8 +1,11 @@
 <script lang="ts">
   export let teacher: any;
+  export let query: string | undefined;
+  const id = teacher?.id ?? teacher?.userId ?? teacher?.user?.id ?? '';
+  const href = `/teachers/${id}${query ?? ''}`;
 </script>
 
-<a href={`/teachers/${teacher?.id ?? teacher?.userId ?? teacher?.user?.id ?? ''}`} style="text-decoration:none;color:inherit">
+<a {href} style="text-decoration:none;color:inherit">
   <div style="border:1px solid #eee;border-radius:8px;padding:12px;display:flex;gap:12px;align-items:center">
     <img src={teacher?.avatarUrl ?? 'https://placehold.co/48x48?text=T'} alt="avatar" width="48" height="48" style="border-radius:50%" />
     <div style="flex:1">
