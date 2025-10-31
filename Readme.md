@@ -291,6 +291,8 @@ curl -X 'POST' \
 - `favorites` - 收藏關係
 - `purchases` - 購買記錄
 - `uploads` - 檔案上傳記錄
+- `booking_evidences` - 課後證據（關聯 bookings 與 uploads）
+
 
 ### 資料庫特色
 - **UUID 主鍵**: 所有表使用 UUID 作為主鍵，避免 ID 猜測
@@ -355,6 +357,11 @@ docker-compose exec db psql -U tutor -d tutordb -c "\dt"
 docker-compose exec db pg_dump -U tutor tutordb > backup.sql
 
 # 還原資料庫
+
+> 注意：
+> - 初始資料已自 create_db.sql 分離為數個檔案（database/init_*.sql），並由 docker-compose 以 /docker-entrypoint-initdb.d/0X-*.sql 掛載。
+> - 僅在資料庫資料目錄為空時（第一次啟動）這些檔案會自動執行；既有環境請以 migrations/ 下的 SQL 逐一套用。
+
 docker-compose exec -T db psql -U tutor -d tutordb < backup.sql
 ```
 
