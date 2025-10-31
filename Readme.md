@@ -2,14 +2,6 @@
 
 一個現代化的線上家教預約平台，支援多語言，提供完整的教師管理、學生預約、課程管理、課後證據上傳與報表功能。
 
-## 📋 最新功能（v1.3.0）
-- ✅ 課後證據上傳與綁定 booking（老師可上傳課程截圖）
-- ✅ 老師課後評語（commentToStudent）
-- ✅ Admin 全域預約查詢與篩選（/admin/bookings）
-- ✅ 報表功能（/reports/admin 與 /reports/teacher）
-- ✅ 支援圖片格式的課後證據（jpg/png/webp）
-- 📖 詳細說明請參考 [報表與證據功能文檔](docs/reports-evidence-feature.md)
-
 ## 🚀 功能特色
 
 ### 核心功能
@@ -29,20 +21,6 @@
 - **檔案儲存**: MinIO 物件儲存，支援頭像、相簿等檔案管理
 - **郵件服務**: 完整的郵件通知系統
 - **安全認證**: JWT 認證，角色權限控制
-
-### 最新功能 (v1.3.0)
-- ✅ **課後證據**：老師可對每堂課上傳截圖並與 booking 綁定（MinIO，category=class_recording）
-- ✅ **老師課後評語**：/post-class/{id}/teacher-report 支援 commentToStudent 與 evidenceFileIds
-- ✅ **Admin 全域預約清單**：/admin/bookings 支援學生/老師/證據/結算等條件過濾，內含 progress
-- ✅ **報表增強**：/reports/admin、/reports/teacher 回傳 financials/earnings 匯總
-- ✅ **OpenAPI 1.3.0**：更新 docs/openAPI.yaml 與新增 docs/markdown.md 說明
-- ✅ **相容性**：新增欄位皆為 optional，不破壞既有端點
-
-## 🧭 文檔與測試整合說明
-
-- 本專案已將根目錄與 docs 目錄中的 Markdown 文檔整合到本 README（保留必要的 API 規格 openAPI.yaml 與示意資源）。
-- 測試腳本已整合為單一入口：run_all_tests.sh，可一次性跑完所有現有測試。
-- 過時或重複的報告類文檔已移除，以避免資訊重複與混淆。
 
 ## 🛠 技術架構
 
@@ -125,18 +103,6 @@
 node test_e2e_all.js
 ```
 > 說明：此腳本依照 OpenAPI 實作端點，涵蓋：登入/用戶/教師/可用時間/次卡購買與激活/預約（創建、可選改期、可選留言、取消）/收藏/上傳/教材/通知/Admin 統計等。
-
-### 快速測試
-```bash
-# 執行完整 API 測試
-chmod +x test_all_apis.sh
-./test_all_apis.sh
-
-# 手動測試登入
-curl -X POST http://localhost:3001/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"student1@example.com","password":"password"}'
-```
 
 ## 📚 API 文檔
 
@@ -274,8 +240,6 @@ curl -X 'POST' \
 - `GET /purchases` - 購買記錄
 - `GET /admin/*` - 管理員功能
 
-
-
 ## 🗄 資料庫結構
 
 ### 主要資料表
@@ -317,7 +281,7 @@ curl -X 'POST' \
 
 1. **克隆並安裝**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/EricChang1015/tutor-platform.git
    cd tutor-platform
    cd apps/api
    npm install
@@ -325,11 +289,7 @@ curl -X 'POST' \
 
 2. **環境配置**
    ```bash
-   # 複製環境變數範本
-   cp .env.example .env
-
-   # 編輯環境變數
-   nano .env
+   vim .env
    ```
 
 3. **啟動開發服務**
@@ -412,14 +372,6 @@ apps/api/src/
 1. **環境變數配置**
    ```bash
    # 修改 docker-compose.yml 或使用 .env 檔案
-   NODE_ENV=production
-   JWT_SECRET=your-super-secure-production-secret
-   DATABASE_URL=postgresql://user:pass@host:5432/dbname
-   MINIO_ACCESS_KEY=your-minio-access-key
-   MINIO_SECRET_KEY=your-minio-secret-key
-   SMTP_HOST=your-smtp-server
-   SMTP_USER=your-smtp-user
-   SMTP_PASS=your-smtp-password
    ```
 
 2. **SSL 和反向代理**
@@ -449,59 +401,15 @@ apps/api/src/
    find /backup -name "tutor_*.sql.gz" -mtime +30 -delete
    ```
 
-## 🔄 更新日誌
-### v1.3.0 (2025-10-12)
-- 新增 booking 級別課後證據（MinIO）並與預約綁定
-- 老師課後評語與 evidenceFileIds 綁定
-- Admin 全域預約清單（多條件過濾，含 progress）
-- 報表增強：Admin/Teacher 金額彙總欄位
-- OpenAPI 更新至 1.3.0，新增 docs/markdown.md
-
-
-
-### v1.2.0 (2025-10-06)
-- ✅ **重大修復**: 統一時區處理，使用 Asia/Taipei
-- ✅ **預約系統**: 修復相鄰時段衝突問題
-- ✅ **檔案上傳**: 新增頭像上傳功能
-- ✅ **收藏功能**: 完整的教師收藏系統
-- ✅ **評價系統**: 課程評價和教師評分
-- ✅ **通知系統**: 即時通知功能
-- ✅ **API 文檔**: 完善所有 API 文檔
-- ✅ **測試覆蓋**: 添加完整的 API 測試套件
-
-### v1.1.0 (2025-09-30)
-- 基礎功能實現
-- 用戶認證系統
-- 教師管理功能
-- 預約系統基礎版本
-
 ## 📞 支援和聯絡
 
 ### 技術支援
 - **文檔**: 查看本 README 和 API 文檔
-- **問題回報**: [GitHub Issues](https://github.com/your-repo/issues)
-- **功能請求**: [GitHub Discussions](https://github.com/your-repo/discussions)
+- **問題回報**: [GitHub Issues](https://github.com/EricChang1015/tutor-platform/issues)
+- **功能請求**: [GitHub Discussions](https://github.com/EricChang1015/tutor-platform/discussions)
 
 ### 聯絡資訊
 - **專案維護者**: Tutor Platform Team
-- **技術支援**: support@tutorplatform.com
-- **商務合作**: business@tutorplatform.com
-
-## 📄 授權
-
-本專案採用 MIT 授權條款。詳見 [LICENSE](LICENSE) 檔案。
+- **商務合作**: eric.chang.1015@gmail.com
 
 ---
-
-**⚠️ 重要提醒**:
-- 這是一個演示專案，請勿在生產環境中使用預設的密鑰和憑證
-- 生產部署前請更改所有預設密碼和密鑰
-- 建議啟用 HTTPS 和其他安全措施
-- 定期備份資料庫和重要檔案
-
-**🎯 專案狀態**:
-- ✅ 核心功能完成
-- ✅ 時區統一使用 Asia/Taipei
-- ✅ API 文檔完整
-- ✅ 測試覆蓋充足
-- 🚀 準備生產部署
