@@ -20,3 +20,14 @@ export function formatInTaipei(iso: string | Date) {
   }).format(d);
 }
 
+export function todayInTaipei() {
+  const now = new Date();
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
+  return fmt.format(now); // YYYY-MM-DD
+}
+
+export function toTaipeiIso(date: string, time: string) {
+  // date: YYYY-MM-DD, time: HH:mm -> ISO 8601 with +08:00
+  return `${date}T${time}:00+08:00`;
+}
+
