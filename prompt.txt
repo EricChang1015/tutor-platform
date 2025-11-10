@@ -1,0 +1,80 @@
+Project Task + Command Rules (tutor-platform)
+
+Context
+- Repo: tutor-platform
+- Current branch: feature/teacher-dashboard-and-reports-ui
+- Backend API base: http://localhost:3001
+- Frontend dev server: http://localhost:5173
+- Package manager: npm (default)
+
+Default permissions (no need to ask again)
+- Git: commit and push to current branch after each small, verifiable feature step.
+- Docker compose: up/ps/logs for backend services.
+- Local checks: curl health checks, run scripts/tests/linters/builds.
+- Frontend: run dev server, generate OpenAPI types.
+- NPM: install dev deps needed for the frontend (e.g., openapi-typescript) and app deps as required.
+
+Tasklist rules
+- Use tasklist to track work. Triggers: multi-file work, multi-step features, or ambiguous scope.
+- Keep exactly one IN_PROGRESS; mark completed tasks [x] and summarize outcomes.
+- Start with “Investigate/Understand …” when needed, then create 1–3 small subtasks at a time.
+- Aim each subtask ≈ 10 minutes of work; avoid overly granular steps.
+- Batch state updates: complete previous and set next IN_PROGRESS in one update.
+
+Commit rules
+- Commit after each minimal, working change that’s been locally verified.
+- Commit message style (Chinese, scope prefix):
+  - feat(web): 完成 XXX 頁面基本串接
+  - fix(api): 修正 XXX 邏輯/錯誤
+  - chore(docs): 更新文件 XXX
+- Push to current branch without asking.
+
+Development commands (reference)
+- Backend:
+  - docker-compose up -d
+  - docker-compose ps
+  - docker-compose logs api -f
+- API smoke tests (optional during iteration):
+  - node test_e2e_all.js
+  - ./test_comprehensive_api.sh
+- Frontend:
+  - cd apps/web && npm install (when deps change)
+  - npm run dev
+  - npx openapi-typescript docs/openAPI.yaml -o apps/web/src/lib/types/api.ts
+- Quick health checks:
+  - curl -s -o /dev/null -w '%{http_code}' http://localhost:3001/api-docs
+  - curl -s -o /dev/null -w '%{http_code}' http://localhost:5173/
+
+Frontend architecture (current)
+- SvelteKit (apps/web):
+  - Routes: /login, /teachers, /teachers/[id], /bookings, /materials
+  - API: src/lib/api/client.ts (fetch wrapper, Authorization, JSON/FormData, 401→refresh)
+  - Endpoints: src/lib/api/endpoints.ts (auth, teachers, availability, bookings, materials)
+  - Stores: src/lib/stores/auth.ts (tokens+me, localStorage)
+  - Utils: src/lib/utils/datetime.ts (Asia/Taipei ISO, slot helpers)
+- Env: apps/web/.env(.example) → VITE_API_BASE=http://localhost:3001
+
+API integration conventions
+- Always send startsAt as ISO8601 with timezone (+08:00 for Taipei tools).
+- Use GET /teacher-availability/teacher-timetable for slots; filter canReserve/isOnline.
+- Booking POST /bookings supports materialId and courseTitle; pass them when available.
+- Use OpenAPI types from src/lib/types/api.ts when practical; fallback to minimal any for speed but migrate to types incrementally.
+
+UI/UX conventions (align with demo.html)
+- After login, navigate to /teachers.
+- Materials → select material → go to /teachers with materialId & courseTitle in query → choose teacher → book.
+- Show basic error messages; later replace with Toast/Modal per demo.
+
+What’s done
+- /login (login→me→/teachers), /teachers (list + search), /teachers/[id] (detail + timetable + booking), /bookings (list + cancel), /materials (folder+materials, select and pass context).
+
+Immediate next candidates (pick as needed)
+- Materials: preview (PDF iframe / page text), search & pagination.
+- Error handling: friendly messages for 409/422 with actionable suggestions.
+- Route guards & role-based tabs; basic SSE notifications.
+- Admin/Teacher back office pages per plan.
+
+When to ask
+- Destructive ops (DB migrations/changes), external deployments, or scope that alters backend APIs.
+- Unclear product decisions; otherwise proceed with best minimal viable implementation and iterate.
+
